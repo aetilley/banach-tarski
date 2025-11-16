@@ -5,8 +5,16 @@ import Mathlib.GroupTheory.FreeGroup.Basic
 import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Action.Defs
 import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
+import Mathlib.Data.Countable.Defs
+import Mathlib.SetTheory.Cardinal.Basic
+
+import BanachTarski.Common
+import BanachTarski.Sato
+import BanachTarski.GeometricUtils
+
 
 set_option warningAsError false
+set_option linter.all false
 
 def Equidecomposible {X : Type*} (G: Type*) [Group G] [MulAction G X] (E F : Set X): Prop :=
   ∃ n: Nat,
@@ -20,7 +28,8 @@ def Equidecomposible {X : Type*} (G: Type*) [Group G] [MulAction G X] (E F : Set
   (∀ i : Fin n, ((fun (x: X) ↦ (g i) • x) '' (As i)) = Bs i)
 
 
-lemma ml {i j: ℕ} {m n: Fin (i * j)} : m ≠ n → m.divNat ≠ n.divNat ∨ (m.divNat = n.divNat ∧ m.modNat ≠ n.modNat) := by
+lemma ml {i j: ℕ} {m n: Fin (i * j)} : m ≠ n → m.divNat ≠ n.divNat ∨
+  (m.divNat = n.divNat ∧ m.modNat ≠ n.modNat) := by
 
   contrapose!
   intro lhs
@@ -28,8 +37,8 @@ lemma ml {i j: ℕ} {m n: Fin (i * j)} : m ≠ n → m.divNat ≠ n.divNat ∨ (
   let eqmod := lhs.right eqdiv
   have eq: (m.divNat, m.modNat) = (n.divNat, n.modNat) := by
     apply Prod.ext
-    exact eqdiv
-    exact eqmod
+    · exact eqdiv
+    · exact eqmod
 
   have resm : _ := finProdFinEquiv.right_inv m
   have resn : _ := finProdFinEquiv.right_inv n
@@ -41,21 +50,23 @@ lemma ml {i j: ℕ} {m n: Fin (i * j)} : m ≠ n → m.divNat ≠ n.divNat ∨ (
   _ = n := by rw [resn]
 
 
-lemma ml2 {i j: ℕ} {m n: Fin (i * j)} : m ≠ n → m.modNat ≠ n.modNat ∨ (m.modNat = n.modNat ∧ m.divNat ≠ n.divNat) := by
+lemma ml2 {i j: ℕ} {m n: Fin (i * j)} : m ≠ n → m.modNat ≠ n.modNat ∨
+  (m.modNat = n.modNat ∧ m.divNat ≠ n.divNat) := by
   intro mneqn
   have res :_ := ml mneqn
   tauto
 
 
-def f {X : Type*} {G: Type*} [Group G] [MulAction G X] (g : G): X → X := fun x: X ↦ g • x
 
-lemma fcomp {X : Type*} {G: Type*} [Group G] [MulAction G X] (g h : G): (fun x:X ↦ (g * h) • x) = (fun x : X ↦ g • x) ∘ (fun x: X ↦ h • x) := by
+lemma fcomp {X : Type*} {G: Type*} [Group G] [MulAction G X] (g h : G) :
+(fun x:X ↦ (g * h) • x) = (fun x : X ↦ g • x) ∘ (fun x: X ↦ h • x) := by
   simp [mul_smul g h]
   rfl
 
-lemma finj {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G): Function.Injective (fun x ↦ g • x : X → X) := by
+lemma finj {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) :
+Function.Injective (fun x ↦ g • x : X → X) := by
   intro a b eq
-  simp [f] at eq
+  simp at eq
   exact eq
 
 lemma equidecomposibility_trans {X : Type*} {G: Type*} [Group G] [MulAction G X] :
@@ -275,7 +286,8 @@ lemma equidecomposibility_trans {X : Type*} {G: Type*} [Group G] [MulAction G X]
 
     have lem3:_ := pmapLM i.divNat
     rw [lem3]
-    have rest :  ((fun a ↦ gMN i.modNat • a) ∘ fun a ↦ gLM i.divNat • a) '' ((fun a ↦ (gLM i.divNat)⁻¹ • a) '' AMs i.modNat) = BNs i.modNat := by
+    have rest :  ((fun a ↦ gMN i.modNat • a) ∘ fun a ↦ gLM i.divNat • a) ''
+    ((fun a ↦ (gLM i.divNat)⁻¹ • a) '' AMs i.modNat) = BNs i.modNat := by
       rw [Set.image_comp]
       rw [← Set.image_comp (fun a ↦ gLM i.divNat • a)]
       simp
@@ -661,25 +673,207 @@ Paradoxical H E → Paradoxical G E:= by
 
 def SelfParadoxical (G: Type*) [Group G] : Prop := Paradoxical G (Set.univ: Set G)
 
-theorem paradoxical_preserved_by_iso {X: Type*} {G H: Type*} [Group G] [Group H] [MulAction G X] [MulAction H X] (E: Set X)(i: G ≃*H ):
-(∀x: X, ∀g : G, (i g) • x  = g • x) → Paradoxical G E → Paradoxical H E := sorry
+theorem paradoxical_preserved_by_iso {X Y: Type*} {G H: Type*} [Group G] [Group H] [MulAction G X] [MulAction H Y] (E: Set X)(iso: G ≃*H )(f: X ≃ Y):
+(∀x: X, ∀g : G, (iso g) • (f x)  = f (g • x)) → Paradoxical G E → Paradoxical H (f '' E) := by
 
-theorem self_paradoxical_preserved_by_iso {G H: Type*} [Group G] [Group H] :
-SelfParadoxical G → G ≃* H → SelfParadoxical H := sorry
+  intro good_behavior
+  rintro ⟨neE, C, D, csube, dsube, disjcd, equiGCE, equiGDE⟩
 
-abbrev FG2 := FreeGroup (Fin 2)
+  let imE := f '' E
+  have neimE : Set.Nonempty imE := by
+    apply Set.Nonempty.image
+    exact neE
 
-abbrev chartype := Fin 2 × Bool
+  let imC := f '' C
+  let imD := f '' D
+  let imcsubime: imC ⊆ imE :=  by
+    --oddly while there is Set.image_subset_image_iff, there
+    -- is no one-directional version (that does not require Injectiveness)
+    apply Set.image_subset_iff.mpr
+    intro c cinC
+    have this:_ := csube cinC
+    simp
+    simp [imE]
+    exact this
+
+  let imdsubime: imD ⊆ imE :=  by
+    --oddly while there is Set.image_subset_image_iff, there
+    -- is no one-directional version (that does not require Injectiveness)
+    apply Set.image_subset_iff.mpr
+    intro d dinD
+    have this:_ := dsube dinD
+    simp
+    simp [imE]
+    exact this
+
+  let disjimcimd : Disjoint imC imD := by
+    let inj : (Function.Injective f) := Equiv.injective f
+    apply (Set.disjoint_image_iff inj).mpr
+    exact disjcd
+
+
+  obtain ⟨n, CAs, CBs, pdCA, pdCB, coverCA, coverCB, gC, pmapC⟩ := equiGCE
+  obtain ⟨m, DAs, DBs, pdDA, pdDB, coverDA, coverDB, gD, pmapD⟩ := equiGDE
+
+  let fCAs := fun k ↦ f '' (CAs k)
+  let fCBs := fun k ↦ f '' (CBs k)
+  let fDAs := fun k ↦ f '' (DAs k)
+  let fDBs := fun k ↦ f '' (DBs k)
+  let igC := fun k ↦ iso (gC k)
+  let igD := fun k ↦ iso (gD k)
+
+  have pdfCA :  ∀ (i j : Fin n), i ≠ j → Disjoint (fCAs i) (fCAs j) := by
+    intro i j ineqj
+    apply (Set.disjoint_image_iff (Equiv.injective f)).mpr
+    exact pdCA i j ineqj
+
+  have pdfDA :  ∀ (i j : Fin m), i ≠ j → Disjoint (fDAs i) (fDAs j) := by
+    intro i j ineqj
+    apply (Set.disjoint_image_iff (Equiv.injective f)).mpr
+    exact pdDA i j ineqj
+
+  have pdfCB :  ∀ (i j : Fin n), i ≠ j → Disjoint (fCBs i) (fCBs j) := by
+    intro i j ineqj
+    apply (Set.disjoint_image_iff (Equiv.injective f)).mpr
+    exact pdCB i j ineqj
+
+  have pdfDB :  ∀ (i j : Fin m), i ≠ j → Disjoint (fDBs i) (fDBs j) := by
+    intro i j ineqj
+    apply (Set.disjoint_image_iff (Equiv.injective f)).mpr
+    exact pdDB i j ineqj
+
+  have coverfCA: ⋃ i, fCAs i = imC := by
+    simp [fCAs, imC]
+    rw [←coverCA]
+    apply Set.image_iUnion.symm
+
+  have coverfDA: ⋃ i, fDAs i = imD := by
+    simp [fDAs, imD]
+    rw [←coverDA]
+    apply Set.image_iUnion.symm
+
+  have coverfCB: ⋃ i, fCBs i = imE := by
+    simp [fCBs, imE]
+    rw [←coverCB]
+    apply Set.image_iUnion.symm
+
+  have coverfDB: ⋃ i, fDBs i = imE := by
+    simp [fDBs, imE]
+    rw [←coverDB]
+    apply Set.image_iUnion.symm
+
+
+  have ipmapfC: ∀ (i : Fin n), (fun x ↦ igC i • x) '' fCAs i = fCBs i := by
+    intro i
+    have old: (fun x ↦ gC i • x) '' CAs i = CBs i := pmapC i
+    ext y
+    constructor
+    intro yinL
+    simp at yinL
+    obtain ⟨y1, py1⟩ := yinL
+    simp [fCBs]
+    simp [fCAs] at py1
+    have gby1 :_:= good_behavior (f.symm y1) (gC i)
+    simp [igC] at py1
+    simp at gby1
+    rw [py1.right] at gby1
+    rw [gby1]
+    simp
+    rw [←old]
+    simp
+    exact py1.left
+    --
+    intro yinfcbs
+    simp [fCAs]
+    simp [fCBs] at yinfcbs
+    rw [←old] at yinfcbs
+    simp at yinfcbs
+    obtain ⟨x, px⟩ := yinfcbs
+    use f x
+    simp
+    constructor
+    exact px.left
+    have gbi :_:= (good_behavior x (gC i))
+    simp [igC]
+    rw [gbi]
+    simp [px.right]
+
+
+  have ipmapfD: ∀ (i : Fin m), (fun x ↦ igD i • x) '' fDAs i = fDBs i := by
+    intro i
+    have old: (fun x ↦ gD i • x) '' DAs i = DBs i := pmapD i
+    ext y
+    constructor
+    intro yinL
+    simp at yinL
+    obtain ⟨y1, py1⟩ := yinL
+    simp [fDBs]
+    simp [fDAs] at py1
+    have gby1 :_:= good_behavior (f.symm y1) (gD i)
+    simp [igD] at py1
+    simp at gby1
+    rw [py1.right] at gby1
+    rw [gby1]
+    simp
+    rw [←old]
+    simp
+    exact py1.left
+    --
+    intro yinfcbs
+    simp [fDAs]
+    simp [fDBs] at yinfcbs
+    rw [←old] at yinfcbs
+    simp at yinfcbs
+    obtain ⟨x, px⟩ := yinfcbs
+    use f x
+    simp
+    constructor
+    exact px.left
+    have gbi :_:= (good_behavior x (gD i))
+    simp [igD]
+    rw [gbi]
+    simp [px.right]
+
+  have equiHimCimE: Equidecomposible H imC imE := ⟨n, fCAs, fCBs, pdfCA, pdfCB, coverfCA, coverfCB, igC, ipmapfC⟩
+  have equiHimDimE: Equidecomposible H imD imE := ⟨m, fDAs, fDBs, pdfDA, pdfDB, coverfDA, coverfDB, igD, ipmapfD⟩
+
+  exact ⟨neimE, imC, imD, imcsubime, imdsubime, disjimcimd, equiHimCimE, equiHimDimE⟩
+
+
+theorem self_paradoxical_preserved_by_iso {G H: Type*} [Group G] [Group H] : SelfParadoxical G → G ≃* H → SelfParadoxical H := by
+  simp [SelfParadoxical]
+  intro selfparaG
+  intro iso
+  let g_univ:= (Set.univ : Set G)
+  have cond1: ∀x: G, ∀g : G, (iso g) • (iso x)  = iso (g • x) := by
+    intro x g
+    simp
+  have this: Paradoxical H (iso '' g_univ):= paradoxical_preserved_by_iso g_univ iso iso.toEquiv cond1 selfparaG
+  have image_res: iso '' g_univ = (Set.univ: Set H) := by
+    ext x
+    constructor
+    intro lhs
+    simp
+    intro rhs
+    simp
+    use (iso.invFun x)
+    simp
+    simp [g_univ]
+
+  rwa [image_res] at this
+
+
+
+
+
+
+
 
 lemma split2 (i: Fin 2): i = 0 ∨ i = 1 := by
   rcases (em (i=0)) with yes | no
   exact Or.inl yes
   exact Or.inr (Fin.eq_one_of_ne_zero i no)
 
-def σchar := (0: Fin 2)
-def τchar := (1: Fin 2)
-def σ := FreeGroup.of (σchar)
-def τ := FreeGroup.of (τchar)
 
 lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
 
@@ -773,6 +967,7 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
 
 
 
+
 -- Equidecomposible FG2 C Dom
   let n := 2
   let As := ![σDom, σinvDom]
@@ -801,15 +996,57 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
       simp [i1, j1] at ineqj
 
   have disσσ: σDom ∩ σσinvDom  = ∅ := by
-    simp [σDom, σσinvDom]
+    simp only [σDom, σσinvDom]
     apply Set.eq_empty_iff_forall_notMem.mpr
     intro x xinboth
     simp at xinboth
-    simp [σinvDom] at xinboth
+    simp only [σinvDom] at xinboth
     obtain ⟨x1, px1⟩ := xinboth.left.right
     obtain ⟨x2, px2⟩ := xinboth.right.right
-    -- second can't start with sigma
-    sorry
+
+    have stepx2: FreeGroup.Red.Step ([(σchar, true)] ++ (σchar, false)::x2)  x2 := by
+      exact FreeGroup.Red.Step.cons_not
+
+    have whole_is_reduced : FreeGroup.IsReduced (FreeGroup.toWord (σ⁻¹ * x) ) := by
+      exact FreeGroup.isReduced_toWord
+
+    have x2_is_reduced: FreeGroup.IsReduced x2 := by
+      rw [px2] at whole_is_reduced
+      by_contra cont0
+      have ugly:_:= (mt (FreeGroup.isReduced_iff_not_step.mpr)) cont0
+      simp at ugly
+      obtain ⟨l, pl⟩ := ugly
+      have badred: FreeGroup.Red ((σchar, false)::x2) ((σchar, false)::l) :=
+        FreeGroup.Red.cons_cons (FreeGroup.Red.Step.to_red pl)
+      have badeq: (σchar, false)::l = (σchar, false)::x2 :=
+        (FreeGroup.IsReduced.red_iff_eq whole_is_reduced).mp badred
+
+      have so: l.length = x2.length := by
+        have better: l = x2 :=  (List.cons_eq_cons.mp badeq).right
+        rw [better]
+      have diff_len : _:= FreeGroup.Red.Step.length pl
+      linarith [so, diff_len]
+
+
+    have bad :_ := calc FreeGroup.toWord x
+      _ = FreeGroup.toWord (σ * (σ⁻¹ * x)) := by simp
+      _ = FreeGroup.reduce (FreeGroup.toWord (σ) ++ FreeGroup.toWord (σ⁻¹ * x)) := by exact FreeGroup.toWord_mul σ (σ⁻¹ * x)
+      _ = FreeGroup.reduce ([((σchar), true)] ++ FreeGroup.toWord (σ⁻¹ * x)) := by rw [show σ = FreeGroup.of σchar from rfl, FreeGroup.toWord_of σchar, show σchar = (0: Fin 2) from rfl]
+      _ = FreeGroup.reduce ([(σchar, true)] ++ (σchar, false)::x2 ) := by rw [px2]
+      _ = FreeGroup.reduce (x2) := by apply FreeGroup.reduce.Step.eq stepx2
+      _ = x2:= by apply FreeGroup.IsReduced.reduce_eq x2_is_reduced
+
+    have bad3: x2 = (0, true) :: x1 := Eq.trans bad.symm px1
+    have bad4: FreeGroup.toWord (σ⁻¹ * x) = (0, false)::(0, true)::x1 := by
+      rwa [bad3] at px2
+
+    have step: FreeGroup.Red.Step (FreeGroup.toWord (σ⁻¹ * x)) x1 := by
+      rw [bad4]
+      exact FreeGroup.Red.Step.cons_not
+    let L1 := (0, false) :: (0, not false) ::x1
+
+
+    exact ((FreeGroup.isReduced_iff_not_step.mp whole_is_reduced) x1) step
 
 
 
@@ -839,7 +1076,7 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
 
 
   have coverACs : (⋃ i : Fin n, (As i)) = C := by
-      simp [As, Bs]
+      simp [As]
       ext x
       constructor
       rintro ⟨i, pi⟩
@@ -868,9 +1105,95 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
       simp
       exact right
 
-  have coverlem: ∀ x∈Dom, x ∈ σDom ∨ x ∈ σσinvDom := sorry
+  have σcoverlem: ∀ x∈Dom, x ∈ σDom ∨ x ∈ σσinvDom := by
+    intro x xinDom
+    rcases (em (x = 1)) with isone | notone
+    have resone: x ∈ σσinvDom := by
+      simp [σσinvDom]
+      simp [isone]
+      simp [σinvDom]
+      constructor
+      simp [Dom]
+      use []
+      simp [FreeGroup.invRev]
+    right
+    exact resone
+
+    set w := FreeGroup.toWord x with wdef
+    have notempt :w ≠ [] := by
+      rw [wdef]
+      apply mt (FreeGroup.toWord_eq_nil_iff.mp)
+      exact notone
+
+    set h:= List.head w notempt with hdef
+    let xform: w = h::(w.tail) := by
+      apply List.eq_cons_of_mem_head?
+      simp
+      rw [hdef]
+      apply List.head?_eq_head notempt
+    rw [wdef] at xform
+
+    rcases wopts h with c1 | c2 |c3 |c4
+    left
+    simp [σDom]
+    constructor
+    exact xinDom
+    use w.tail
+    rw [←wdef]
+    apply List.eq_cons_of_mem_head?
+    simp
+    rw [c1] at hdef
+    rw [List.head?_eq_head notempt]
+    rw [←hdef]
+    simp [σchar]
+
+    --
+    right
+    simp [σσinvDom]
+    simp [σinvDom]
+    constructor
+    simp [Dom]
+    use x.toWord
+
+
+    rw [FreeGroup.toWord_mul]
+    simp
+    simp [FreeGroup.invRev]
+    rw [xform]
+    simp
+    simp [c2]
+    --
+    right
+    simp [σσinvDom]
+    simp [σinvDom]
+    constructor
+    simp [Dom]
+    use x.toWord
+    rw [FreeGroup.toWord_mul]
+    simp
+    simp [FreeGroup.invRev]
+    rw [xform]
+    simp
+    simp [c3]
+    tauto
+    --
+    right
+    simp [σσinvDom]
+    simp [σinvDom]
+    constructor
+    simp [Dom]
+    use x.toWord
+    rw [FreeGroup.toWord_mul]
+    simp
+    simp [FreeGroup.invRev]
+    rw [xform]
+    simp
+    simp [c4]
+
+
+
   have coverBGCs : (⋃ i : Fin n, (Bs i)) = Dom := by
-      simp [As, Bs]
+      simp [Bs]
       ext x
       constructor
       rintro ⟨i, pi⟩
@@ -884,7 +1207,7 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
       simp [Dom]
       --
       intro xinDom
-      rcases (coverlem x xinDom) with left | right
+      rcases (σcoverlem x xinDom) with left | right
       simp
       use 0
       simp
@@ -896,7 +1219,10 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
 
 
 
-  have siginv_lem : (fun x ↦ σ⁻¹ * x) ⁻¹' σinvDom = σσinvDom := sorry
+  have siginv_lem : (fun x ↦ σ⁻¹ * x) ⁻¹' σinvDom = σσinvDom := by
+    simp [σσinvDom, σinvDom]
+
+
 
   let g: Fin n → FG2 := ![1, σ]
 
@@ -941,6 +1267,9 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
     exact Bool.false_ne_true bool_eq
 
 
+
+
+
   have pdAs :  (∀ i j : Fin n, (i ≠ j) → Disjoint (As i) (As j)) := by
       intro i j ineqj
       apply Set.disjoint_iff.mpr
@@ -964,17 +1293,57 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
       simp [i1, j1] at ineqj
 
   have disττ: τDom ∩ ττinvDom  = ∅ := by
-    simp [τDom, ττinvDom]
+    simp only [τDom, ττinvDom]
     apply Set.eq_empty_iff_forall_notMem.mpr
     intro x xinboth
     simp at xinboth
-    simp [τinvDom] at xinboth
+    simp only [τinvDom] at xinboth
     obtain ⟨x1, px1⟩ := xinboth.left.right
     obtain ⟨x2, px2⟩ := xinboth.right.right
-    rw [FreeGroup.toWord_mul] at px2
-    rw [px1] at px2
-    simp [τ] at px2
-    sorry
+
+    have stepx2: FreeGroup.Red.Step ([(τchar, true)] ++ (τchar, false)::x2)  x2 := by
+      exact FreeGroup.Red.Step.cons_not
+
+    have whole_is_reduced : FreeGroup.IsReduced (FreeGroup.toWord (τ⁻¹ * x) ) := by
+      exact FreeGroup.isReduced_toWord
+
+    have x2_is_reduced: FreeGroup.IsReduced x2 := by
+      rw [px2] at whole_is_reduced
+      by_contra cont0
+      have ugly:_:= (mt (FreeGroup.isReduced_iff_not_step.mpr)) cont0
+      simp at ugly
+      obtain ⟨l, pl⟩ := ugly
+      have badred: FreeGroup.Red ((τchar, false)::x2) ((τchar, false)::l) :=
+        FreeGroup.Red.cons_cons (FreeGroup.Red.Step.to_red pl)
+      have badeq: (τchar, false)::l = (τchar, false)::x2 :=
+        (FreeGroup.IsReduced.red_iff_eq whole_is_reduced).mp badred
+
+      have so: l.length = x2.length := by
+        have better: l = x2 :=  (List.cons_eq_cons.mp badeq).right
+        rw [better]
+      have diff_len : _:= FreeGroup.Red.Step.length pl
+      linarith [so, diff_len]
+
+
+    have bad :_ := calc FreeGroup.toWord x
+      _ = FreeGroup.toWord (τ * (τ⁻¹ * x)) := by simp
+      _ = FreeGroup.reduce (FreeGroup.toWord (τ) ++ FreeGroup.toWord (τ⁻¹ * x)) := by exact FreeGroup.toWord_mul τ (τ⁻¹ * x)
+      _ = FreeGroup.reduce ([((τchar), true)] ++ FreeGroup.toWord (τ⁻¹ * x)) := by rw [show τ = FreeGroup.of τchar from rfl, FreeGroup.toWord_of τchar, show τchar = (1: Fin 2) from rfl]
+      _ = FreeGroup.reduce ([(τchar, true)] ++ (τchar, false)::x2 ) := by rw [px2]
+      _ = FreeGroup.reduce (x2) := by apply FreeGroup.reduce.Step.eq stepx2
+      _ = x2:= by apply FreeGroup.IsReduced.reduce_eq x2_is_reduced
+
+    have bad3: x2 = (1, true) :: x1 := Eq.trans bad.symm px1
+    have bad4: FreeGroup.toWord (τ⁻¹ * x) = (1, false)::(1, true)::x1 := by
+      rwa [bad3] at px2
+
+    have step: FreeGroup.Red.Step (FreeGroup.toWord (τ⁻¹ * x)) x1 := by
+      rw [bad4]
+      exact FreeGroup.Red.Step.cons_not
+    let L1 := (0, false) :: (0, not false) ::x1
+
+
+    exact ((FreeGroup.isReduced_iff_not_step.mp whole_is_reduced) x1) step
 
 
   have pdBs :  (∀ i j : Fin n, (i ≠ j) → Disjoint (Bs i) (Bs j)) := by
@@ -1002,7 +1371,7 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
 
   have coverADs : (⋃ i : Fin n, (As i)) = D := by
 
-      simp [As, Bs]
+      simp [As]
       ext x
       constructor
       rintro ⟨i, pi⟩
@@ -1032,9 +1401,97 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
       exact right
 
 
-  have τcoverlem: ∀ x∈Dom, x ∈ τDom ∨ x ∈ ττinvDom := sorry
+  have τcoverlem: ∀ x∈Dom, x ∈ τDom ∨ x ∈ ττinvDom := by
+    intro x xinDom
+    rcases (em (x = 1)) with isone | notone
+    have resone: x ∈ ττinvDom := by
+      simp [ττinvDom]
+      simp [isone]
+      simp [τinvDom]
+      constructor
+      simp [Dom]
+      use []
+      simp [FreeGroup.invRev]
+    right
+    exact resone
+
+    set w := FreeGroup.toWord x with wdef
+    have notempt :w ≠ [] := by
+      rw [wdef]
+      apply mt (FreeGroup.toWord_eq_nil_iff.mp)
+      exact notone
+
+    set h:= List.head w notempt with hdef
+    let xform: w = h::(w.tail) := by
+      apply List.eq_cons_of_mem_head?
+      simp
+      rw [hdef]
+      apply List.head?_eq_head notempt
+    rw [wdef] at xform
+
+    rcases wopts h with c1 | c2 |c3 |c4
+    right
+    simp [ττinvDom]
+    simp [τinvDom]
+    constructor
+    simp [Dom]
+    use x.toWord
+
+
+    rw [FreeGroup.toWord_mul]
+    simp
+    simp [FreeGroup.invRev]
+    rw [xform]
+    simp
+    simp [c1]
+    simp [τchar]
+
+    --
+    right
+    simp [ττinvDom]
+    simp [τinvDom]
+    constructor
+    simp [Dom]
+    use x.toWord
+
+
+    rw [FreeGroup.toWord_mul]
+    simp
+    simp [FreeGroup.invRev]
+    rw [xform]
+    simp
+    simp [c2]
+    --
+    left
+    simp [τDom]
+    constructor
+    exact xinDom
+    use w.tail
+    rw [←wdef]
+    apply List.eq_cons_of_mem_head?
+    simp
+    rw [c3] at hdef
+    rw [List.head?_eq_head notempt]
+    rw [←hdef]
+    simp [τchar]
+
+    --
+    right
+    simp [ττinvDom]
+    simp [τinvDom]
+    constructor
+    simp [Dom]
+    use x.toWord
+    rw [FreeGroup.toWord_mul]
+    simp
+    simp [FreeGroup.invRev]
+    rw [xform]
+    simp
+    simp [c4]
+
+
   have coverBGDs : (⋃ i : Fin n, (Bs i)) = Dom := by
-      simp [As, Bs]
+      simp [Bs]
       ext x
       constructor
       rintro ⟨i, pi⟩
@@ -1059,7 +1516,9 @@ lemma free_group_of_rank_two_is_self_paradoxical: SelfParadoxical FG2 := by
       exact right
 
 
-  have tauinv_lem : (fun x ↦ τ⁻¹ * x) ⁻¹' τinvDom = ττinvDom := sorry
+  have tauinv_lem : (fun x ↦ τ⁻¹ * x) ⁻¹' τinvDom = ττinvDom := by
+    simp [ττinvDom, τinvDom]
+
   let g: Fin n → FG2 := ![1, τ]
   have pmap_d:   (∀ i : Fin n, ((fun (x: FG2) ↦ (g i) * x) '' (As i)) = Bs i) := by
     intro i
@@ -1102,7 +1561,23 @@ theorem paradoxical_of_action_of_self_paradoxical {X : Type*} (G: Type*) [Group 
     obtain ⟨n, Bs, Ds, pdBs, pdDs, coverBs, coverDs, gB, pmap_b⟩ := equiBDom
 
     let orbits := { (MulAction.orbit G x) | x ∈ Dom}
-    have orbit_containment: ∀O ∈ orbits, O ⊆ Dom := sorry
+    have orbit_containment: ∀O ∈ orbits, O ⊆ Dom := by
+      intro O Oinorbits
+      intro y yinO
+      simp [orbits] at Oinorbits
+      obtain ⟨x, px⟩ := Oinorbits
+      rw [←px.right] at yinO
+      simp [MulAction.orbit] at yinO
+      obtain ⟨g, pg⟩ := yinO
+      have that: y ∈ f g '' Dom := by
+        simp
+        use x
+        constructor
+        exact px.left
+        exact pg
+      exact (eclosed g) that
+
+
     let orbits_type := {S : Set X // S ∈ orbits}
     let id: orbits_type → Set X := fun x ↦ x.val
 
@@ -1119,6 +1594,19 @@ theorem paradoxical_of_action_of_self_paradoxical {X : Type*} (G: Type*) [Group 
     obtain ⟨choice, pchoice⟩ := choice_function_exists
 
     let choice_set := Set.range choice
+    have cssubDom: choice_set ⊆ Dom := by
+      simp [choice_set]
+      intro x xinchoice
+      simp  at xinchoice
+      obtain ⟨y, py⟩ := xinchoice
+      have res:_:= pchoice y
+      simp [id] at res
+      have cont:_ := orbit_containment y
+      simp [orbits] at cont
+      have more:_ := cont res
+      rwa [py] at more
+
+
     have pdinter: ∀ (g h : G), (g ≠ h) → Disjoint (f g '' choice_set) (f h '' choice_set) := by
       intro g h gneh
       apply Set.disjoint_iff.mpr
@@ -1127,8 +1615,11 @@ theorem paradoxical_of_action_of_self_paradoxical {X : Type*} (G: Type*) [Group 
       simp at inhimage
       obtain ⟨yg, pyg⟩ := ingimage
       obtain ⟨yh, pyh⟩ := inhimage
-      have ygindom: yg ∈ Dom := sorry
-      have yhindom: yh ∈ Dom := sorry
+      have ygindom: yg ∈ Dom := by
+        exact cssubDom pyg.left
+
+      have yhindom: yh ∈ Dom := by
+        exact cssubDom pyh.left
 
       have lem: g • yg = h • yh := by
         simp [f] at pyg pyh
@@ -1197,7 +1688,18 @@ theorem paradoxical_of_action_of_self_paradoxical {X : Type*} (G: Type*) [Group 
 
 
     let star: Set G → Set X := fun (S: Set G) ↦ ⋃ g ∈ S, f g '' choice_set
-    have star_in_dom: ∀ H : Set G, star H ⊆ Dom := sorry
+    have star_in_dom: ∀ H : Set G, star H ⊆ Dom := by
+      intro H
+      intro x xin
+      simp [star] at xin
+      obtain ⟨g, ginH, y, yinchoice, piy⟩ := xin
+      rw [←piy]
+      have yindom: y ∈ Dom := cssubDom yinchoice
+      have better: f g y ∈ f g '' Dom := by
+        simp
+        use y
+      exact (eclosed g) better
+
     let As' := fun k: Fin m ↦ star (As k)
     let Bs' := fun k: Fin n ↦ star (Bs k)
     let gA' := gA
@@ -1223,348 +1725,361 @@ theorem paradoxical_of_action_of_self_paradoxical {X : Type*} (G: Type*) [Group 
       intro j
       intro gbi gbi_in_bsi
       intro gai gai_in_asi
-      have neq: gai ≠ gbi := sorry
+      have neq: gai ≠ gbi := by
+        by_contra badeq
+        let x := gai
+        have xinA: x ∈ A := by
+          rw [←coverAs]
+          simp [Set.mem_iUnion]
+          use j
+        have xinB: x ∈ B := by
+          rw [←coverBs]
+          simp [Set.mem_iUnion]
+          use i
+          simp [x]
+          rw [badeq]
+          exact gbi_in_bsi
+
+        exact Set.disjoint_iff.mp disjab ⟨xinA, xinB⟩
+
       exact pdinter gai gbi neq
 
+    -- let star: Set G → Set X := fun (S: Set G) ↦ ⋃ g ∈ S, f g '' choice_set
+    -- let As' := fun k: Fin m ↦ star (As k)
+    -- let Bs' := fun k: Fin n ↦ star (Bs k)
 
     have equiCE : Equidecomposible G C Dom := by
       let Xs' k := (f (gA k)) '' (As' k)
-      have pdAs': (∀ i j : Fin m, (i ≠ j) → Disjoint (As' i) (As' j)) := sorry
-      have pdXs' :  (∀ i j : Fin m, (i ≠ j) → Disjoint (Xs' i) (Xs' j)) := sorry
-      have coverAs' : (⋃ i : Fin m, (As' i)) = C := sorry
-      have coverXs' : (⋃ i : Fin m, (Xs' i)) = Dom := sorry
-      have pmap_A:   (∀ i : Fin m, (f (gA i) '' (As' i)) = (Xs' i)) := sorry
+      have pdAs': (∀ i j : Fin m, (i ≠ j) → Disjoint (As' i) (As' j)) := by
+        intro i j inej
+        apply Set.disjoint_iff.mpr
+        simp only [As']
+        simp only [star]
+        intro x xinBoth
+        simp
+        simp [Set.mem_iUnion] at xinBoth
+        obtain ⟨g1, g1inG, c1, c1inc, pg1⟩ := xinBoth.left
+        obtain ⟨g2, g2inG, c2, c2inc, pg2⟩ := xinBoth.right
+        have sameg: g1 = g2 := by
+          by_contra g1neg2
+          have dischoice: _ := pdinter g1 g2 g1neg2
+          have choicedisj : _ := Set.disjoint_iff.mp dischoice
+
+          have xinim1 : x ∈ ((f g1) '' choice_set) := by
+            simp
+            use c1
+
+          have xinim2 : x ∈ ((f g2) '' choice_set) := by
+            simp
+            use c2
+
+          exact choicedisj ⟨xinim1, xinim2⟩
+        have Asdisj:_:= pdAs i j inej
+        rw [←sameg] at g2inG
+        exact (Set.disjoint_iff.mp Asdisj) ⟨g1inG, g2inG⟩
+
+
+      have pdXs': (∀ i j : Fin m, (i ≠ j) → Disjoint (Xs' i) (Xs' j)) := by
+        intro i j inej
+        apply Set.disjoint_iff.mpr
+        simp only [Xs']
+        intro x xinBoth
+        simp
+        simp at xinBoth
+        obtain ⟨a1, a1inA, pa1⟩ := xinBoth.left
+        obtain ⟨a2, a2inA, pa2⟩ := xinBoth.right
+        simp [As', star] at a1inA
+        simp [As', star ] at a2inA
+        obtain ⟨g1, g1inG, c1, c1incs, pg1⟩ := a1inA
+        obtain ⟨g2, g2inG, c2, c2incs, pg2⟩ := a2inA
+        rw [← pg1] at pa1
+        rw [← pg2] at pa2
+        have eqggs : (gA i) * g1 = (gA j) * g2 := by
+          by_contra ggsne
+          have disjgg:_:= pdinter ((gA i) * g1) ((gA j) * g2) ggsne
+          have eqdisj:_ := Set.disjoint_iff.mp disjgg
+          have xinl : x ∈ (f ((gA i) * g1)) '' choice_set := by
+            simp
+            use c1
+            constructor
+            exact c1incs
+            simp [f]
+            simp [f] at pa1
+            rw [←mul_smul] at pa1
+            exact pa1
+
+          have xinr : x ∈ (f ((gA j) * g2)) '' choice_set := by
+            simp
+            use c2
+            constructor
+            exact c2incs
+            simp [f]
+            simp [f] at pa2
+            rw [←mul_smul] at pa2
+            exact pa2
+          exact eqdisj ⟨xinl, xinr⟩
+
+        let y := (gA i) * g1
+        have yincsi: y ∈ (Cs i) := by
+          rw [← pmap_a i]
+          simp [y]
+          exact g1inG
+        have yincsj: y ∈ (Cs j) := by
+          rw [← pmap_a j]
+          simp [y]
+          rw [eqggs]
+          simp
+          exact g2inG
+        have disjcs := pdCs i j inej
+        exact Set.disjoint_iff.mp disjcs ⟨yincsi, yincsj⟩
+
+
+      have coverAs' : (⋃ i : Fin m, (As' i)) = C := by
+        simp [As', C]
+
+
+      have coverXs' : (⋃ i : Fin m, (Xs' i)) = Dom := by
+        simp [Xs']
+        simp [As']
+        simp [star]
+        ext x
+        constructor
+        intro xinunion
+        simp [Set.mem_iUnion] at xinunion
+        obtain ⟨i, g, ginasi, c, cincs, pigc⟩ := xinunion
+        have int : f g c ∈ Dom := by
+          have that: f g c ∈ f g '' Dom := by
+            simp
+            use c
+            constructor
+            exact cssubDom cincs
+            rfl
+          exact (eclosed (g)) that
+        have int2 : x ∈ f (gA i) '' Dom := by
+          rw [←pigc]
+          simp
+          use (f g c)
+        exact (eclosed (gA i)) int2
+        --
+        intro xindom
+        simp [Set.mem_iUnion]
+        let orbit_set := MulAction.orbit G x
+        have orbit_prop : orbit_set ∈ orbits := by
+          simp [orbits]
+          simp [orbit_set]
+          use x
+        let orbit: orbits_type := ⟨orbit_set, orbit_prop⟩
+        set c := choice (orbit) with cdef
+        have pc :_:= pchoice orbit
+        rw [←cdef] at pc
+        simp [id] at pc
+        simp [orbit] at pc
+        simp [orbit_set] at pc
+        simp [MulAction.orbit] at pc
+
+        obtain ⟨g, pg⟩ := pc
+
+        have that: ∃ g : G, f g c = x := by
+          use g⁻¹
+          simp [f]
+          rw [←pg]
+          simp
+
+        obtain ⟨g, pg⟩ := that
+        have ginuniv: g ∈ Set.univ := by simp
+        rw [←coverCs] at ginuniv
+        simp [Set.mem_iUnion] at ginuniv
+        obtain ⟨i, pi⟩ := ginuniv
+        rw [←pmap_a i] at pi
+        simp at pi
+        use i
+        use ((gA i)⁻¹ * g)
+        constructor
+        exact pi
+        use c
+        constructor
+        simp [choice_set]
+        use orbit
+        rw [←pg]
+        simp [f]
+        rw [←mul_smul]
+        simp
+
+
+      have pmap_A:   (∀ i : Fin m, (f (gA i) '' (As' i)) = (Xs' i)) := by
+        intro i
+        simp [As', Xs']
+
       exact ⟨m, As', Xs', pdAs', pdXs', coverAs', coverXs', gA, pmap_A⟩
 
 
     have equiDE : Equidecomposible G D Dom := by
       let Ys' k := (f (gB k)) '' (Bs' k)
-      have pdBs': (∀ i j : Fin n, (i ≠ j) → Disjoint (Bs' i) (Bs' j)) := sorry
-      have pdYs' :  (∀ i j : Fin n, (i ≠ j) → Disjoint (Ys' i) (Ys' j)) := sorry
-      have coverBs' : (⋃ i : Fin n, (Bs' i)) = D := sorry
-      have coverYs' : (⋃ i : Fin n, (Ys' i)) = Dom := sorry
-      have pmap_B:   (∀ i : Fin n, (f (gB i) '' (Bs' i)) = (Ys' i)) := sorry
+      have pdBs': (∀ i j : Fin n, (i ≠ j) → Disjoint (Bs' i) (Bs' j)) := by
+        intro i j inej
+        apply Set.disjoint_iff.mpr
+        simp only [Bs']
+        simp only [star]
+        intro x xinBoth
+        simp
+        simp [Set.mem_iUnion] at xinBoth
+        obtain ⟨g1, g1inG, c1, c1inc, pg1⟩ := xinBoth.left
+        obtain ⟨g2, g2inG, c2, c2inc, pg2⟩ := xinBoth.right
+        have sameg: g1 = g2 := by
+          by_contra g1neg2
+          have dischoice: _ := pdinter g1 g2 g1neg2
+          have choicedisj : _ := Set.disjoint_iff.mp dischoice
+
+          have xinim1 : x ∈ ((f g1) '' choice_set) := by
+            simp
+            use c1
+
+          have xinim2 : x ∈ ((f g2) '' choice_set) := by
+            simp
+            use c2
+
+          exact choicedisj ⟨xinim1, xinim2⟩
+        have Bsdisj:_:= pdBs i j inej
+        rw [←sameg] at g2inG
+        exact (Set.disjoint_iff.mp Bsdisj) ⟨g1inG, g2inG⟩
+
+
+      have pdYs' :  (∀ i j : Fin n, (i ≠ j) → Disjoint (Ys' i) (Ys' j)) := by
+        intro i j inej
+        apply Set.disjoint_iff.mpr
+        simp only [Ys']
+        intro x xinBoth
+        simp
+        simp at xinBoth
+        obtain ⟨b1, b1inB, pb1⟩ := xinBoth.left
+        obtain ⟨b2, b2inB, pb2⟩ := xinBoth.right
+        simp [Bs', star] at b1inB
+        simp [Bs', star ] at b2inB
+        obtain ⟨g1, g1inG, c1, c1incs, pg1⟩ := b1inB
+        obtain ⟨g2, g2inG, c2, c2incs, pg2⟩ := b2inB
+        rw [← pg1] at pb1
+        rw [← pg2] at pb2
+        have eqggs : (gB i) * g1 = (gB j) * g2 := by
+          by_contra ggsne
+          have disjgg:_:= pdinter ((gB i) * g1) ((gB j) * g2) ggsne
+          have eqdisj:_ := Set.disjoint_iff.mp disjgg
+          have xinl : x ∈ (f ((gB i) * g1)) '' choice_set := by
+            simp
+            use c1
+            constructor
+            exact c1incs
+            simp [f]
+            simp [f] at pb1
+            rw [←mul_smul] at pb1
+            exact pb1
+
+          have xinr : x ∈ (f ((gB j) * g2)) '' choice_set := by
+            simp
+            use c2
+            constructor
+            exact c2incs
+            simp [f]
+            simp [f] at pb2
+            rw [←mul_smul] at pb2
+            exact pb2
+          exact eqdisj ⟨xinl, xinr⟩
+
+        let y := (gB i) * g1
+        have yincsi: y ∈ (Ds i) := by
+          rw [← pmap_b i]
+          simp [y]
+          exact g1inG
+        have yincsj: y ∈ (Ds j) := by
+          rw [← pmap_b j]
+          simp [y]
+          rw [eqggs]
+          simp
+          exact g2inG
+        have disjcs := pdDs i j inej
+        exact Set.disjoint_iff.mp disjcs ⟨yincsi, yincsj⟩
+
+
+      have coverBs' : (⋃ i : Fin n, (Bs' i)) = D := by
+        simp [Bs', D]
+
+      have coverYs' : (⋃ i : Fin n, (Ys' i)) = Dom := by
+
+        simp [Ys']
+        simp [Bs']
+        simp [star]
+        ext x
+        constructor
+        intro xinunion
+        simp [Set.mem_iUnion] at xinunion
+        obtain ⟨i, g, ginbsi, c, cincs, pigc⟩ := xinunion
+        have int : f g c ∈ Dom := by
+          have that: f g c ∈ f g '' Dom := by
+            simp
+            use c
+            constructor
+            exact cssubDom cincs
+            rfl
+          exact (eclosed (g)) that
+        have int2 : x ∈ f (gB i) '' Dom := by
+          rw [←pigc]
+          simp
+          use (f g c)
+        exact (eclosed (gB i)) int2
+        --
+        intro xindom
+        simp [Set.mem_iUnion]
+        let orbit_set := MulAction.orbit G x
+        have orbit_prop : orbit_set ∈ orbits := by
+          simp [orbits]
+          simp [orbit_set]
+          use x
+        let orbit: orbits_type := ⟨orbit_set, orbit_prop⟩
+        set c := choice (orbit) with cdef
+        have pc :_:= pchoice orbit
+        rw [←cdef] at pc
+        simp [id] at pc
+        simp [orbit] at pc
+        simp [orbit_set] at pc
+        simp [MulAction.orbit] at pc
+
+        obtain ⟨g, pg⟩ := pc
+
+        have that: ∃ g : G, f g c = x := by
+          use g⁻¹
+          simp [f]
+          rw [←pg]
+          simp
+
+        obtain ⟨g, pg⟩ := that
+        have ginuniv: g ∈ Set.univ := by simp
+        rw [←coverDs] at ginuniv
+        simp [Set.mem_iUnion] at ginuniv
+        obtain ⟨i, pi⟩ := ginuniv
+        rw [←pmap_b i] at pi
+        simp at pi
+        use i
+        use ((gB i)⁻¹ * g)
+        constructor
+        exact pi
+        use c
+        constructor
+        simp [choice_set]
+        use orbit
+        rw [←pg]
+        simp [f]
+        rw [←mul_smul]
+        simp
+
+      have pmap_B:   (∀ i : Fin n, (f (gB i) '' (Bs' i)) = (Ys' i)) := by
+        intro i
+        simp [Bs', Ys']
+
       exact ⟨n, Bs', Ys', pdBs', pdYs', coverBs', coverYs', gB, pmap_B⟩
 
 
     exact ⟨nonemptyDom, C, D, csube, dsube, disjcd, equiCE, equiDE⟩
 
-abbrev R3 := EuclideanSpace ℝ (Fin 3)
-def S2: Set R3 := Metric.sphere (0: R3) 1
-abbrev SO3 := Matrix.specialOrthogonalGroup (Fin 3) ℝ
 
-
--- The standard action given by matrix multiplication.
-instance SO3_action_on_R3 : MulAction SO3 R3 where
-  smul g v := Matrix.mulVec (g : Matrix (Fin 3) (Fin 3) ℝ) v
-  one_smul v := Matrix.one_mulVec v
-  mul_smul x y v := (Matrix.mulVec_mulVec v (x : Matrix (Fin 3) (Fin 3) ℝ) (y : Matrix (Fin 3) (Fin 3) ℝ)).symm
-
-
-abbrev MAT:= Matrix (Fin 3) (Fin 3) ℝ
-
-lemma identity_matrix_mem_SO3 : (1 : MAT) ∈ SO3 := by
-  rw [Matrix.mem_specialOrthogonalGroup_iff]
-  constructor
-  · rw [Matrix.mem_orthogonalGroup_iff]
-    simp [Matrix.transpose_one, Matrix.mul_one]
-  · simp [Matrix.det_one]
-
-
--- The Sato Subgroup of SO3
-
-def M_s: MAT := !![
-  6, 2, 3;
-  2, 3, -6;
-  -3, 6, 2;
-  ]
-
-def M_t : MAT := !![
-  2, -6, 3;
-  6, 3, 2;
-  -3, 2, 6;
-]
-
-
-noncomputable def M_s_normed: MAT := ((1/7):ℝ) • M_s
-lemma M_s_normed_is_special : M_s_normed ∈ SO3 := by
-  rw [Matrix.mem_specialOrthogonalGroup_iff]
-  constructor
-  rw [Matrix.mem_orthogonalGroup_iff]
-  ext i j
-  simp [M_s_normed, M_s, Matrix.transpose]
-  fin_cases i <;> fin_cases j <;> norm_num
-  <;> simp [Matrix.vecMul]
-  <;> norm_num
-  --
-  --simp [Matrix.det_apply, M_s_normed, M_s]
-  rw [Matrix.det_fin_three]
-  rw [M_s_normed, M_s]
-  norm_num
-  simp
-  norm_num
-
-
-
-noncomputable def M_t_normed: MAT := ((1/7):ℝ) • M_t
-lemma M_t_normed_is_special : M_t_normed ∈ SO3 := by
-  rw [Matrix.mem_specialOrthogonalGroup_iff]
-  constructor
-  rw [Matrix.mem_orthogonalGroup_iff]
-  ext i j
-  simp [M_t_normed, M_t, Matrix.transpose]
-  fin_cases i <;> fin_cases j <;> norm_num
-  <;> simp [Matrix.vecMul]
-  <;> norm_num
-  --
-  --simp [Matrix.det_apply, M_s_normed, M_s]
-  rw [Matrix.det_fin_three]
-  rw [M_t_normed, M_t]
-  norm_num
-  simp
-  norm_num
-
-noncomputable def s_op_n: SO3 := ⟨M_s_normed, M_s_normed_is_special⟩
-noncomputable def t_op_n: SO3 := ⟨M_t_normed, M_t_normed_is_special⟩
-
-noncomputable def s_i_op_n: SO3 := s_op_n⁻¹
-noncomputable def t_i_op_n: SO3 := t_op_n⁻¹
-
-
-def M_s_i: MAT := !![
-  6, 2, -3;
-  2, 3, 6;
-  3, -6, 2;
-  ]
-
-example: s_i_op_n.val =  (7 :ℝ)⁻¹ • M_s_i := by
-  simp [s_i_op_n]
-  simp [Inv.inv]
-  simp [star]
-  simp [Matrix.transpose]
-  simp [s_op_n]
-  simp [M_s_normed]
-  simp [M_s, M_s_i]
-  ext i j
-  fin_cases i <;> fin_cases j <;> simp [Div.div] <;> rfl
-
-
-def M_t_i : MAT := !![
-  2, 6, -3;
-  -6, 3, 2;
-  3, 2, 6;
-]
-
-example: t_i_op_n.val =  (7 :ℝ)⁻¹ • M_t_i := by
-  simp [t_i_op_n]
-  simp [Inv.inv]
-  simp [star]
-  simp [Matrix.transpose]
-  simp [t_op_n]
-  simp [M_t_normed]
-  simp [M_t, M_t_i]
-  ext i j
-  fin_cases i <;> fin_cases j <;> simp [Div.div] <;> rfl
-
-
--- The Sato Subgroup of SO3
-def sato_generators: Set SO3 := {s_op_n, t_op_n}
-def SATO: Subgroup SO3 := Subgroup.closure sato_generators
-lemma s_mem: s_op_n ∈ SATO := by
-  simp [SATO]
-  apply Subgroup.mem_closure_of_mem
-  simp [sato_generators]
-
-lemma t_mem: t_op_n ∈ SATO := by
-  simp [SATO]
-  apply Subgroup.mem_closure_of_mem
-  simp [sato_generators]
-
-noncomputable def sato_s: SATO := ⟨s_op_n, s_mem⟩
-noncomputable def sato_t: SATO := ⟨t_op_n, t_mem⟩
-
-def sato_generators_ss: Set SATO := {sato_s, sato_t}
-noncomputable def sato_fg3_iso_seed: Fin 2 → SATO := ![sato_s, sato_t]
-
-noncomputable def to_sato: FG2 →* SATO := FreeGroup.lift sato_fg3_iso_seed
-
-
-lemma to_sato_range: (to_sato).range = Subgroup.closure sato_generators_ss := by
-  have lem : sato_generators_ss = Set.range sato_fg3_iso_seed :=sorry
-  rw [lem]
-  apply FreeGroup.lift.range_eq_closure
-
-
-theorem to_sato_is_surjective: Function.Surjective to_sato := by
-  -- There's gotta be a better way.
-
-  rw [← MonoidHom.range_eq_top]
-
-  rw [to_sato_range]
-  have h : sato_generators_ss = ((↑) : SATO → SO3) ⁻¹' sato_generators := by
-    ext x
-    simp [sato_generators_ss, sato_generators, Set.mem_preimage]
-    constructor
-    simp [sato_s, sato_t]
-    · rintro (rfl | rfl)
-      · simp
-      · simp
-    · intro hx
-      have : x.val ∈ sato_generators := hx
-      cases hx with
-      | inl h =>
-        have : x = ⟨s_op_n, s_mem⟩ := Subtype.ext h
-        left; exact this
-      | inr h =>
-        have : x = ⟨t_op_n, t_mem⟩ := Subtype.ext h
-        right; exact this
-  rw [h]
-  exact Subgroup.closure_closure_coe_preimage
-
-theorem to_sato_is_injective: Function.Injective to_sato := by
-  apply (injective_iff_map_eq_one to_sato).mpr
-  intro a
-  contrapose!
-  intro aneq1
-  let w := FreeGroup.toWord a
-  have notone :  w ≠ ([]: List chartype) := by
-    intro cont
-    simp [w] at cont
-    exact aneq1 cont
-
-  intro image_is_one
-
-  have pad: ∀ (n:ℤ), (s_op_n)^(-n) * (to_sato a) * (s_op_n)^n = 1 := sorry
-  let n_trail_sinvs: ℤ := sorry
-  let a2: FG2 := sorry -- FreeGroup.mk σ ^ (-n_trail_sinvs - 1) * a * σ ^ (n_trail_sinvs + 1)
-  have still: to_sato a2 = 1 := sorry
-  let w2 := FreeGroup.toWord a2
-  have check_same: a2 = FreeGroup.mk w2 := FreeGroup.mk_toWord.symm
-
-  have w2_rev := List.reverse w2
-  have not_empty: w2_rev ≠ [] := sorry
-  have w2_ends_in_sigma : ((w2_rev.head) not_empty)  = (σchar, true) := sorry
-
-
-  let my_prod:= List.prod (w2.map fun x =>
-    cond x.2 (sato_fg3_iso_seed x.1) (sato_fg3_iso_seed x.1)⁻¹)
-
-  have compo : (to_sato a2) = my_prod := by
-      simp [to_sato]
-      rw [check_same]
-      exact FreeGroup.lift.mk
-
-
-  let N := w2.length
-
-  let Vs: Set R3 := {
-    ![3,1,2],
-    ![5,4,1],
-    ![6,2,4]
-  }
-
-  let Vt: Set R3 := {
-    ![3,2,6],
-    ![5,1,3],
-    ![6,4,5]
-  }
-
-
-  let Vtinv: Set R3 := {
-    ![3,5,1],
-    ![5,6,4],
-    ![6,3,2]
-  }
-
-  let Vsinv: Set R3 := {
-    ![1,5,4],
-    ![2,3,1],
-    ![4,6,2]
-  }
-
-  let mod7 (v: R3) : R3 := ![((v 0) % 7), ((v 1) % 7), ((v 2) % 7)]
-
-  have l1: ∀v ∈ Vs ∪ Vt ∪ Vtinv,  Matrix.mulVec sato_s v ∈ Vs := sorry
-  have l2: ∀v ∈ Vsinv ∪ Vt ∪ Vtinv,  Matrix.mulVec (sato_s)⁻¹ v ∈ Vsinv := sorry
-  have l3: ∀v ∈ Vt ∪ Vs ∪ Vsinv,  Matrix.mulVec sato_t v ∈ Vt := sorry
-  have l4: ∀v ∈ Vtinv ∪ Vs ∪ Vsinv,  Matrix.mulVec (sato_t)⁻¹ v ∈ Vtinv := sorry
-
-
-  let Invariant (header: chartype) (op:SATO) : Prop :=
-
-    let c1 := mod7 (Matrix.col (op: MAT) 0)
-
-    (c1 ∈ Vs ↔ header = (0, true)) ∧
-    (c1 ∈ Vt ↔ header = (1, true)) ∧
-    (c1 ∈ Vtinv ↔ header = (1, false)) ∧
-    (c1 ∈ Vsinv ↔ header = (0, false))
-
-
-  let trunc_prod (i: ℕ): SATO := List.prod ((w2.drop (N - i - 1)).map fun x =>
-    cond x.2 (sato_fg3_iso_seed x.1) (sato_fg3_iso_seed x.1)⁻¹)
-
-  let header (i: Fin N) : chartype := w2.get i
-
-
-  have claim : ∀ i : Fin N, Invariant (header i) (trunc_prod i.val) := by
-    intro i
-    induction' i.1 with i pi
-    have triv: (trunc_prod 0) = sato_s := sorry
-    rw [triv]
-    sorry
-    sorry
-
-  have duh: N-1 < N :=sorry
-
-  have last : Invariant _ (trunc_prod (N - 1)) := claim ⟨N-1, duh⟩
-
-  have more : trunc_prod (N - 1) = my_prod := sorry
-  have fin : Invariant (header ⟨N-1,duh⟩) (to_sato a2) := sorry
-
-  have thus: to_sato a2 ≠ (1: SATO) := sorry
-
-  exact thus still
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-theorem to_sato_is_bijective: Function.Bijective to_sato := ⟨to_sato_is_injective, to_sato_is_surjective⟩
-
-noncomputable def iso_forward_equiv := Equiv.ofBijective to_sato to_sato_is_bijective
-
-noncomputable def sato_fg3_iso: FG2 ≃* SATO := MulEquiv.mk' iso_forward_equiv to_sato.map_mul'
-
-
-
-
-
-lemma fixed_lemma (g: SO3) : Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
-  let tspace := R3 →ₗ[ℝ] R3
-  let gmap: tspace := Matrix.toLin' g
-
-  have _: {x : R3 | g • x = x} = (LinearMap.ker (gmap-(1: tspace))).carrier := sorry
-  have _: Module.finrank ℝ (LinearMap.ker (gmap-(1: tspace))) = 1 := sorry
-  have _: ∃v: R3, LinearMap.ker (gmap - 1 : tspace) = {x | ∃s:ℝ,  x = s • v} := sorry
-  sorry
 
 theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradoxical SO3 (S2 \ D)) := by
 
@@ -1590,9 +2105,64 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
     exact each_fixed_countable
 
 
-  have action_preserves : ∀ (g : SATO) (x : R3), x ∈ S2 \ D → (g : SO3) • x ∈ S2 \ D := by sorry
+  have p_closure : ∀ (g : SATO), (f g) '' (S2 \ D) ⊆ (S2 \ D) := by
+    intro g
+    simp
+    intro x  xinS2mD
+    simp
+    by_contra bad
+    set im := g • x with imdef
+    have im_in_s2: im ∈ S2 := by
+      have closed:_:= so3_fixes_s2 g.val
+      simp [im]
+      simp [f] at closed
+      have bad:_:= closed (xinS2mD.left)
+      simp at bad
+      exact bad
 
-  have nonempty_s2md: Set.Nonempty (S2 \ D) := sorry
+    have im_in_D: im ∈ D := by
+      by_contra imnotinD
+      exact bad ⟨im_in_s2, imnotinD⟩
+    have dfining:  ∃h:SATO, h • im = im := by
+      simp [D] at im_in_D
+      obtain ⟨a, aprop, pa⟩ := im_in_D.right
+      use ⟨⟨a, aprop ⟩, pa.left⟩
+      simp
+      exact pa.right
+
+    --have imdeffull := im = g • x
+    obtain ⟨h, ph⟩ := dfining
+    rw [imdef] at ph
+    let h' := g⁻¹ * h * g
+    have also : h' • x = x := calc h' • x
+      _ = ((g⁻¹ * h) * g) • x := by simp [h']
+      _ = (g⁻¹ * h) • (g • x) := by exact mul_smul (g⁻¹ * h) g x
+      _ = (g⁻¹  • (h  • (g • x) )):= by exact mul_smul g⁻¹ h im
+      _ = (g⁻¹) • (g • x) := by rw [ph]
+      _ = (g⁻¹ * g) • x := by exact (mul_smul g⁻¹ g x).symm
+      _ = 1 • x := by simp
+      _ = x := by simp
+
+    have bad2 : x ∈ D := by
+      simp [D]
+      constructor
+      exact xinS2mD.left
+      use h'
+      use h'.val.prop
+      simp
+      exact also
+
+    exact xinS2mD.right bad2
+
+
+  have ub_card_D: (Cardinal.mk D) ≤ Cardinal.aleph0  := by
+    exact Cardinal.le_aleph0_iff_set_countable.mpr countable_d
+
+
+  have nonempty_s2md: Set.Nonempty (S2 \ D) := by
+    apply Cardinal.diff_nonempty_of_mk_lt_mk
+    exact lt_of_le_of_lt ub_card_D lb_card_s2
+
 
   have nofixed: (¬∃ fp, fp ∈ (FixedPoints SATO (S2 \ D))) := by
     rintro ⟨fp, pfp ⟩
@@ -1609,12 +2179,9 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
         use by simp
         constructor
         simp
-        simp [gp]
-        sorry
+        exact gp.right
     exact gp.left.right fp_in_D
 
-
-  have p_closure: ∀g:SATO, (f g) '' (S2 \ D) ⊆ (S2 \ D) := sorry
 
   -- Get Paradoxical on the subtype
   have para_subtype : Paradoxical SATO (S2 \ D) :=
@@ -1697,7 +2264,7 @@ lemma absorption_lemma {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : Set
 
 
     have coverA: ⋃ i, As i = E := by
-      simp [As, Bs]
+      simp [As]
       ext x
       constructor
       rintro ⟨i, pi⟩
@@ -1711,13 +2278,9 @@ lemma absorption_lemma {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : Set
       intro inE
       rcases (em (x∈D)) with left | right
       simp
-      use 1
+      exact Or.inr left
       simp
-      exact left
-      simp
-      use 0
-      simp
-      exact ⟨inE, right⟩
+      exact Or.inl ⟨inE, right⟩
 
 
     have coverB: ⋃ i, Bs i = (E \ S) := by
@@ -1742,14 +2305,9 @@ lemma absorption_lemma {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : Set
       intro xinEmS
       rcases (em (x∈D)) with inD | notinD
       simp
-      use 1
+      exact Or.inr ⟨inD, xinEmS.right⟩
       simp
-      exact  ⟨inD, xinEmS.right⟩
-
-      simp
-      use 0
-      simp
-      exact ⟨xinEmS.left, notinD⟩
+      exact Or.inl ⟨xinEmS.left, notinD⟩
 
     let g:= ![(1:G), ρ]
 
@@ -1791,21 +2349,18 @@ lemma absorption_lemma_2 {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : S
       use ρ
       ext y
       constructor
-      intro xinimg
-      simp [D] at xinimg
-      obtain ⟨x, ps⟩ := xinimg
-      obtain ⟨i, pi⟩ := ps.left
-      have lem: x ∈ (f ρ)^[i] '' S := by exact pi
-      obtain ⟨w, pw⟩ := pi
-      rw [←pw.right] at ps
-      have lem2: y = (f ρ) (f ρ)^[i] w := ps.right.symm
+      intro yinimg
+      simp [D] at yinimg
+      obtain ⟨i, pi⟩ := yinimg
+      obtain ⟨x, px⟩ := pi
+      have lem2: y = (f ρ) (f ρ)^[i] x := px.right.symm
       have yinD: y ∈ D := by
         simp [D]
         use i + 1
-        use w
+        use x
         constructor
-        exact pw.left
-        rw [Function.iterate_succ_apply' (f ρ) i w]
+        exact px.left
+        rw [Function.iterate_succ_apply' (f ρ) i x]
         exact lem2.symm
       have ynotinS : y ∉ S := by
         intro yinS
@@ -1814,14 +2369,14 @@ lemma absorption_lemma_2 {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : S
         let s:= ((fun a ↦ (f ρ)^[i] (f ρ a)) '' S)
         have slem: y ∈ s := by
           simp [s]
-          use w
+          use x
           constructor
-          exact pw.left
-          have l1: (f ρ)^[i.succ] w = y := by
-            let r := ps.right
-            rw [←Function.iterate_succ_apply' (f ρ) i w] at r
+          exact px.left
+          have l1: (f ρ)^[i.succ] x = y := by
+            let r := px.right
+            rw [←Function.iterate_succ_apply' (f ρ) i x] at r
             exact r
-          rw [Function.iterate_succ_apply (f ρ) i w] at l1
+          rw [Function.iterate_succ_apply (f ρ) i x] at l1
           exact l1
 
         simp [Set.disjoint_iff] at dlem
@@ -1849,24 +2404,17 @@ lemma absorption_lemma_2 {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : S
       obtain ⟨j, pj⟩  := othersucc
       rw [pj] at pi
       simp [D]
-      use (f ρ)^[j] x
-      constructor
       use j
       use x
-      exact ⟨pi.left, rfl⟩
-      have lem2: (f ρ)^[j.succ] x = y := by exact pi.right
-      rw [Function.iterate_succ_apply' (f ρ) j] at lem2
-      exact lem2
+      constructor
+      · exact pi.left
+      rw [Function.iterate_succ_apply' (f ρ) j] at pi
+      exact pi.right
 
 
 
     exact absorption_lemma G E S pD
 
-def Bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X): Set ℝ :=
-{θ: ℝ | ∃n:ℕ, n > 0 ∧ ∃s∈S, (f (F θ))^[n] s ∈ S}
-
-def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
-⋃ i, (f g)^[i] '' S
 
 
 lemma absorption_lemma_3 {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : Set X)(S: Set X):
@@ -1881,9 +2429,26 @@ lemma absorption_lemma_3 {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : S
     simp [orbit] at lem
     exact (lem 0) s_in_S
 
-  have unc_reals : ¬ Set.Countable (Set.univ: Set ℝ) := Cardinal.not_countable_real
-  have la: ¬Set.Countable ((Set.univ: Set ℝ) \ Bad F S) := sorry
-  have lem_angle: Set.Nonempty ((Set.univ: Set ℝ) \ Bad F S) := sorry
+
+  have lem_angle: Set.Nonempty ((Set.univ: Set ℝ) \ Bad F S) := by
+
+    have bad_ub : Cardinal.mk (Bad F S) ≤ Cardinal.aleph0 :=
+      Cardinal.le_aleph0_iff_set_countable.mpr countable_bad
+
+    have uncountable_reals: Uncountable ↑(Set.univ: Set ℝ) := by
+      rw [← not_countable_iff]
+      intro h
+      have : Set.Countable (Set.univ: Set ℝ) := Set.countable_coe_iff.mpr h
+      exact Cardinal.not_countable_real this
+
+    have card_reals : Cardinal.aleph0 < Cardinal.mk (Set.univ: Set ℝ) :=
+      Cardinal.aleph0_lt_mk_iff.mpr uncountable_reals
+
+    apply Cardinal.diff_nonempty_of_mk_lt_mk
+    exact lt_of_le_of_lt bad_ub card_reals
+
+
+
   let ρ_angle := Classical.choose lem_angle
   let ρ_spec := Classical.choose_spec lem_angle
   have not_bad: ρ_angle ∉ Bad F S := by
@@ -1925,46 +2490,23 @@ lemma absorption_lemma_3 {X : Type*} (G: Type*) [Group G] [MulAction G X] (E : S
 
   exact absorption_lemma_2 G E S ⟨ρ, cond1, cond2⟩
 
-
-def K_mat (a: R3): MAT := !![
-  0, -(a 2), (a 1);
-  (a 2), 0, -(a 0);
-  -(a 1), (a 0), 0;
-]
-
--- Rodrigues' formula for the rotation matrix :  I + (sin θ)K + (1-cosθ)K²
-noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT := (1:MAT) + (Real.sin θ)•(K_mat ax) + (1 - Real.cos θ)•((K_mat ax) ^ 2)
-
-noncomputable def rot (ax: R3) (θ:ℝ) : SO3 := by
-  -- First normalize the axis to be on S2
-  let ax_norm := (1 / ‖ax‖) • ax
-  have ax_norm_mem_S2 : ax_norm ∈ S2 := sorry  -- Need to prove normalization gives unit vector
-  let M := rot_mat ⟨ax_norm, ax_norm_mem_S2⟩ θ
-  -- Now prove M ∈ SO3 using the systematic approach:
-  refine ⟨M, ?_⟩
-  rw [Matrix.mem_specialOrthogonalGroup_iff]
-  constructor
-  · rw [Matrix.mem_orthogonalGroup_iff]
-    -- M * Mᵀ = 1
-    sorry
-  · -- M.det = 1
-    sorry
-
-lemma rot_lemma: ∀ {axis : R3} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := sorry
-
 lemma S2_equidecomposible_of_S2_minus_countable:
 ∀ S : Set R3, (S ⊆ S2 ∧ Countable S → Equidecomposible SO3 (S2 \ S) S2) := by
 
   intro S
   rintro ⟨subset_of_s2, countable_S⟩
-  have lem_unc : ¬ Set.Countable S2 := sorry
-  have lem_unc2 : ¬ Set.Countable (S2 \ S) := sorry
-  have lem: Set.Nonempty (S2 \ S) := sorry
+
+  have ub_card_D: (Cardinal.mk S) ≤ Cardinal.aleph0  := by
+    exact Cardinal.le_aleph0_iff_set_countable.mpr countable_S
+
+  have lem: Set.Nonempty (S2 \ S) := by
+    apply Cardinal.diff_nonempty_of_mk_lt_mk
+    exact lt_of_le_of_lt ub_card_D lb_card_s2
+
   let axis: R3 := Classical.choose lem
   let axis_spec := (Classical.choose_spec lem).left
   let F:= (fun θ ↦ rot axis θ)
-  let Bad := {θ: ℝ | ∃n:ℕ, n > 0 ∧ ∃s∈S, (f (F θ))^[n] s ∈ S}
-  have countbad: Countable Bad := sorry
+  have countbad: Countable (Bad F S) := countable_bad_rots S axis ⟨subset_of_s2, countable_S⟩
 
   have orbit_containment: (∀r:ℝ, (orbit (F r) S ⊆ S2 )) := by
     intro r
@@ -1996,60 +2538,11 @@ theorem banach_tarski_paradox_s2: Paradoxical SO3 S2 := by
   have equi: Equidecomposible SO3 (S2 \ D) S2 := S2_equidecomposible_of_S2_minus_countable D ⟨hausD_sub, hausD_countable⟩
   exact paradoxical_of_equidecomposible_of_paradoxical SO3 (S2 \ D) S2 hausD_para equi
 
-def B3: Set R3 := Metric.closedBall (0: R3) 1
-def B3min: Set R3 := B3 \ {0}
-
-noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
-
-def S2_sub := {S : Set R3 // S ⊆ S2}
-def cone (S: S2_sub) := {x : R3 | ∃ (s : ℝ) (v : R3), (x = s • v) ∧ (v ∈ S.val) ∧ (0 < s) ∧ (s ≤ 1)}
-lemma cone_sub_ball : ∀ S: S2_sub, cone S ⊆ B3min := sorry
-
-lemma cone_lemma (S : S2_sub) : ∀ x : R3, x ∈ cone S ↔ (normed x ∈ S.val) := sorry
-
-lemma disj_lemma (n: ℕ) (fam: Fin n → S2_sub)
-(disj: ∀ (i j : Fin n), i ≠ j → Disjoint (fam i).val (fam j).val) :
-∀ (i j : Fin n), i ≠ j → Disjoint (cone (fam i)) (cone (fam j)) := by
-    intro i j inej
-    apply Set.disjoint_iff.mpr
-    intro x ⟨xini, xinj⟩
-    simp
-    have badi: normed x ∈ (fam i).val := by
-      exact (cone_lemma ( fam i) x).mp xini
-    have badj: normed x ∈ (fam j).val := by
-      exact (cone_lemma ( fam j) x).mp xinj
-    exact (Set.disjoint_iff.mp (disj i j inej)) ⟨badi, badj⟩
-
-lemma cover_lemma (n: ℕ) (fam: Fin n → S2_sub) (T : S2_sub)
-(cover: (⋃ i, (fam i).val) = T.val): (⋃ i, cone (fam i)) = cone T:= by
-  ext x
-  constructor
-  --
-  intro xincones
-  simp at xincones
-  obtain ⟨i, pi⟩ := xincones
-  have lem : normed x ∈ (fam i).val := (cone_lemma (fam i) x).mp pi
-  have last : normed x ∈ T.val := by rw [←cover];  simp; use i
-  exact (cone_lemma T x).mpr last
-
-  intro xincone
-  have intval: normed x ∈ T.val := (cone_lemma T x).mp xincone
-  rw [←cover] at intval; simp at intval
-  obtain ⟨i, pi⟩ := intval
-  have piece : x ∈ cone (fam i) := by exact (cone_lemma (fam i) x).mpr pi
-  simp
-  use i
-
-lemma map_lemma (n: ℕ) (map: Fin n -> (R3 → R3))
-(famA: Fin n → S2_sub) (famB: Fin n → S2_sub)
-(map_prop: ∀ (i: Fin n), (map i) '' (famA i).val = (famB i).val) :
-∀ (i: Fin n), (map i) '' cone (famA i) = cone (famB i)  := sorry
 
 
-lemma b3min_is_cone_s2 : B3min = cone ⟨S2, by simp⟩ := by sorry
 
 
-def origin := (0: R3)
+
 theorem banach_tarski_paradox_B3_minus_origin: Paradoxical SO3 B3min := by
 
   obtain ⟨_, E, F, esubs2, fsubs2, disjef, equiES2, equiFS2⟩ := banach_tarski_paradox_s2
@@ -2079,15 +2572,15 @@ theorem banach_tarski_paradox_B3_minus_origin: Paradoxical SO3 B3min := by
         rwa [coverDs] at lem
       )⟩
 
-  let As' := fun (k : Fin m) ↦ cone (As_as_S2 k)
-  let Bs' := fun (k : Fin m) ↦ cone (Bs_as_S2 k)
+  let As' := fun (k : Fin m) ↦ trunc_cone (As_as_S2 k)
+  let Bs' := fun (k : Fin m) ↦ trunc_cone (Bs_as_S2 k)
 
-  let Cs' := fun (k : Fin n) ↦ cone (Cs_as_S2 k)
-  let Ds' := fun (k : Fin n) ↦ cone (Ds_as_S2 k)
+  let Cs' := fun (k : Fin n) ↦ trunc_cone (Cs_as_S2 k)
+  let Ds' := fun (k : Fin n) ↦ trunc_cone (Ds_as_S2 k)
 
-  let E' := cone ⟨E, esubs2⟩
-  let F' := cone ⟨F, fsubs2⟩
-  let S2' := cone ⟨S2, by simp⟩
+  let E' := trunc_cone ⟨E, esubs2⟩
+  let F' := trunc_cone ⟨F, fsubs2⟩
+  let S2' := trunc_cone ⟨S2, by simp⟩
 
   have pdAs': ∀ (i j : Fin m), (i≠j → Disjoint (As' i) (As' j)) := by
     exact disj_lemma m As_as_S2 pdAs
@@ -2105,18 +2598,18 @@ theorem banach_tarski_paradox_B3_minus_origin: Paradoxical SO3 B3min := by
   have coverBs'' : ⋃ i, Bs' i = S2' := cover_lemma m Bs_as_S2 ⟨S2, by simp⟩ coverBs
   have coverBs' : ⋃ i, Bs' i = B3min := by
     simp [S2'] at coverBs''
-    rwa [←b3min_is_cone_s2] at coverBs''
+    rwa [←b3min_is_trunc_cone_s2] at coverBs''
   have coverCs' : ⋃ i, Cs' i = F' := cover_lemma n Cs_as_S2 ⟨F, fsubs2⟩ coverCs
   have coverDs'' : ⋃ i, Ds' i = S2' := cover_lemma n Ds_as_S2 ⟨S2, by simp⟩ coverDs
   have coverDs' : ⋃ i, Ds' i = B3min := by
     simp [S2'] at coverDs''
-    rwa [←b3min_is_cone_s2] at coverDs''
+    rwa [←b3min_is_trunc_cone_s2] at coverDs''
 
   -- Our original maps still work
   let gAB_lambdas := fun k: Fin m ↦ fun x: R3 ↦ (gAB k) • x
   let gCD_lambdas := fun k: Fin n ↦ fun x: R3 ↦ (gCD k) • x
-  let AB'map : ∀ (i: Fin m), (fun (x: R3) ↦ (gAB i) • x) '' As' i = Bs' i := map_lemma m gAB_lambdas As_as_S2 Bs_as_S2 ABmap
-  let CD'map : ∀ (i: Fin n), (fun (x: R3) ↦ (gCD i) • x) '' Cs' i = Ds' i := map_lemma n gCD_lambdas Cs_as_S2 Ds_as_S2 CDmap
+  let AB'map : ∀ (i: Fin m), (fun (x: R3) ↦ (gAB i) • x) '' As' i = Bs' i := map_lemma m gAB As_as_S2 Bs_as_S2 ABmap
+  let CD'map : ∀ (i: Fin n), (fun (x: R3) ↦ (gCD i) • x) '' Cs' i = Ds' i := map_lemma n gCD Cs_as_S2 Ds_as_S2 CDmap
 
   let equiE'S2': Equidecomposible SO3 E' B3min := ⟨m, As', Bs', pdAs', pdBs', coverAs', coverBs', gAB, AB'map⟩
   let equiF'S2': Equidecomposible SO3 F' B3min := ⟨n, Cs', Ds', pdCs', pdDs', coverCs', coverDs', gCD, CD'map⟩
@@ -2131,68 +2624,48 @@ theorem banach_tarski_paradox_B3_minus_origin: Paradoxical SO3 B3min := by
         simp [lem]
       have mem: hp ∈ B3 := by
         apply Metric.mem_closedBall.mpr
-        simp [hp, dist_eq_norm, EuclideanSpace.norm_eq]
+        simp [hp, dist_eq_norm]
+        rw [EuclideanSpace.norm_eq]
         rw [Fin.sum_univ_three]
-        simp [hp]
+        simp
       exact ⟨mem, nomem⟩
     use hp
 
   have e'sub_b3min: E' ⊆ B3min := by
     simp [E']
-    exact cone_sub_ball ⟨E, esubs2⟩
+    exact trunc_cone_sub_ball ⟨E, esubs2⟩
 
   have f'sub_b3min: F' ⊆ B3min := by
     simp [F']
-    exact cone_sub_ball ⟨F, fsubs2⟩
+    exact trunc_cone_sub_ball ⟨F, fsubs2⟩
 
   have disE'F': Disjoint E' F' := by
     apply Set.disjoint_iff.mpr
     intro x ⟨xini, xinj⟩
     simp
     have badi: normed x ∈ E := by
-      exact (cone_lemma ⟨E, esubs2⟩ x).mp xini
+      exact (trunc_cone_lemma ⟨E, esubs2⟩ x) xini
     have badj: normed x ∈ F := by
-      exact (cone_lemma  ⟨F, fsubs2⟩ x).mp xinj
+      exact (trunc_cone_lemma  ⟨F, fsubs2⟩ x) xinj
     exact (Set.disjoint_iff.mp disjef ) ⟨badi, badj⟩
 
   exact ⟨b3min_nonempty, E', F', e'sub_b3min, f'sub_b3min, disE'F', equiE'S2', equiF'S2'⟩
 
 
--- Group of Isometries of R3.
-abbrev G3: Type := R3 ≃ᵢ R3
--- The standard action given by matrix multiplication.
-instance : MulAction G3 R3 where
-  smul g v := g v
-  one_smul v := by
-    have lem : (1:G3) v = v := by
-      rw [IsometryEquiv.coe_one]
-      simp
-    exact lem
-  mul_smul x y v := by
-    have lem: (y.trans x) v = x (y v) := by simp
-    exact lem
 
-
-def SO3_in_G3: Subgroup G3 := sorry
-
-def SO3_into_G3: SO3 ≃* SO3_in_G3 := sorry
-
-def SO3_G3_action_equiv : (∀x: R3, ∀g : SO3, (SO3_into_G3 g) • x  = g • x) := sorry
-
-
--- The rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
-def skew_rot (θ: ℝ): G3 := sorry
-
-lemma srot_containment: ∀r:ℝ, orbit (skew_rot r) {origin} ⊆ B3 :=sorry
 
 theorem banach_tarski_paradox_B3: Paradoxical G3 B3 := by
 
-  have pg3b3m : Paradoxical SO3_in_G3 B3min :=
-    paradoxical_preserved_by_iso B3min SO3_into_G3 SO3_G3_action_equiv banach_tarski_paradox_B3_minus_origin
-  have pg3b3m : Paradoxical G3 B3min := paradoxical_of_supergroup_of_paradoxical G3 SO3_in_G3 B3min pg3b3m
+  have pso3b3m : Paradoxical SO3_in_G3 B3min := by
+    have that :_ :=paradoxical_preserved_by_iso B3min SO3_into_G3 (Equiv.refl R3) SO3_G3_action_equiv banach_tarski_paradox_B3_minus_origin
+    simp at that
+    exact that
 
 
-  have countbad: Countable (Bad skew_rot {origin})  := sorry
+  have pg3b3m : Paradoxical G3 B3min := paradoxical_of_supergroup_of_paradoxical G3 SO3_in_G3 B3min pso3b3m
+
+
+  have countbad: Countable (Bad skew_rot {origin})  := countable_bad_skew_rot
 
 
   have orbit_containment: (∀r:ℝ, (orbit (skew_rot r) {origin} ⊆ B3 )) := srot_containment
