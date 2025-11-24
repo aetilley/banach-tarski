@@ -12,10 +12,7 @@ set_option warningAsError false
 set_option linter.all false
 
 
-  -- theorem aleph0_lt_continuum : ℵ₀ < 𝔠 :=
-#check Cardinal.le_aleph0_iff_subtype_countable
-#check Set.to_countable
-
+-- The interval [0, π/2]
 def IccT := {x: ℝ // x ∈ (Set.Icc (0 : ℝ) (Real.pi/2 : ℝ))}
 
 instance interval_uncountable : Uncountable IccT := by
@@ -36,7 +33,6 @@ def is_s2 (θ : IccT) : to_s2_r3 θ ∈ S2 := by
   rw [Fin.sum_univ_three]
   norm_num
   simp
-
 
 noncomputable def to_s2: IccT → S2 := fun θ ↦ ⟨to_s2_r3 θ, is_s2 θ⟩
 
@@ -65,20 +61,11 @@ lemma s2_uncountable: Uncountable (S2) := by
 
 lemma lb_card_s2 : Cardinal.aleph0 < Cardinal.mk S2 := Cardinal.aleph0_lt_mk_iff.mpr s2_uncountable
 
-lemma identity_matrix_mem_SO3 : (1 : MAT) ∈ SO3 := by
-  rw [Matrix.mem_specialOrthogonalGroup_iff]
-  constructor
-  · rw [Matrix.mem_orthogonalGroup_iff]
-    simp [Matrix.transpose_one]
-  · simp [Matrix.det_one]
-
 
 lemma so3_fixes_norm: ∀g : SO3, ∀x : R3, ‖g • x‖ = ‖x‖ := sorry
 lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := sorry
 
 
-
-def tspace_full := R3 →ₗ[ℝ] R3
 def tspace := R3_raw →ₗ[ℝ] R3_raw
 
 lemma fixed_lemma (g: SO3) : Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
@@ -90,13 +77,16 @@ lemma fixed_lemma (g: SO3) : Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
   sorry
 
 
+---
+
+-- Rodrigues' formula for the rotation matrix :  I + (sin θ)K + (1-cosθ)K²
+
 def K_mat (a: R3): MAT := !![
   0, -(a 2), (a 1);
   (a 2), 0, -(a 0);
   -(a 1), (a 0), 0;
 ]
 
--- Rodrigues' formula for the rotation matrix :  I + (sin θ)K + (1-cosθ)K²
 noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT := (1:MAT) + (Real.sin θ)•(K_mat ax) + (1 - Real.cos θ)•((K_mat ax) ^ 2)
 
 noncomputable def rot (ax: R3) (θ:ℝ) : SO3 := by
@@ -302,7 +292,6 @@ lemma trunc_cone_lemma (S : S2_sub) : ∀ x : R3, x ∈ trunc_cone S → (normed
   exact (cone_lemma S x).mp this
 
 
-
 lemma disj_lemma (n: ℕ) (fam: Fin n → S2_sub)
 (disj: ∀ (i j : Fin n), i ≠ j → Disjoint (fam i).val (fam j).val) :
 ∀ (i j : Fin n), i ≠ j → Disjoint (trunc_cone (fam i)) (trunc_cone (fam j)) := by
@@ -355,7 +344,15 @@ lemma cover_lemma (n: ℕ) (fam: Fin n → S2_sub) (T : S2_sub)
 
 
 instance : SMulCommClass ℝ (↥SO3) R3 where
-  smul_comm:  ∀ (m : ℝ) (n : SO3) (a : R3), m • n • a = n • m • a := by sorry
+  smul_comm:  ∀ (k : ℝ) (g : SO3) (v : R3), k • g • v = g • k • v := by
+    intro k g v
+    calc k • g • v
+    _ = k • (WithLp.toLp 2 (Matrix.mulVec g v)) := by rfl
+    _ = (WithLp.toLp 2 (k • Matrix.mulVec g v)) := by simp
+    _ = (WithLp.toLp 2 (Matrix.mulVec g (k • v))) :=  by rw [(Matrix.mulVec_smul g.val k v).symm]; rfl
+    _ = g • k • v := by rfl
+
+
 
 lemma map_lemma (n: ℕ) (map: Fin n -> SO3) (famA: Fin n → S2_sub) (famB: Fin n → S2_sub)
 (map_prop: ∀ (i: Fin n), f (map i)'' (famA i).val = (famB i).val) :
@@ -427,8 +424,9 @@ lemma map_lemma (n: ℕ) (map: Fin n -> SO3) (famA: Fin n → S2_sub) (famB: Fin
   exact psw.left.symm
 
 
--- The rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
 noncomputable def axis_rot (axis: R3): ℝ -> SO3 := (fun θ ↦ rot axis θ)
+
+-- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
 def skew_rot (θ: ℝ): G3 := sorry
 
 def Bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X): Set ℝ :=

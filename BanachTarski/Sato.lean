@@ -7,59 +7,140 @@ import Mathlib.Algebra.Group.Action.Defs
 import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
 
 import BanachTarski.Common
+import BanachTarski.SatoUtils
 
 set_option warningAsError false
 set_option linter.all false
+set_option maxHeartbeats 1000000
+
 
 -- The Sato Subgroup of SO3
 
-def M_s: MAT := !![
+def M_s_Z: ZMAT := !![
   6, 2, 3;
   2, 3, -6;
   -3, 6, 2;
   ]
 
-def M_t : MAT := !![
+def M_t_Z : ZMAT := !![
   2, -6, 3;
   6, 3, 2;
   -3, 2, 6;
 ]
 
+def M_s_Z_trans: ZMAT := !![
+  6, 2, -3;
+  2, 3, 6;
+  3, -6, 2;
+]
+
+def M_t_Z_trans: ZMAT := !![
+  2, 6, -3;
+  -6, 3, 2;
+  3, 2, 6;
+]
+
+lemma M_s_Z_transpose_def : Matrix.transpose M_s_Z = M_s_Z_trans := by
+  simp [M_s_Z, M_s_Z_trans, Matrix.transpose]
+  ext i j
+  fin_cases i, j
+  <;> simp
+
+
+lemma M_t_Z_transpose_def : Matrix.transpose M_t_Z = M_t_Z_trans := by
+  simp [M_t_Z, M_t_Z_trans, Matrix.transpose]
+  ext i j
+  fin_cases i, j
+  <;> simp
+
+
+
+lemma fnlem_s: M_s_Z * M_s_Z_trans = Matrix.diagonal 49 := by
+  simp [M_s_Z, M_s_Z_trans, Matrix.diagonal]
+  ext i j
+  fin_cases i, j
+  <;> simp
+
+
+
+lemma fnlem_t: M_t_Z * M_t_Z_trans = Matrix.diagonal 49 := by
+  simp [M_t_Z, M_t_Z_trans, Matrix.diagonal]
+  ext i j
+  fin_cases i, j
+  <;> simp
+
+
+
+def M_s: MAT := to_MAT M_s_Z
+def M_t: MAT := to_MAT M_t_Z
+lemma ms_def : M_s = to_MAT M_s_Z := rfl
+lemma mt_def : M_t = to_MAT M_t_Z := rfl
+
+#check Matrix.adjugate_fin_three
 
 noncomputable def M_s_normed: MAT := ((1/7):ℝ) • M_s
+noncomputable def M_t_normed: MAT := ((1/7):ℝ) • M_t
+lemma M_s_normed_transpose_def: Matrix.transpose M_s_normed = ((1/7):ℝ) • to_MAT M_s_Z_trans := by
+  simp only [M_s_normed]
+  rw [Matrix.transpose_smul]
+  apply congrArg (fun x => ((1/7):ℝ) • x)
+  simp only [M_s]
+  rw [←to_MAT_transp]
+  apply congrArg to_MAT
+  exact M_s_Z_transpose_def
+
+
+lemma M_t_normed_transpose_def: Matrix.transpose M_t_normed = ((1/7):ℝ) • to_MAT M_t_Z_trans := by
+  simp only [M_t_normed]
+  rw [Matrix.transpose_smul]
+  apply congrArg (fun x => ((1/7):ℝ) • x)
+  simp only [M_t]
+  rw [←to_MAT_transp]
+  apply congrArg to_MAT
+  exact M_t_Z_transpose_def
+
+
 lemma M_s_normed_is_special : M_s_normed ∈ SO3 := by
   rw [Matrix.mem_specialOrthogonalGroup_iff]
   constructor
   rw [Matrix.mem_orthogonalGroup_iff]
-  ext i j
-  simp [M_s_normed, M_s, Matrix.transpose]
-  fin_cases i <;> fin_cases j <;> norm_num
-  <;> simp [Matrix.vecMul]
-  <;> norm_num
+  rw [M_s_normed_transpose_def]
+  simp [M_s_normed]
+  simp [M_s]
+  rw [←to_MAT_mul]
+  rw [fnlem_s]
+  norm_num
+  simp [to_MAT]
+  rw [←Matrix.diagonal_smul]
+  rw [←Matrix.diagonal_smul]
+  rw [sevsevlem]
+  simp
   --
-  --simp [Matrix.det_apply, M_s_normed, M_s]
   rw [Matrix.det_fin_three]
-  rw [M_s_normed, M_s]
+  rw [M_s_normed, M_s, M_s_Z, to_MAT]
   norm_num
   simp
   norm_num
 
 
-
-noncomputable def M_t_normed: MAT := ((1/7):ℝ) • M_t
 lemma M_t_normed_is_special : M_t_normed ∈ SO3 := by
   rw [Matrix.mem_specialOrthogonalGroup_iff]
   constructor
   rw [Matrix.mem_orthogonalGroup_iff]
-  ext i j
-  simp [M_t_normed, M_t, Matrix.transpose]
-  fin_cases i <;> fin_cases j <;> norm_num
-  <;> simp [Matrix.vecMul]
-  <;> norm_num
+  rw [M_t_normed_transpose_def]
+  simp [M_t_normed]
+  simp [M_t]
+  rw [←to_MAT_mul]
+  rw [fnlem_t]
+  norm_num
+  simp [to_MAT]
+  rw [←Matrix.diagonal_smul]
+  rw [←Matrix.diagonal_smul]
+  rw [sevsevlem]
+  simp
   --
-  --simp [Matrix.det_apply, M_s_normed, M_s]
   rw [Matrix.det_fin_three]
-  rw [M_t_normed, M_t]
+  rw [M_t_normed, M_t, M_t_Z, to_MAT]
   norm_num
   simp
   norm_num
@@ -68,44 +149,98 @@ noncomputable def s_op_n: SO3 := ⟨M_s_normed, M_s_normed_is_special⟩
 noncomputable def t_op_n: SO3 := ⟨M_t_normed, M_t_normed_is_special⟩
 
 noncomputable def s_i_op_n: SO3 := s_op_n⁻¹
+lemma s_i_op_n_def : s_i_op_n = s_op_n⁻¹ := rfl
 noncomputable def t_i_op_n: SO3 := t_op_n⁻¹
+lemma t_i_op_n_def : t_i_op_n = t_op_n⁻¹ := rfl
 
 
-def M_s_i: MAT := !![
+def M_s_i_Z: ZMAT := !![
   6, 2, -3;
   2, 3, 6;
   3, -6, 2;
   ]
 
-example: s_i_op_n.val =  (7 :ℝ)⁻¹ • M_s_i := by
+def M_s_i : MAT := to_MAT M_s_i_Z
+
+lemma msi_def: M_s_i = to_MAT M_s_i_Z := rfl
+
+lemma msinv_lem : M_s_i * M_s = Matrix.diagonal (fun _ : (Fin 3) ↦ (49:ℝ)) := by
+
+  simp [M_s_i, M_s, M_s_Z, M_s_i_Z, Matrix.diagonal]
+  rw [←to_MAT_mul]
+  ext i j
+  fin_cases i, j
+  <;> simp
+  <;> simp [to_MAT]
+
+
+
+lemma msinv_lem2 : M_s * M_s_i = Matrix.diagonal (fun _ : (Fin 3) ↦ (49:ℝ)) := by
+  simp [M_s_i, M_s, M_s_Z, M_s_i_Z, Matrix.diagonal]
+  rw [←to_MAT_mul]
+  ext i j
+  fin_cases i, j
+  <;> simp
+  <;> simp [to_MAT]
+
+
+
+lemma s_i_op_n_equiv : s_i_op_n.val =  (7 :ℝ)⁻¹ • M_s_i := by
   simp [s_i_op_n]
   simp [Inv.inv]
   simp [star]
   simp [Matrix.transpose]
   simp [s_op_n]
   simp [M_s_normed]
-  simp [M_s, M_s_i]
+  simp [M_s, M_s_i, M_s_Z, to_MAT, M_s_i_Z]
   ext i j
-  fin_cases i <;> fin_cases j <;> simp [Div.div] <;> rfl
+  fin_cases i <;> fin_cases j <;> simp <;> rfl
+
+lemma s_i_op_n_equiv_2 : (7:ℝ) • s_i_op_n.val = M_s_i := by
+  simp [s_i_op_n_equiv]
 
 
-def M_t_i : MAT := !![
+def M_t_i_Z : ZMAT := !![
   2, 6, -3;
   -6, 3, 2;
   3, 2, 6;
 ]
 
-example: t_i_op_n.val =  (7 :ℝ)⁻¹ • M_t_i := by
+def M_t_i : MAT := to_MAT M_t_i_Z
+lemma mti_def: M_t_i = to_MAT M_t_i_Z := rfl
+
+
+lemma mtinv_lem : M_t_i * M_t = Matrix.diagonal (fun _ : (Fin 3) ↦ (49:ℝ)) := by
+  simp [M_t_i, M_t, M_t_Z, M_t_i_Z, Matrix.diagonal]
+  rw [←to_MAT_mul]
+  ext i j
+  fin_cases i, j
+  <;> simp
+  <;> simp [to_MAT]
+
+
+
+lemma mtinv_lem2 : M_t * M_t_i = Matrix.diagonal (fun _ : (Fin 3) ↦ (49:ℝ)) := by
+  simp [M_t_i, M_t, M_t_Z, M_t_i_Z, Matrix.diagonal]
+  rw [←to_MAT_mul]
+  ext i j
+  fin_cases i, j
+  <;> simp
+  <;> simp [to_MAT]
+
+lemma t_i_op_n_equiv: t_i_op_n.val =  (7 :ℝ)⁻¹ • M_t_i := by
   simp [t_i_op_n]
   simp [Inv.inv]
   simp [star]
   simp [Matrix.transpose]
   simp [t_op_n]
   simp [M_t_normed]
-  simp [M_t, M_t_i]
+  simp [M_t, M_t_i, to_MAT, M_t_Z, M_t_i_Z]
   ext i j
-  fin_cases i <;> fin_cases j <;> simp [Div.div] <;> rfl
+  fin_cases i <;> fin_cases j <;> simp <;> rfl
 
+lemma t_i_op_n_equiv_2 : (7:ℝ) • t_i_op_n.val = M_t_i := by
+  simp [t_i_op_n_equiv]
 
 -- The Sato Subgroup of SO3
 def sato_generators: Set SO3 := {s_op_n, t_op_n}
@@ -135,9 +270,6 @@ lemma to_sato_range: (to_sato).range = Subgroup.closure sato_generators_ss := by
   have lem : sato_generators_ss = Set.range sato_fg3_iso_seed := by
     simp [sato_generators_ss, sato_fg3_iso_seed]
     exact Set.pair_comm sato_s sato_t
-
-
-
   rw [lem]
   apply FreeGroup.range_lift_eq_closure
 
@@ -169,442 +301,240 @@ theorem to_sato_is_surjective: Function.Surjective to_sato := by
   exact Subgroup.closure_closure_coe_preimage
 
 
-noncomputable def mod7 (v: R3_raw) : R3_raw := ![((Int.floor (v 0)).natMod 7 : ℝ), ((Int.floor (v 1)).natMod 7 : ℝ), ((Int.floor (v 2)).natMod 7 : ℝ)]
-
-lemma mod_lemma (A: MAT) (v: R3_raw) : mod7 (Matrix.mulVec A (mod7 v)) = mod7 (Matrix.mulVec A v) := by
-  ext x
-  fin_cases x
-  <;> simp
-  simp [mod7]
-  simp only [Matrix.mulVec]
-  simp only [dotProduct]
-  --nth_rewrite 2 [Finset.sum_nat_mod (Finset.range 3) (7:ℕ) (fun (x: Fin 3) ↦ (A 0 x * v x)) ]
-  sorry
-  sorry
-  sorry
-
-
-lemma drop_eq_last {α} : ∀(M : Nat), ∀(L : List α), ∀{X : α},
-    (L.length = M + 1) ∧
-    (L.getLast? = some X) ->
-    L.drop M = [X] := by
-
-  rintro M
-  induction' M with M pM
-
-  rintro L X ⟨hlen, hlast⟩
-
-  have : ∃ Linit, L = Linit ++ [X] := by
-    -- standard library lemma: getLast?_eq_some_iff
-    simpa [List.getLast?_eq_some_iff] using hlast
-
-  obtain ⟨Linit, pLinit⟩ :=this
-
-  simp
-  rw [pLinit]
-  simp
-
-  have sublen : Linit.length = 0 := by
-    have lem: L.length = Linit.length + 1 := by rw [pLinit]; exact List.length_append
-    rw [hlen] at lem
-    linarith [lem]
-
-  exact List.length_eq_zero_iff.mp sublen
-
-  -- now compute drop on an append
-
-  rintro L X ⟨hlen, hlast⟩
-
-  have head_tail: ∃ head: α, ∃ tail : List α,  L= head::tail := by
-    exact List.exists_cons_of_length_eq_add_one hlen
-  let ⟨head, tail, pht ⟩ := head_tail
-  rw [pht]
-  rw [List.drop_succ_cons]
-  have inter:_:= calc (M + 1 + 1)
-    _ = L.length := hlen.symm
-    _ = (head::tail).length := by rw [pht]
-    _ = tail.length + 1 := List.length_cons
-
-
-  have len_lem: tail.length = M + 1 := by linarith [inter]
-
-  have last_lem: tail.getLast? = some X := by
-    rw [pht] at hlast
-    rw [List.getLast?_cons] at hlast
-    have netail: ¬  (tail = [] ):= by
-      by_contra empt
-      have is_zero: tail.length = 0 := by
-        apply List.isEmpty_iff_length_eq_zero.mp
-        simp [empt]
-      rw [is_zero] at len_lem
-      linarith
-
-    simp at hlast
-    have not_none:_ := mt List.getLast?_eq_none_iff.mp netail
-
-    have r0:_ := Option.getD_eq_iff.mp hlast
-    rcases r0 with l | r
-    exact l
-    --
-    absurd not_none r.left
-    trivial
-
-
-  have res:_ := pM tail ⟨len_lem, last_lem⟩
-  exact res
-
-
-def Vs: Set R3_raw := {
+def Vs: Set Z3_raw := {
   ![3,1,2],
   ![5,4,1],
   ![6,2,4]
 }
 
-def Vt: Set R3_raw := {
+def Vt: Set Z3_raw := {
   ![3,2,6],
   ![5,1,3],
   ![6,4,5]
 }
 
 
-def Vtinv: Set R3_raw := {
+def Vtinv: Set Z3_raw := {
   ![3,5,1],
   ![5,6,4],
   ![6,3,2]
 }
 
-def Vsinv: Set R3_raw := {
+def Vsinv: Set Z3_raw := {
   ![1,5,4],
   ![2,3,1],
   ![4,6,2]
 }
 
-
-lemma l1: ∀v ∈ Vs ∪ Vt ∪ Vtinv,  mod7 (Matrix.mulVec M_s v) ∈ Vs := by
-  simp [M_s]
+lemma l1: ∀v ∈ Vs ∪ Vt ∪ Vtinv,  mod7_Z (Matrix.mulVec M_s_Z v) ∈ Vs := by
+  simp [M_s_Z]
   simp [Vs]
   rintro v ((inVs | inVt) | inVtinv)
 
   rcases inVs with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
+  simp [mod7_Z]
   --
   rcases inVt with a | b | c
   rw [a]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  constructor
-  rfl
-  rfl
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
+  simp [mod7_Z]
   --
   rcases inVtinv with a | b | c
   rw [a]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
+  simp [mod7_Z]
+
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-
-  --
+  simp [mod7_Z]
 
 
-lemma l2: ∀v ∈ Vsinv ∪ Vt ∪ Vtinv, mod7 (Matrix.mulVec M_s_i v) ∈ Vsinv := by
-  simp [M_s_i]
+lemma l2: ∀v ∈ Vsinv ∪ Vt ∪ Vtinv, mod7_Z (Matrix.mulVec M_s_i_Z v) ∈ Vsinv := by
+  simp [M_s_i_Z]
   simp [Vsinv]
   rintro v ((inVsinv | inVt) | inVtinv)
 
   rcases inVsinv with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
+  simp [mod7_Z]
+
   --
   rcases inVt with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  constructor
-
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
+  simp [mod7_Z]
   --
   rcases inVtinv with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
+  simp [mod7_Z]
 
   --
 
 
-
-lemma l3: ∀v ∈ Vt ∪ Vs ∪ Vsinv, mod7 (Matrix.mulVec M_t v) ∈ Vt := by
-  simp [M_t]
+lemma l3: ∀v ∈ Vt ∪ Vs ∪ Vsinv, mod7_Z (Matrix.mulVec M_t_Z v) ∈ Vt := by
+  simp [M_t_Z]
   simp [Vt]
   rintro v ((inVt | inVs) | inVsinv)
 
   rcases inVt with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
+  simp [mod7_Z]
   --
   rcases inVs with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  constructor
-  rfl
-  rfl
-
-
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
+  simp [mod7_Z]
   --
   rcases inVsinv with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
 
 
-
-lemma l4: ∀v ∈ Vtinv ∪ Vs ∪ Vsinv, mod7 (Matrix.mulVec M_t_i v) ∈ Vtinv := by
-  simp [M_t_i]
+lemma l4: ∀v ∈ Vtinv ∪ Vs ∪ Vsinv, mod7_Z (Matrix.mulVec M_t_i_Z v) ∈ Vtinv := by
+  simp [M_t_i_Z]
   simp [Vtinv]
   rintro v ((inVinv | inVs) | inVsinv)
 
   rcases inVinv with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rcases inVs with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
-
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rcases inVsinv with a | b | c
   rw [a]
-  simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-
+  simp [mod7_Z]
   --
   rw [b]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
   rw [c]
   simp
   norm_num
-  simp [mod7]
-  simp [Int.natMod]
-  norm_num
-  rfl
+  simp [mod7_Z]
   --
 
 
@@ -613,245 +543,48 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
   intro a
   contrapose!
   intro aneq1
-  set w: List chartype := FreeGroup.toWord a with w_same
-  have notone :  w ≠ ([]: List chartype) := by
-    intro cont
-    simp [w] at cont
-    exact aneq1 cont
-
-
-  have wlen: w.length ≠ 0  := (mt List.length_eq_zero_iff.mp) notone
-
   intro image_is_one
 
-  have newlen : NeZero w.length := by
-    dsimp [NeZero]
-    apply neZero_iff.mpr
-    exact (mt (List.length_eq_zero_iff.mp)) notone
+  have wlog : ∃b: FG2, (b ≠ 1) ∧ (to_sato b = 1) ∧ (FreeGroup.toWord b).getLast? = some (0, true) :=
+    wolog_zero to_sato a ⟨aneq1, image_is_one⟩
 
-  let TailPred (n:ℕ) : Bool :=
-    n ≤ w.length && w.drop (w.length - n) = List.replicate n (0, false)
+  obtain ⟨a2, a2_not_one, a2_image_one, a2_ends_with_sigma⟩ := wlog
 
-  let lSet_type :=Fin (w.length + 1)
-
-  let S : Finset (lSet_type) := Finset.filter (fun n => TailPred ↑n) Finset.univ
-
-
-  have zero_holds: TailPred 0 := by simp [TailPred]
-  have ne: S.Nonempty := by
-    --have trr: (0: (Fin w.length)) ∈ S := simp
-    have mm: (Fin.ofNat (w.length + 1) 0) ∈ S := by
-      simp [S]
-      exact zero_holds
-
-    exact Set.nonempty_of_mem mm
+  set w2 := FreeGroup.toWord a2 with w2_def
+  have a2_eq_mk_w2: a2 = FreeGroup.mk w2 := FreeGroup.mk_toWord.symm
+  set N := w2.length with N_def
+  have Nnezero: N ≠ 0 := by
+    by_contra isz
+    rw [List.length_eq_zero_iff.mp isz] at a2_ends_with_sigma
+    simp at a2_ends_with_sigma
 
 
-  let max_fin := Finset.max' S ne
-  let n_trail_sinvs := (max_fin : ℤ)
-  have nts_pos : n_trail_sinvs ≥ 0 := sorry
+  let Invariant (header: chartype) (op:ZMAT) : Prop :=
 
-  let all_sinv := n_trail_sinvs = w.length
-
-  let a2: FG2 :=  if (all_sinv) then a⁻¹ else σ ^ (-n_trail_sinvs - 1) * a * σ ^ (n_trail_sinvs + 1)
-
-  have still: to_sato a2 = 1 := by
-    simp [a2]
-    rcases (em all_sinv) with all | notall
-    simp [all]
-    exact image_is_one
-    --
-    simp [notall]
-    rw [image_is_one]
-    simp
-    rw [←zpow_add (to_sato σ)]
-    norm_num
-
-  set w2 := FreeGroup.toWord a2 with w2_same
-
-  have w2_isreduced: FreeGroup.IsReduced w2 := by
-    have sim: FreeGroup.IsReduced (FreeGroup.toWord a2) := FreeGroup.isReduced_toWord
-    rwa [←w2_same] at sim
-
-  have check_same: a2 = FreeGroup.mk w2 := FreeGroup.mk_toWord.symm
-
-
-  let my_prod:= List.prod (w2.map fun x =>
-    cond x.2 (sato_fg3_iso_seed x.1) (sato_fg3_iso_seed x.1)⁻¹)
-
-  have case_image_is_my_prod : (to_sato a2) = my_prod := by
-      simp [to_sato]
-      rw [check_same]
-      exact FreeGroup.lift_mk
-
-
-  have w2_len_nonzero: w2.length ≠ 0 := by
-    by_contra bad
-    simp [w2] at bad
-    simp [a2] at bad
-    rcases (em all_sinv) with all | notall
-    simp [all] at bad
-    exact aneq1 bad
-
-    ---
-    simp [notall] at bad
-    let trailing_as_nat : ℕ := Int.toNat n_trail_sinvs
-
-    have lemm_a : ∃ c : FG2, a = c * ((σ⁻¹)^n_trail_sinvs) ∧ ((FreeGroup.toWord c).getLast?) != some (0, false) := sorry
-    obtain ⟨c, pc⟩ := lemm_a
-    rw [pc.left] at bad
-    rw [mul_assoc] at bad
-    rw [inv_zpow] at bad
-    rw [←zpow_neg] at bad
-    rw [zpow_add] at bad
-    rw [mul_assoc c (σ ^ (-n_trail_sinvs)) ] at bad
-    rw [←mul_assoc (σ ^ (-n_trail_sinvs)) ] at bad
-    rw [←zpow_add] at bad
-    norm_num at bad
-    have little: -n_trail_sinvs - 1 = - (n_trail_sinvs + 1) := by linarith
-    have res: c * σ = σ ^ (n_trail_sinvs + 1) := by
-      rw [little] at bad
-      rw [zpow_neg] at bad
-      have mutbad:_ := congrArg (fun X => σ ^ (n_trail_sinvs + 1) * X) bad
-      simp at mutbad
-      exact mutbad
-
-    have res2: c =  σ ^ n_trail_sinvs := by
-      apply mul_right_cancel res
-
-    have res2: a =   σ ^ n_trail_sinvs * σ ^ (-n_trail_sinvs) := by
-      rw [pc.left]
-      rw [res2]
-      simp
-
-    have res4: a = 1 := by
-      rw [res2]
-      simp
-
-    exact aneq1 res4
-
-  set N := w2.length with w2_len_lem
-  have alllem: all_sinv → ((w.head?) = some (0, false)) := by
-    intro is_all
-    simp [all_sinv] at is_all
-    simp [n_trail_sinvs] at is_all
-    simp [max_fin] at is_all
-    let typed_length := Fin.ofNat (w.length + 1) w.length
-    have cond:_ := (Finset.max'_eq_iff S ne typed_length).mp
-    have pred: S.max' ne = typed_length := by
-      ext
-      rw [is_all]
-      simp [typed_length]
-
-    have max_has_property:_ := (cond pred).left
-    simp [S] at max_has_property
-    simp [TailPred] at max_has_property
-    have drp : _ := max_has_property.right
-    simp [typed_length] at drp
-    rw [drp]
-    rw [List.head?_replicate]
-    rw [w2_len_lem] at w2_len_nonzero
-    simp [notone]
-
-  have w2nonempty: w2 ≠ [] := (mt List.length_eq_zero_iff.mpr) w2_len_nonzero
-  have w2nonempty2: ¬ (w2 = []) := by rwa [ne_eq] at w2nonempty
-  have winvnonempty:  (FreeGroup.invRev w ≠ []) := by
-
-    rw [←FreeGroup.invRev_length] at wlen
-    exact (mt List.length_eq_zero_iff.mpr) wlen
-
-  let DEFAULT := ((0:Fin 2), false)
-  have end_lemma: w2.getLast? =  some (0, true) := by
-    simp [w2]
-    simp [a2]
-    rcases (em all_sinv) with all | notall
-    --
-    simp [all]
-
-    change (FreeGroup.invRev w).getLast? = some (0, true)
-    simp [FreeGroup.invRev]
-
-
-    rw [alllem all]
-    --
-    simp [notall]
-
-    set intermed := (σ ^ (-n_trail_sinvs - 1) * a * σ ^ (n_trail_sinvs + 1)).toWord with intermed_def
-
-    have p0:intermed = FreeGroup.reduce ((σ ^ (-n_trail_sinvs - 1) ).toWord ++ (a * σ ^ (n_trail_sinvs + 1)).toWord ) := by
-
-      simp [intermed]
-      rw [mul_assoc]
-      rw [FreeGroup.toWord_mul]
-
-    have p111:intermed = FreeGroup.reduce ((σ ^ (-n_trail_sinvs - 1)).toWord ++ FreeGroup.reduce (
-      a.toWord ++ (σ ^ (n_trail_sinvs + 1)).toWord)) := by
-      rwa [FreeGroup.toWord_mul] at p0
-
-    have quick0 : n_trail_sinvs = Int.toNat n_trail_sinvs := Int.natCast_toNat_eq_self.mpr nts_pos
-
-    have lemm_a : ∃ c : FG2, a = c * ((σ⁻¹)^n_trail_sinvs) ∧ ∃b: Bool, ((FreeGroup.toWord c).getLast? = some (1, b)) := sorry
-    obtain ⟨c, pc⟩ := lemm_a
-
-    have p2: intermed = FreeGroup.reduce ((σ ^ (-n_trail_sinvs - 1)).toWord ++ FreeGroup.toWord (c * σ))  := by
-      rw [pc.left] at p111
-      rw [←FreeGroup.toWord_mul] at p111
-      rw [inv_zpow'] at p111
-      rw [mul_assoc c] at p111
-      rw [←zpow_add σ (-n_trail_sinvs) (n_trail_sinvs + 1) ] at p111
-      simp at p111
-      exact p111
-
-    have p3: intermed = FreeGroup.reduce (((σ ^ (-n_trail_sinvs - 1)).toWord ++ c.toWord) ++ [(0, true)])  := by sorry
-
-
-
-    have lemm_c : ∃ d : List chartype, ∃ T: ℕ, c.toWord = List.replicate T (0, true) ++ d ∧ (d.head?) != some (0, true) := sorry
-    obtain ⟨d, T, pd⟩ := lemm_c
-
-    let redd := (σ ^ (T -n_trail_sinvs - 1)).toWord ++ d ++ [(0, true)]
-
-    have p3_5: intermed = FreeGroup.reduce redd  := by sorry
-
-
-    let pre_im : FG2 := (σ ^ (-n_trail_sinvs - 1)) * c * σ
-
-    have in_range: redd = FreeGroup.toWord pre_im := by
-
-      simp [pre_im]
-
-
-      sorry
-
-
-    have p4: intermed = redd  := by sorry
-
-    change intermed.getLast? = some (0, true)
-
-    rw [p4]
-
-    rw [List.getLast?_append]
-    rw [List.getLast?_append]
-    simp
-
-
-
-
-  let Invariant (header: chartype) (op:MAT) : Prop :=
-
-    let c1 := mod7 ((Matrix.col (op: MAT) 0))
+    let c1 := mod7_Z ((Matrix.col op 0))
 
     (header = (0, true) → c1 ∈ Vs) ∧
     (header = (1, true) → c1 ∈ Vt) ∧
     (header = (1, false) → c1 ∈ Vtinv) ∧
     (header = (0, false) → c1 ∈ Vsinv)
 
-  let sev_mat := Matrix.diagonal (fun _ : Fin 3 ↦ (7:ℝ))
+  set tp_list : List ZMAT := w2.map fun x => (
+    match x with
+    | (0, true) => M_s_Z
+    | (0, false) => M_s_i_Z
+    | (1, true) => M_t_Z
+    | (1, false) => M_t_i_Z
+  ) with tplist_def
 
-  let trunc_prod (i: ℕ): MAT := List.prod ((w2.drop (N - 1 - i)).map fun x =>
-    let m := cond x.2 (sato_fg3_iso_seed x.1) (sato_fg3_iso_seed x.1)⁻¹
-    (sev_mat) • (m: MAT))
+  let trunc_prod (i: ℕ): ZMAT := List.prod ((w2.drop (N - 1 - i)).map fun x =>
+    match x with
+    | (0, true) => M_s_Z
+    | (0, false) => M_s_i_Z
+    | (1, true) => M_t_Z
+    | (1, false) => M_t_i_Z
+  )
 
+  let DEFAULT := ((0:Fin 2), false)
 
   let header (i: ℕ) : chartype := w2.getD (N -i - 1) DEFAULT
 
@@ -860,61 +593,52 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
 
     induction' i with i ih
 
-    have triv1: (trunc_prod 0) = M_s := by
+    have triv1: (trunc_prod 0) = M_s_Z := by
       simp [trunc_prod]
 
-      let d: List MAT := (List.map (fun x ↦ sev_mat * (↑↑(bif x.2 then sato_fg3_iso_seed x.1 else (sato_fg3_iso_seed x.1)⁻¹))) w2)
-      have simpler:  d = (List.map (fun x ↦ sev_mat * (↑↑(bif x.2 then sato_fg3_iso_seed x.1 else (sato_fg3_iso_seed x.1)⁻¹))) w2) := rfl
-      rw [←simpler]
-      have xl1: d.length = N - 1 + 1 := by
-        simp [simpler]
+      rw [←tplist_def]
+      simp [tp_list]
+
+      have xl1: tp_list.length = N - 1 + 1 := by
+        simp [tplist_def]
         omega
 
-      have xl2: d.getLast? = some M_s := by
-        simp [d]
+      have xl2: tp_list.getLast? = some M_s_Z := by
+        simp [tp_list]
         left
         right
-        constructor
-        exact end_lemma
-        --
-        simp [sato_fg3_iso_seed]
-        simp [sato_s]
-        simp [s_op_n]
-        simp [M_s_normed]
-        simp [sev_mat]
-        simp [Matrix.diagonal]
-        sorry
+        exact a2_ends_with_sigma
 
-      rw [drop_eq_last (N - 1) d ⟨xl1, xl2⟩]
+      rw [drop_eq_last (N - 1) tp_list ⟨xl1, xl2⟩]
       simp
 
     have triv2: header 0 = (0, true) := by
       simp [header]
-      rw [List.getLast?_eq_getElem?] at end_lemma
+      rw [List.getLast?_eq_getElem?] at a2_ends_with_sigma
       simp [N]
       apply Option.getD_eq_iff.mpr
       left
-      exact end_lemma
+      exact a2_ends_with_sigma
 
     rw [triv2]
     rw [triv1]
     simp [Invariant]
-    simp [M_s]
+    simp [M_s_Z]
     simp only [Matrix.col_def]
     simp [Matrix.transpose]
     simp [Vs]
     right
     right
     ext i
-    simp [mod7]
-    fin_cases i <;> norm_num <;> rfl
+    simp [mod7_Z]
+
     --
 
     simp [Invariant]
     let h := header (i + 1)
     let h_prev := header (i)
     simp at h
-    let m7prev := mod7 (Matrix.col (trunc_prod ↑i) 0)
+    let m7prev := mod7_Z (Matrix.col (trunc_prod ↑i) 0)
 
     have adj_lemma : ∀{i : Fin 2}, ∀{v : Bool}, h = (i, v) → (h_prev ≠ (i, not v)) := by
       intro j vt
@@ -957,14 +681,10 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
           simp [ll]
           rfl
 
-
-
         rw [← h_conv]
         exact lhs
 
         constructor
-
-
 
         have h_conv : w2.getD (N - i - 1) DEFAULT = w2[N - i - 2 + 1] := by
           rw [List.getD_eq_getElem?_getD, List.getD_getElem?]
@@ -985,6 +705,9 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
         simp [N]
         omega
 
+      have w2_isreduced: FreeGroup.IsReduced w2 := by
+        have sim: FreeGroup.IsReduced (FreeGroup.toWord a2) := FreeGroup.isReduced_toWord
+        rwa [←w2_def] at sim
 
       have bb: FreeGroup.Red.Step w2 L2 := by
         rw [w2_decomp]
@@ -1024,20 +747,19 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
       right
       exact ihtrig.right.right.left d
 
-    have red: mod7 (Matrix.col (trunc_prod (↑i + 1)) 0) = mod7 (Matrix.mulVec M_s m7prev) := by
-      have lem: trunc_prod (↑i + 1) = M_s * trunc_prod ↑i := by
+    have red: mod7_Z (Matrix.col (trunc_prod (↑i + 1)) 0) = mod7_Z (Matrix.mulVec M_s_Z m7prev) := by
+      have lem: trunc_prod (↑i + 1) = M_s_Z * trunc_prod ↑i := by
         simp [trunc_prod]
 
 
-        let d: List MAT := (List.map (fun x ↦ sev_mat * (↑↑(bif x.2 then sato_fg3_iso_seed x.1 else (sato_fg3_iso_seed x.1)⁻¹))) w2)
-        have simpler:  d = (List.map (fun x ↦ sev_mat * (↑↑(bif x.2 then sato_fg3_iso_seed x.1 else (sato_fg3_iso_seed x.1)⁻¹))) w2) := rfl
-        rw [←simpler]
+        let d: List MAT := (List.map (fun x ↦ sev_mat * ((bif x.2 then ((sato_fg3_iso_seed x.1):MAT) else ((sato_fg3_iso_seed x.1)⁻¹:MAT)))) w2)
+        have simpler:  d = (List.map (fun x ↦ sev_mat * ((bif x.2 then ((sato_fg3_iso_seed x.1):MAT) else ((sato_fg3_iso_seed x.1)⁻¹:MAT)))) w2) := rfl
+
+        rw [←tplist_def]
 
 
         have lemm1: N - 1 - i = Nat.succ (Nat.pred (N - 1 - i)) :=  by
-          have int0: N -1 -i ≠ 0 := by
-            by_contra con
-            sorry
+          have int0: N -1 -i ≠ 0 := by omega
           exact (Nat.succ_pred_eq_of_ne_zero  int0).symm
 
         set D := Nat.pred (N - 1 - i)  with ddef
@@ -1046,7 +768,7 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
           omega
         rw [pD2, lemm1]
 
-        have more: (List.drop D d) = M_s::(List.drop (D+1) d):= by
+        have more: (List.drop D tp_list) = M_s_Z::(List.drop (D+1) tp_list):= by
           rw [List.drop_add_one_eq_tail_drop]
           set DD := List.drop D d with dddef
           apply List.eq_cons_of_mem_head?
@@ -1056,10 +778,93 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
           rw [sm] at lhs
           simp [DD]
           simp [D]
-          simp [d]
+          simp [tplist_def]
           left
           right
-          constructor
+          rw [sm2]
+          have more0:_:= Option.getD_eq_iff.mp lhs
+          rcases more0 with L | R
+          exact L
+          --
+          have evenmore: _:= List.getElem?_eq_none_iff.mp R.left
+          simp [D] at evenmore
+          simp [N] at evenmore
+          exfalso
+          omega
+
+        rw [more]
+        rfl
+
+      simp [m7prev]
+      rw [mod_lemma_Z]
+      rw [lem]
+      rfl
+
+    rw [red]
+    exact l1 m7prev prev_lem
+
+    constructor
+    intro lhs
+    -- header = (1, true)
+    have lim1: h_prev ≠ (1, false) := adj_lemma lhs
+    simp [h_prev] at lim1
+    simp [Invariant] at ih
+
+
+    have ihtrig := ih (by linarith [i_le_N])
+    have prev_lem0: m7prev ∈ Vs ∪ Vt ∪ Vsinv := by
+      simp [m7prev]
+      rcases (wopts h_prev) with a | b | c | d
+      --
+      left
+      left
+      exact ihtrig.left a
+      ---
+      simp [h_prev] at b
+      right
+      exact ihtrig.right.right.right b
+
+      --
+      simp [h_prev] at c
+      left
+      right
+      exact ihtrig.right.left c
+      --
+      simp [h_prev] at d
+      absurd lim1 d
+      trivial
+    have prev_lem: m7prev ∈ Vt ∪ Vs ∪ Vsinv := by rwa [Set.union_comm Vs Vt] at prev_lem0
+
+    have red: mod7_Z (Matrix.col (trunc_prod (↑i + 1)) 0) = mod7_Z (Matrix.mulVec M_t_Z m7prev) := by
+      have lem: trunc_prod (↑i + 1) = M_t_Z * trunc_prod ↑i := by
+        simp [trunc_prod]
+
+        rw [←tplist_def]
+
+
+        have lemm1: N - 1 - i = Nat.succ (Nat.pred (N - 1 - i)) :=  by
+          have int0: N -1 -i ≠ 0 := by omega
+          exact (Nat.succ_pred_eq_of_ne_zero  int0).symm
+
+        set D := Nat.pred (N - 1 - i)  with ddef
+        have pD2: N - 1 - (i+1) = D := by
+          simp [D]
+          omega
+        rw [pD2, lemm1]
+
+        have more: (List.drop D tp_list) = M_t_Z::(List.drop (D+1) tp_list):= by
+          rw [List.drop_add_one_eq_tail_drop]
+          set DD := List.drop D tp_list with dddef
+          apply List.eq_cons_of_mem_head?
+          simp [header] at lhs
+          have sm: N - (i + 1) - 1 = D := by omega
+          have sm2: N - 1 -i - 1 = D := by omega
+          rw [sm] at lhs
+          simp [DD]
+          simp [D]
+          simp [tplist_def]
+          right
+          right
           rw [sm2]
           have more0:_:= Option.getD_eq_iff.mp lhs
           rcases more0 with L | R
@@ -1071,124 +876,355 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
           exfalso
           omega
           --
-          simp [sev_mat, sato_fg3_iso_seed, M_s, sato_s, s_op_n, M_s_normed]
-          ext i j
-          fin_cases i, j
-          <;> simp
-
-
-
-
-
 
         rw [more]
         rfl
 
       simp [m7prev]
-      rw [mod_lemma]
+      rw [mod_lemma_Z]
       rw [lem]
       rfl
-
     rw [red]
-    exact l1 m7prev prev_lem
+    exact l3 m7prev prev_lem
 
     constructor
-    sorry
-    constructor
-    sorry
-    sorry
+    intro lhs
+
+    -- header = (1, false)
+    have lim1: h_prev ≠ (1, true) := adj_lemma lhs
+    simp [h_prev] at lim1
+    simp [Invariant] at ih
+
+
+    have ihtrig := ih (by linarith [i_le_N])
+    have prev_lem0: m7prev ∈ Vs ∪ Vsinv ∪ Vtinv:= by
+      simp [m7prev]
+      rcases (wopts h_prev) with a | b | c | d
+      --
+      left
+      left
+      exact ihtrig.left a
+      ---
+      left
+      right
+      exact ihtrig.right.right.right b
+
+      --
+      simp [h_prev] at c
+      absurd lim1 c
+      trivial
+      --
+      right
+      exact ihtrig.right.right.left d
+    have prev_lem: m7prev ∈  Vtinv ∪ Vs ∪ Vsinv := by
+      rw [Set.union_comm (Vs ∪ Vsinv) Vtinv] at prev_lem0
+      rw [←Set.union_assoc] at prev_lem0
+      exact prev_lem0
+
+    have red: mod7_Z (Matrix.col (trunc_prod (↑i + 1)) 0) = mod7_Z (Matrix.mulVec M_t_i_Z m7prev) := by
+      have lem: trunc_prod (↑i + 1) = M_t_i_Z * trunc_prod ↑i := by
+        simp [trunc_prod]
+        rw [←tplist_def]
+
+
+        have lemm1: N - 1 - i = Nat.succ (Nat.pred (N - 1 - i)) :=  by
+          have int0: N -1 -i ≠ 0 := by omega
+          exact (Nat.succ_pred_eq_of_ne_zero  int0).symm
+
+        set D := Nat.pred (N - 1 - i)  with ddef
+        have pD2: N - 1 - (i+1) = D := by
+          simp [D]
+          omega
+        rw [pD2, lemm1]
+
+        have more: (List.drop D tp_list) = M_t_i_Z::(List.drop (D+1) tp_list):= by
+          rw [List.drop_add_one_eq_tail_drop]
+          set DD := List.drop D tp_list with dddef
+          apply List.eq_cons_of_mem_head?
+          simp [header] at lhs
+          have sm: N - (i + 1) - 1 = D := by omega
+          have sm2: N - 1 -i - 1 = D := by omega
+          rw [sm] at lhs
+          simp [DD]
+          simp [D]
+          simp [tp_list]
+          right
+          left
+          rw [sm2]
+          have more0:_:= Option.getD_eq_iff.mp lhs
+          rcases more0 with L | R
+          exact L
+          --
+          have evenmore: _:= List.getElem?_eq_none_iff.mp R.left
+          simp [D] at evenmore
+          simp [N] at evenmore
+          exfalso
+          omega
+          --
+        rw [more]
+        rfl
+
+      simp [m7prev]
+      rw [mod_lemma_Z]
+      rw [lem]
+      rfl
+    rw [red]
+    exact l4 m7prev prev_lem
+
+    --
+    intro lhs
+    -- header (i + 1) = (0, false)
+
+    have lim1: h_prev ≠ (0, true) := adj_lemma lhs
+    simp [h_prev] at lim1
+    simp [Invariant] at ih
+
+    have ihtrig := ih (by linarith [i_le_N])
+    have prev_lem0: m7prev ∈ Vt ∪ Vsinv ∪ Vtinv:= by
+      simp [m7prev]
+      rcases (wopts h_prev) with a | b | c | d
+      --
+      absurd lim1 a
+      trivial
+      --
+      left
+      right
+      exact ihtrig.right.right.right b
+      ---
+      left
+      left
+      exact ihtrig.right.left c
+      --
+      right
+      exact ihtrig.right.right.left d
+
+    have prev_lem: m7prev ∈  Vsinv ∪ Vt ∪ Vtinv := by
+      rw [Set.union_comm Vt Vsinv] at prev_lem0
+      exact prev_lem0
+
+    have red: mod7_Z (Matrix.col (trunc_prod (↑i + 1)) 0) = mod7_Z (Matrix.mulVec M_s_i_Z m7prev) := by
+      have lem: trunc_prod (↑i + 1) = M_s_i_Z * trunc_prod ↑i := by
+        simp [trunc_prod]
+
+
+        rw [←tplist_def]
+
+
+        have lemm1: N - 1 - i = Nat.succ (Nat.pred (N - 1 - i)) :=  by
+          have int0: N -1 -i ≠ 0 := by omega
+          exact (Nat.succ_pred_eq_of_ne_zero  int0).symm
+
+        set D := Nat.pred (N - 1 - i)  with ddef
+        have pD2: N - 1 - (i+1) = D := by
+          simp [D]
+          omega
+        rw [pD2, lemm1]
+
+        have more: (List.drop D tp_list) = M_s_i_Z::(List.drop (D+1) tp_list):= by
+          rw [List.drop_add_one_eq_tail_drop]
+          set DD := List.drop D tp_list with dddef
+          apply List.eq_cons_of_mem_head?
+          simp [header] at lhs
+          have sm: N - (i + 1) - 1 = D := by omega
+          have sm2: N - 1 -i - 1 = D := by omega
+          rw [sm] at lhs
+          simp [DD]
+          simp [D]
+          simp [tp_list]
+          left
+          left
+          rw [sm2]
+          have more0:_:= Option.getD_eq_iff.mp lhs
+          rcases more0 with L | R
+          exact L
+          --
+          have evenmore: _:= List.getElem?_eq_none_iff.mp R.left
+          simp [D] at evenmore
+          simp [N] at evenmore
+          exfalso
+          omega
+          --
+
+        rw [more]
+        rfl
+
+      simp [m7prev]
+      rw [mod_lemma_Z]
+      rw [lem]
+      rfl
+    rw [red]
+    exact l2 m7prev prev_lem
 
 
   have last : Invariant (header (N-1)) (trunc_prod (N - 1)) := by
-    exact claim (N-1) (by omega)
+    apply claim (N-1)
+    exact Nat.sub_one_lt Nnezero
 
-  let seventh_mat := ((1/7:ℝ)^N • (1: MAT))
 
-  have equal_prods: my_prod = (seventh_mat)  * trunc_prod (N - 1) := by
-    simp [my_prod]
+  let pre_prod:= (w2.map fun x => ((cond x.2 (sato_fg3_iso_seed x.1) (sato_fg3_iso_seed x.1)⁻¹)))
+  set pre_prod_MAT:= (w2.map fun x => ((cond x.2 ((sato_fg3_iso_seed x.1):MAT) ((sato_fg3_iso_seed x.1):MAT)⁻¹))) with ppm_def
+
+  have len_ppm : pre_prod_MAT.length = N := by
+    simp [pre_prod_MAT]
+    exact N_def.symm
+
+  let my_prod:= List.prod (pre_prod)
+  let my_prod_MAT:= List.prod (pre_prod_MAT)
+
+  have case_image_is_my_prod : (to_sato a2) = my_prod := by
+      simp [to_sato]
+      rw [a2_eq_mk_w2]
+      exact FreeGroup.lift_mk
+
+  have case_image_is_my_prod_MAT : ((to_sato a2): MAT) = my_prod_MAT := by
+    simp [case_image_is_my_prod]
+    simp [my_prod, my_prod_MAT]
+    apply congrArg List.prod
+    simp [pre_prod, pre_prod_MAT]
+    simp [sato_fg3_iso_seed]
+    simp [sato_s, sato_t]
+    constructor
+    intro lhs
+    exact (so3_invs_coe s_op_n).symm
+    intro lhs
+    exact (so3_invs_coe t_op_n).symm
+
+
+  have equal_prods: (sev_mat ^N) * my_prod_MAT = to_MAT (trunc_prod (N - 1)) := by
+
     simp [trunc_prod]
-    sorry
+    rw [to_MAT_prod]
+    --
+    simp [my_prod_MAT]
+    simp [sev_mat, sev_mat_Z]
 
-  have seven_floor : ⌊(7:ℝ)^N⌋ = (7:ℕ)^N := sorry
+    simp [to_MAT]
+    have inter:_ := zip_lemma N pre_prod_MAT (7:ℝ) len_ppm
+    rw [inter]
 
-
-  have is_zero_lemma: mod7 (Matrix.col (sev_mat ^ N) 0) = 0 := by
-    rw [Matrix.diagonal_pow]
-    ext i
-    fin_cases i
-    <;> norm_num
-    <;> simp [Pi.single]
-    <;> simp [mod7]
-    <;> rw [seven_floor]
-    <;> dsimp
-
-    change Int.toNat (7^N % 7) = 0
+    simp [pre_prod_MAT]
+    apply congrArg List.prod
     simp
-    have better: (7:ℕ)^N % 7 = 0 := by
-      apply Nat.mod_eq_zero_of_dvd
-      norm_num
-      exact w2_len_nonzero
-    have almost := Nat.le_of_eq better
-    sorry
+    simp [sato_fg3_iso_seed]
+    simp [sato_s, sato_t]
+    constructor
+    constructor
+    intro _
+    rw [←mul_one (to_MAT M_s_i_Z)]
+    have xyz: (1:MAT) = (s_op_n:MAT) * (s_op_n:MAT)⁻¹ := by
+      rw [so3_invs_coe s_op_n]
+      have cm: s_op_n.val * s_op_n⁻¹.val = (s_op_n * s_op_n⁻¹).val := rfl
+      rw [cm]
+      simp
 
+    rw [xyz]
+    rw [←mul_assoc]
+    apply congrArg (fun M ↦ M * (s_op_n:MAT)⁻¹)
+    rw [←msi_def]
+    simp [s_op_n]
+    simp [M_s_normed]
+    rw [msinv_lem]
+    norm_num
+    rw [←Matrix.diagonal_smul]
+    apply congrArg
+    ext x
+    simp
+    norm_num
+    ---
+    intro _
+    rw [←mul_one (to_MAT M_s_Z)]
+    have xyz: (1:MAT) = (s_op_n:MAT)⁻¹ * (s_op_n:MAT) := by
+      rw [so3_invs_coe s_op_n]
+      have cm: (s_op_n⁻¹).val * s_op_n.val = (s_op_n⁻¹ * s_op_n).val := rfl
+      rw [cm]
+      simp
 
+    rw [xyz]
+    rw [←mul_assoc]
+    apply congrArg (fun M ↦ M * (s_op_n:MAT))
+    rw [←ms_def]
+    rw [so3_invs_coe s_op_n]
+    rw [←s_i_op_n_def]
+    rw [s_i_op_n_equiv]
+    simp
+    rw [msinv_lem2]
+    norm_num
+    rw [←Matrix.diagonal_smul]
+    apply congrArg
+    ext x
+    simp
+    norm_num
+    --
+    constructor
+    intro _
+    rw [←mul_one (to_MAT M_t_i_Z)]
+    have xyz: (1:MAT) = (t_op_n:MAT) * (t_op_n:MAT)⁻¹ := by
+      rw [so3_invs_coe t_op_n]
+      have cm: t_op_n.val * t_op_n⁻¹.val = (t_op_n * t_op_n⁻¹).val := rfl
+      rw [cm]
+      simp
 
+    rw [xyz]
+    rw [←mul_assoc]
+    apply congrArg (fun M ↦ M * (t_op_n⁻¹:MAT))
+    rw [←mti_def]
+    simp [t_op_n]
+    simp [M_t_normed]
+    rw [mtinv_lem]
+    norm_num
+    rw [←Matrix.diagonal_smul]
+    apply congrArg
+    ext x
+    simp
+    norm_num
+    --
+    intro _
+    rw [←mul_one (to_MAT M_t_Z)]
+    have xyz: (1:MAT) = (t_op_n:MAT)⁻¹ * (t_op_n:MAT) := by
+      rw [so3_invs_coe t_op_n]
+      have cm: t_op_n⁻¹.val * t_op_n.val = (t_op_n⁻¹ * t_op_n).val := rfl
+      rw [cm]
+      simp
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    rw [xyz]
+    rw [←mul_assoc]
+    apply congrArg (fun M ↦ M * (t_op_n:MAT))
+    rw [←mt_def]
+    rw [so3_invs_coe t_op_n]
+    rw [←t_i_op_n_def]
+    rw [t_i_op_n_equiv]
+    simp
+    rw [mtinv_lem2]
+    norm_num
+    rw [←Matrix.diagonal_smul]
+    apply congrArg
+    ext x
+    simp
+    norm_num
 
 
   have thus: to_sato a2 ≠ (1: SATO) := by
     by_contra isid
-    rw [isid] at case_image_is_my_prod
-    rw [←case_image_is_my_prod] at equal_prods
-    have weird: sev_mat ^ N = trunc_prod (N-1) := sorry
+    have uh : ((to_sato a2) : MAT) = 1 := by simp [isid]
+    rw [uh] at case_image_is_my_prod_MAT
+
+    rw [←case_image_is_my_prod_MAT] at equal_prods
+
+    simp at equal_prods
+    have weird1: sev_mat ^ N = to_MAT (trunc_prod (N-1)) := by exact equal_prods
+    have weird: sev_mat_Z ^ N = (trunc_prod (N-1)) := by
+      simp only [sev_mat] at weird1
+      rw [←to_MAT_pow] at weird1
+      apply to_MAT_inj
+      exact weird1
+
     rw [← weird] at last
     simp [Invariant] at last
 
+
     rcases wopts (header (N-1)) with  c1 | c2 | c3 | c4
     have bad1 : _ := last.left c1
-    rw [is_zero_lemma] at bad1
+    rw [sev_mat_Z_mod_is_zero_lemma N] at bad1
     simp [Vs] at bad1
     rcases bad1 with b1 | b2 | b3
     have := congrArg (fun f ↦ f 0) b1
@@ -1197,9 +1233,10 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
     simp at this
     have := congrArg (fun f ↦ f 0) b3
     simp at this
+    exact Nnezero
     --
     have bad2 : _ := last.right.right.right c2
-    rw [is_zero_lemma] at bad2
+    rw [sev_mat_Z_mod_is_zero_lemma N] at bad2
     simp [Vsinv] at bad2
     rcases bad2 with b1 | b2 | b3
     have := congrArg (fun f ↦ f 0) b1
@@ -1208,9 +1245,10 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
     simp at this
     have := congrArg (fun f ↦ f 0) b3
     simp at this
+    exact Nnezero
     --
     have bad3 : _ := last.right.left c3
-    rw [is_zero_lemma] at bad3
+    rw [sev_mat_Z_mod_is_zero_lemma N] at bad3
     simp [Vt] at bad3
     rcases bad3 with b1 | b2 | b3
     have := congrArg (fun f ↦ f 0) b1
@@ -1219,9 +1257,11 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
     simp at this
     have := congrArg (fun f ↦ f 0) b3
     simp at this
+    exact Nnezero
+
     --
     have bad4 : _ := last.right.right.left c4
-    rw [is_zero_lemma] at bad4
+    rw [sev_mat_Z_mod_is_zero_lemma N] at bad4
     simp [Vtinv] at bad4
     rcases bad4 with b1 | b2 | b3
     have := congrArg (fun f ↦ f 0) b1
@@ -1230,14 +1270,9 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
     simp at this
     have := congrArg (fun f ↦ f 0) b3
     simp at this
+    exact Nnezero
 
-
-
-
-  exact thus still
-
-
-
+  exact thus a2_image_one
 
 
 theorem to_sato_is_bijective: Function.Bijective to_sato := ⟨to_sato_is_injective, to_sato_is_surjective⟩

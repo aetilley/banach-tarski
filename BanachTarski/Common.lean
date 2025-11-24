@@ -15,19 +15,56 @@ abbrev chartype := Fin 2 × Bool
 
 
 def σchar := (0: Fin 2)
+
+lemma σ_def : σchar = (0: Fin 2) := rfl
 def τchar := (1: Fin 2)
+lemma τ_def : τchar = (1: Fin 2) := rfl
 abbrev σ := FreeGroup.of (σchar)
 abbrev τ := FreeGroup.of (τchar)
 
 def f {X : Type*} {G: Type*} [Group G] [MulAction G X] (g : G): X → X := fun x: X ↦ g • x
 
+abbrev MAT:= Matrix (Fin 3) (Fin 3) ℝ
 abbrev R3_raw := (Fin 3) → ℝ
 abbrev R3 :=  EuclideanSpace ℝ (Fin 3)
 def origin := (0: R3)
 def S2 : Set R3 := Metric.sphere (0: R3) 1
 abbrev SO3 := Matrix.specialOrthogonalGroup (Fin 3) ℝ
 
-abbrev MAT:= Matrix (Fin 3) (Fin 3) ℝ
+lemma so3_invs_coe : ∀g:SO3, (g.val)⁻¹ = g⁻¹.val := by
+  intro g
+  apply Matrix.inv_eq_left_inv
+  rw [←MulMemClass.coe_mul]
+  simp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- The standard action given by matrix multiplication.
 instance SO3_action_on_MAT: MulAction SO3 R3_raw where
