@@ -2496,17 +2496,55 @@ lemma S2_equidecomposible_of_S2_minus_countable:
   intro S
   rintro ⟨subset_of_s2, countable_S⟩
 
-  have ub_card_D: (Cardinal.mk S) ≤ Cardinal.aleph0  := by
-    exact Cardinal.le_aleph0_iff_set_countable.mpr countable_S
+  let mS := {-x | x ∈ S}
 
-  have lem: Set.Nonempty (S2 \ S) := by
+  have countable_mS: Countable mS := by
+    simp [mS]
+    apply Set.Countable.image countable_S
+
+
+  let S2plus := S ∪ mS
+  have ub_card_plus : (Cardinal.mk S2plus) ≤ Cardinal.aleph0 := by
+    simp [S2plus]
+    apply Set.countable_union.mpr
+    constructor
+    exact countable_S
+    exact countable_mS
+
+
+  have lem: Set.Nonempty (S2 \ S2plus) := by
     apply Cardinal.diff_nonempty_of_mk_lt_mk
-    exact lt_of_le_of_lt ub_card_D lb_card_s2
+    exact lt_of_le_of_lt ub_card_plus lb_card_s2
 
-  let axis: R3 := Classical.choose lem
+  let spec := Classical.choose_spec lem
+
+  let axis: S2 := ⟨Classical.choose lem, (spec).left⟩
+  have polelem1: axis.val ∉ S := by
+    by_contra bad
+    have so: axis.val ∈ S2plus := Or.inl bad
+    simp [axis] at so
+    exact spec.right so
+
+
+
+  have polelem2: -axis.val ∉ S := by
+    by_contra bad
+    have inv_bad: axis.val ∈ mS := by
+      simp [mS]
+      use -axis
+      constructor
+      exact bad
+      simp
+
+    have so: axis.val ∈ S2plus := Or.inr inv_bad
+    simp [axis] at so
+    exact spec.right so
+
+
+
   let axis_spec := (Classical.choose_spec lem).left
   let F:= (fun θ ↦ rot axis θ)
-  have countbad: Countable (Bad F S) := countable_bad_rots S axis ⟨subset_of_s2, countable_S⟩
+  have countbad: Countable (Bad F S) := countable_bad_rots S axis ⟨subset_of_s2, countable_S, polelem1, polelem2⟩
 
   have orbit_containment: (∀r:ℝ, (orbit (F r) S ⊆ S2 )) := by
     intro r

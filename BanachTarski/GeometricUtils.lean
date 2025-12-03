@@ -63,19 +63,30 @@ lemma lb_card_s2 : Cardinal.aleph0 < Cardinal.mk S2 := Cardinal.aleph0_lt_mk_iff
 
 
 lemma so3_fixes_norm: ∀g : SO3, ∀x : R3, ‖g • x‖ = ‖x‖ := sorry
-lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := sorry
+
+lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := by
+  intro g
+  intro z
+  simp
+  intro x
+  simp [S2]
+  intro lhs1 lhs2
+  rw [←lhs2]
+  simp [f]
+  rw [so3_fixes_norm g]
+  exact lhs1
 
 
-def tspace := R3_raw →ₗ[ℝ] R3_raw
+def R3_tspace := R3_raw →ₗ[ℝ] R3_raw
 
 lemma fixed_lemma (g: SO3) : Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
-  let gmap: tspace := Matrix.toLin' g
+  let gmap: R3_tspace := Matrix.toLin' g
   -- sketch
-  -- have _: {x : R3_raw | g • x = x} = (LinearMap.ker (gmap-(1: tspace))).carrier :=
-  -- have _: Module.finrank ℝ (LinearMap.ker (gmap-(1: tspace))) = 1 :=
-  -- have _: ∃v: R3_raw, LinearMap.ker (gmap - 1 : tspace) = {x | ∃s:ℝ,  x = s • v} :=
+  -- have _: {x : R3_raw | g • x = x} = (LinearMap.ker (gmap-(1: R3_tspace))).carrier :=
+  -- have _: Module.finrank ℝ (LinearMap.ker (gmap-(1: R3_tspace))) = 1 :=
+  -- have _: ∃v: R3_raw, LinearMap.ker (gmap - 1 : R3_tspace) = {x | ∃s:ℝ,  x = s • v} :=
+  -- ...
   sorry
-
 
 ---
 
@@ -89,11 +100,9 @@ def K_mat (a: R3): MAT := !![
 
 noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT := (1:MAT) + (Real.sin θ)•(K_mat ax) + (1 - Real.cos θ)•((K_mat ax) ^ 2)
 
-noncomputable def rot (ax: R3) (θ:ℝ) : SO3 := by
+noncomputable def rot (ax: S2) (θ:ℝ) : SO3 := by
   -- First normalize the axis to be on S2
-  let ax_norm := (1 / ‖ax‖) • ax
-  have ax_norm_mem_S2 : ax_norm ∈ S2 := sorry  -- Need to prove normalization gives unit vector
-  let M := rot_mat ⟨ax_norm, ax_norm_mem_S2⟩ θ
+  let M := rot_mat ax θ
   -- Now prove M ∈ SO3 using the systematic approach:
   refine ⟨M, ?_⟩
   rw [Matrix.mem_specialOrthogonalGroup_iff]
@@ -104,7 +113,33 @@ noncomputable def rot (ax: R3) (θ:ℝ) : SO3 := by
   · -- M.det = 1
     sorry
 
-lemma rot_lemma: ∀ {axis : R3} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := sorry
+lemma rot_lemma: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
+  intro axis θ
+  simp only [rot]
+  simp only [f]
+  exact so3_fixes_s2 (rot axis θ)
+
+
+def Bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X): Set ℝ :=
+{θ: ℝ | ∃n:ℕ, n > 0 ∧ ∃s∈S, (f (F θ))^[n] s ∈ S}
+
+
+lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
+S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
+Countable (Bad (rot axis) S) := by
+  -- Sketch:
+  -- 1) Express s ∈ S in spherical cooardinates
+  -- 2) Thre is one rotation g∈ SO3 for s₁, s₂ ∈ S st. f g s₁ = s₂
+  -- 3) Prove that the Bad set is a countable union of countable
+  -- sets {θ/n : θ(s₁, s₂)}
+sorry
+
+
+def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
+⋃ i, (f g)^[i] '' S
+
+--------
+
 
 
 def ToEquivSO3 (g: SO3) : R3 ≃ R3 := sorry
@@ -112,10 +147,10 @@ def ToEquivSO3 (g: SO3) : R3 ≃ R3 := sorry
 
 def isIsoSO3 (g: SO3) (y: R3 ≃ R3) : Isometry (y) := sorry
 
-  -- Matrix.toLin'...
 
 -- Group of Isometries of R3.
 abbrev G3: Type := R3 ≃ᵢ R3
+
 -- The standard action given by matrix multiplication.
 instance : MulAction G3 R3 where
   smul g v := g v
@@ -129,8 +164,6 @@ instance : MulAction G3 R3 where
     exact lem
 
 
-def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
-⋃ i, (f g)^[i] '' S
 
 
 def SO3_in_G3_carrier: Set G3 := {⟨y, is_iso⟩ | ∃g: SO3,  y = ToEquivSO3 g ∧ is_iso = (isIsoSO3 g y)}
@@ -424,15 +457,11 @@ lemma map_lemma (n: ℕ) (map: Fin n -> SO3) (famA: Fin n → S2_sub) (famB: Fin
   exact psw.left.symm
 
 
-noncomputable def axis_rot (axis: R3): ℝ -> SO3 := (fun θ ↦ rot axis θ)
 
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
 def skew_rot (θ: ℝ): G3 := sorry
 
-def Bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X): Set ℝ :=
-{θ: ℝ | ∃n:ℕ, n > 0 ∧ ∃s∈S, (f (F θ))^[n] s ∈ S}
 
-lemma countable_bad_rots: ∀S: Set R3, ∀ axis:R3, S ⊆ S2 ∧ Countable S → Countable (Bad (axis_rot axis) S) := sorry
 lemma countable_bad_skew_rot: Countable (Bad skew_rot {origin}) := sorry
 
 lemma srot_containment: ∀r:ℝ, orbit (skew_rot r) {origin} ⊆ B3 :=sorry
