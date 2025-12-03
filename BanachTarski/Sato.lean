@@ -631,7 +631,6 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
     right
     ext i
     simp [mod7_Z]
-
     --
 
     simp [Invariant]
