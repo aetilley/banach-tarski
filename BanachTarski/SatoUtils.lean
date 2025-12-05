@@ -80,7 +80,6 @@ lemma mod_lemma_Z (A: ZMAT) (v: Z3_raw) : mod7_Z (Matrix.mulVec A (mod7_Z v)) = 
     fin_cases i
     <;> simp
     <;> rw [Int.mul_ediv_cancel']
-    <;> ring
     <;> simp [mod7_Z]
     <;> exact Int.dvd_self_sub_emod
 

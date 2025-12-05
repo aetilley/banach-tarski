@@ -68,7 +68,16 @@ abbrev MAT1 := Matrix (Fin 3) (Fin 1) ℝ
 
 def v2m (v: R3_raw) : MAT1 := !![(v 0); (v 1); (v 2);]
 
-lemma dot_as_matmul (u v: R3_raw): u  ⬝ᵥ v = (((v2m u).transpose) * (v2m v)) 0 0:= sorry
+lemma dot_as_matmul (u v: R3_raw): u  ⬝ᵥ v = (((v2m u).transpose) * (v2m v)) 0 0:= by
+  simp only [dotProduct]
+  simp only [v2m]
+  simp only [Matrix.mul_apply]
+  rw [Fin.sum_univ_three]
+  rw [Fin.sum_univ_three]
+  simp
+
+
+
 
 lemma v2m_equiv (M: MAT) (v: R3_raw) : v2m (Matrix.mulVec M v) = M * (v2m v) := by
   simp [v2m]
@@ -163,13 +172,11 @@ lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := by
 
 def R3_tspace := R3_raw →ₗ[ℝ] R3_raw
 
-lemma fixed_lemma (g: SO3) : Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
+lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
   let gmap: R3_tspace := Matrix.toLin' g
   -- sketch
-  -- have _: {x : R3_raw | g • x = x} = (LinearMap.ker (gmap-(1: R3_tspace))).carrier :=
-  -- have _: Module.finrank ℝ (LinearMap.ker (gmap-(1: R3_tspace))) = 1 :=
-  -- have _: ∃v: R3_raw, LinearMap.ker (gmap - 1 : R3_tspace) = {x | ∃s:ℝ,  x = s • v} :=
-  -- ...
+  -- This is the eigenspace for eigenvalue 1.
+  -- Show that for non-identity members of SO3, this is 1 dimensional.
   sorry
 
 ---

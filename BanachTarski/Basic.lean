@@ -16,6 +16,9 @@ import BanachTarski.GeometricUtils
 set_option warningAsError false
 set_option linter.all false
 
+
+set_option maxHeartbeats 1000000
+
 def Equidecomposible {X : Type*} (G: Type*) [Group G] [MulAction G X] (E F : Set X): Prop :=
   ∃ n: Nat,
   ∃ As: Fin n → Set X,
@@ -1550,8 +1553,7 @@ instance countable_of_fg2: Countable FG2 := by
   exact Function.Injective.comp lists_to_nat_is_inj FreeGroup.toWord_injective
 
 
-
-def FixedPoints {X : Type*} (G: Type*) [Group G] [MulAction G X] (E: Set X): Set X := ⋃ g ∈ (Set.univ: Set G), {x ∈ E | g • x = x}
+def FixedPoints {X : Type*} (G: Type*) [Group G] [MulAction G X] (E: Set X): Set X := ⋃ g ∈ (Set.univ: Set G) \ {(1: G)}, {x ∈ E | g • x = x}
 
 theorem paradoxical_of_action_of_self_paradoxical {X : Type*} (G: Type*) [Group G] [MulAction G G] [MulAction G X] (Dom: Set X):
   (∀g:G, (f g) '' Dom ⊆ Dom) → SelfParadoxical G → (¬∃ fp: X, fp ∈ FixedPoints G Dom) → Set.Nonempty Dom → Paradoxical G Dom := by
@@ -1684,6 +1686,11 @@ theorem paradoxical_of_action_of_self_paradoxical {X : Type*} (G: Type*) [Group 
         constructor
         exact yhindom
         use h⁻¹ * g
+        constructor
+        by_contra hinvg_is_one
+        have hisg: h = g := by exact eq_of_inv_mul_eq_one hinvg_is_one
+        exact gneh hisg.symm
+        exact lem2
       exact nofixed ⟨yh, bad⟩
 
 
@@ -2088,26 +2095,52 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
 
   have subgroup_countable : Countable SATO := Countable.of_equiv FG2 sato_fg3_iso
 
-  have each_fixed_countable : ∀g ∈ SATO, Countable {x ∈ S2 | g • x = x} := by
+  let SATO_sub_1 := ((SATO : Set SO3) \ {(1 : SO3)})
+  have each_fixed_countable : ∀g ∈ SATO_sub_1, Countable {x ∈ S2 | g • x = x} := by
     intro g g_in_embed
+    have gnotone : g≠ 1 := by
+      simp [SATO_sub_1] at g_in_embed
+      exact g_in_embed.right
+
     let case := {x | x ∈ S2 ∧ g • x = x}
-    have num_fixed : Nat.card case = 2 := fixed_lemma (g:SO3)
+    have num_fixed : Nat.card case = 2 := fixed_lemma (g:SO3) gnotone
     have is_finite: Finite case := by
       exact (Nat.card_ne_zero.mp (by simp [num_fixed])).right
     exact Finite.to_countable
 
-  -- The set of fixed points
-  let D: Set R3 := ⋃ g ∈ SATO, {x ∈ S2 | g • x = x}
+  -- The set of non-trivial fixed points
+  let D: Set R3 := ⋃ g ∈ (SATO_sub_1), {x ∈ S2 | g • x = x}
   have dsubS2 : D ⊆ S2 := by simp [D]
   have countable_d: Countable D := by
     apply Set.Countable.biUnion
-    exact subgroup_countable
+    have ub_card_ss1: (Cardinal.mk SATO_sub_1) ≤ Cardinal.mk SATO  := by
+      have sso_ss: SATO_sub_1 ⊆ SATO := by
+        intro x xinlhs
+        simp [SATO_sub_1] at xinlhs
+        exact xinlhs.left
+
+
+      apply Cardinal.mk_le_mk_of_subset sso_ss
+    have ub_card_s: (Cardinal.mk SATO) ≤ Cardinal.aleph0  := by
+      exact Cardinal.le_aleph0_iff_set_countable.mpr subgroup_countable
+    exact Cardinal.le_aleph0_iff_set_countable.mp (le_trans ub_card_ss1 ub_card_s)
+
+
+
+
     exact each_fixed_countable
 
 
   have p_closure : ∀ (g : SATO), (f g) '' (S2 \ D) ⊆ (S2 \ D) := by
     intro g
+    rcases (em (g = 1)) with geq1 | gnotone
+    simp [geq1]
+    simp [f]
+    ---
     simp
+    have ginss1: g.val ∈ SATO_sub_1 := by
+      simp [SATO_sub_1]
+      exact gnotone
     intro x  xinS2mD
     simp
     by_contra bad
@@ -2123,22 +2156,43 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
     have im_in_D: im ∈ D := by
       by_contra imnotinD
       exact bad ⟨im_in_s2, imnotinD⟩
-    have dfining:  ∃h:SATO, h • im = im := by
+    have dfining:  ∃h∈SATO_sub_1, h • im = im := by
       simp [D] at im_in_D
-      obtain ⟨a, aprop, pa⟩ := im_in_D.right
-      use ⟨⟨a, aprop ⟩, pa.left⟩
-      simp
-      exact pa.right
+      obtain ⟨a, ainso3, pair_in_ss1 , pa⟩ := im_in_D.right
+      use ⟨a, ainso3 ⟩
+
 
     --have imdeffull := im = g • x
     obtain ⟨h, ph⟩ := dfining
+    let h_sato: SATO := ⟨h, ph.left.left⟩
+    have phr : h_sato • (g • x) = g • x := by
+      simp [h_sato]
+      simp [im] at ph
+      exact ph.right
     rw [imdef] at ph
-    let h' := g⁻¹ * h * g
+    let h' := g⁻¹ * h_sato * g
+    have hpno: h' ≠ 1 := by
+      by_contra conjeqone
+      simp [h'] at conjeqone
+      have bad: _:= calc h_sato
+        _ = (g * g⁻¹) * h_sato * (g * g⁻¹) := by simp
+        _ = g * (g⁻¹ * h_sato * g) * g⁻¹ := by group
+        _ = g * 1 * g⁻¹ := by rw [conjeqone]
+        _ = 1 := by simp
+      have butnot:  h_sato ≠ 1 := by
+        simp [SATO_sub_1] at ph
+        simp [h_sato]
+        exact ph.left.right
+      exact butnot bad
+
+
+
+
     have also : h' • x = x := calc h' • x
-      _ = ((g⁻¹ * h) * g) • x := by simp [h']
-      _ = (g⁻¹ * h) • (g • x) := by exact mul_smul (g⁻¹ * h) g x
-      _ = (g⁻¹  • (h  • (g • x) )):= by exact mul_smul g⁻¹ h im
-      _ = (g⁻¹) • (g • x) := by rw [ph]
+      _ = ((g⁻¹ * h_sato) * g) • x := by simp [h']
+      _ = (g⁻¹ * h_sato) • (g • x) := by exact mul_smul (g⁻¹ * h_sato) g x
+      _ = (g⁻¹  • (h_sato  • (g • x) )):= by exact mul_smul g⁻¹ h_sato im
+      _ = (g⁻¹) • (g • x) := by rw [phr]
       _ = (g⁻¹ * g) • x := by exact (mul_smul g⁻¹ g x).symm
       _ = 1 • x := by simp
       _ = x := by simp
@@ -2150,7 +2204,11 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
       use h'
       use h'.val.prop
       simp
+      constructor
+      simp [SATO_sub_1]
+      exact hpno
       exact also
+
 
     exact xinS2mD.right bad2
 
@@ -2170,6 +2228,7 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
     obtain ⟨g, gp⟩ := pfp
     rw [Set.mem_iUnion] at gp
     simp at gp
+    have gnotone: g≠1 := gp.right.left
     let g_prop: _ := g.property
     have fp_in_D: fp ∈ D:= by
       simp [D]
@@ -2179,7 +2238,12 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
         use by simp
         constructor
         simp
-        exact gp.right
+        constructor
+        exact g_prop
+        simp [gnotone]
+        exact gp.right.right
+
+
     exact gp.left.right fp_in_D
 
 

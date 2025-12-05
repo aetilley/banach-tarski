@@ -76,7 +76,6 @@ def M_t: MAT := to_MAT M_t_Z
 lemma ms_def : M_s = to_MAT M_s_Z := rfl
 lemma mt_def : M_t = to_MAT M_t_Z := rfl
 
-#check Matrix.adjugate_fin_three
 
 noncomputable def M_s_normed: MAT := ((1/7):ℝ) • M_s
 noncomputable def M_t_normed: MAT := ((1/7):ℝ) • M_t
@@ -775,7 +774,6 @@ theorem to_sato_is_injective: Function.Injective to_sato := by
           have sm: N - (i + 1) - 1 = D := by omega
           have sm2: N - 1 -i - 1 = D := by omega
           rw [sm] at lhs
-          simp [DD]
           simp [D]
           simp [tplist_def]
           left
