@@ -548,12 +548,83 @@ lemma map_lemma (n: ℕ) (map: Fin n -> SO3) (famA: Fin n → S2_sub) (famB: Fin
   simp
   exact psw.left.symm
 
+lemma inv_rot_lemma (ax: S2) (θ: ℝ): (rot ax (-θ) * (rot ax (θ))) = 1 :=sorry
+lemma inv_rot_lemma' (ax: S2) (θ: ℝ): (rot ax (θ) * (rot ax (-θ))) = 1 :=sorry
 
+
+def x_axis_vec: R3 := to_R3 ![1, 0, 0]
+lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
+  simp [S2, x_axis_vec, to_R3]
+  simp [norm]
+  simp [Fin.sum_univ_three]
+
+def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
 
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
-def skew_rot (θ: ℝ): G3 := sorry
+noncomputable def skew_rot (θ: ℝ) : G3 :=
+  let shift: R3 := to_R3 ![0, 0, 0.5]
 
+  {
+    toFun := fun p: R3 ↦ ((rot x_axis θ) • (p - shift)) + shift
+    invFun := fun p: R3 ↦ ((rot x_axis (-θ)) • (p - shift)) + shift
+    left_inv := by
+      intro x
+      simp
+      rw [smul_smul]
+      rw [inv_rot_lemma]
+      simp
+
+    right_inv := by
+      intro x
+      simp
+      simp [smul_smul]
+      simp [inv_rot_lemma']
+
+    isometry_toFun := by
+      simp [Isometry]
+      intro x1 x2
+      sorry
+  }
+
+lemma f_triv_g3: (f (skew_rot r)) = skew_rot r := rfl
+
+lemma rot_power_lemma (r: ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := sorry
 
 lemma countable_bad_skew_rot: Countable (Bad skew_rot {origin}) := sorry
 
-lemma srot_containment: ∀r:ℝ, orbit (skew_rot r) {origin} ⊆ B3 :=sorry
+
+
+lemma origin_cont (T: ℝ) : ‖(skew_rot T) origin‖ ≤ 1 := by
+
+  have half_lem : ‖ to_R3 ![0, 0, 0.5]‖ ≤ (0.5 : ℝ) := by
+    simp [norm]
+    simp [to_R3]
+    simp [Fin.sum_univ_three]
+    norm_num
+
+  have i1: ‖rot (x_axis) T • (origin - to_R3 ![0, 0, 0.5])‖ ≤ (0.5 : ℝ) := by
+    have norm_pres: ‖rot (x_axis) T • (origin - to_R3 ![0, 0, 0.5])‖ = ‖origin - to_R3 ![0, 0, 0.5]‖ := by rw [so3_fixes_norm]
+    rw [norm_pres]
+    simp [origin, to_R3]
+    exact half_lem
+
+  calc
+    ‖(skew_rot T) origin‖ = ‖((rot x_axis T) • (origin - to_R3 ![0, 0, 0.5])) + to_R3 ![0, 0, 0.5]‖ := by simp [skew_rot]
+    _ ≤ ‖(rot x_axis T) • (origin - to_R3 ![0, 0, 0.5])‖ + ‖to_R3 ![0, 0, 0.5]‖ := by apply norm_add_le
+    _ ≤ (0.5 : ℝ) + (0.5 : ℝ) := by linarith [i1, half_lem]
+    _ = (1 : ℝ) := by norm_num
+
+
+lemma srot_containment: ∀r:ℝ, orbit (skew_rot r) {origin} ⊆ B3 := by
+  intro r
+  simp only [orbit]
+  simp only [B3]
+  intro p pinunion
+  simp  at pinunion
+  obtain ⟨n, pn ⟩ := pinunion
+  rw [f_triv_g3] at pn
+  rw [rot_power_lemma] at pn
+  set T := n * r with Ndef
+  rw [←pn]
+  simp
+  exact origin_cont T
