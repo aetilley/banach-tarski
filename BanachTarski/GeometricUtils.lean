@@ -61,8 +61,92 @@ lemma s2_uncountable: Uncountable (S2) := by
 
 lemma lb_card_s2 : Cardinal.aleph0 < Cardinal.mk S2 := Cardinal.aleph0_lt_mk_iff.mpr s2_uncountable
 
+--------
 
-lemma so3_fixes_norm: ∀g : SO3, ∀x : R3, ‖g • x‖ = ‖x‖ := sorry
+
+abbrev MAT1 := Matrix (Fin 3) (Fin 1) ℝ
+
+def v2m (v: R3_raw) : MAT1 := !![(v 0); (v 1); (v 2);]
+
+lemma dot_as_matmul (u v: R3_raw): u  ⬝ᵥ v = (((v2m u).transpose) * (v2m v)) 0 0:= sorry
+
+lemma v2m_equiv (M: MAT) (v: R3_raw) : v2m (Matrix.mulVec M v) = M * (v2m v) := by
+  simp [v2m]
+  ext i j
+  fin_cases j
+  fin_cases i
+  <;> simp
+  <;> simp only [Matrix.mul_apply]
+  <;> simp only [Matrix.mulVec]
+  <;> simp only [dotProduct]
+  <;> rw [Fin.sum_univ_three]
+  <;> rw [Fin.sum_univ_three]
+  <;> simp
+
+
+
+lemma dp_nonneg (v : R3_raw) : v ⬝ᵥ v ≥ 0 := by
+  simp [dotProduct]
+  rw [Fin.sum_univ_three]
+  repeat rw [←sq]
+  apply add_nonneg
+  apply add_nonneg
+  exact sq_nonneg (v 0)
+  exact sq_nonneg (v 1)
+  exact sq_nonneg (v 2)
+
+
+
+lemma so3_cancel_lem {g: SO3} : (g.val.transpose) * g = 1 := by
+  have g_special:_:= g.property
+  simp only [SO3] at g_special
+  rw [Matrix.mem_specialOrthogonalGroup_iff] at g_special
+  rw [Matrix.mem_orthogonalGroup_iff] at g_special
+  have sss:_:= Matrix.inv_eq_right_inv g_special.left
+  have isinv : Invertible g.val := by
+    apply Matrix.invertibleOfRightInverse
+    exact g_special.left
+
+  have triv : (g.val)⁻¹ * g.val = 1 := by
+    exact Matrix.inv_mul_of_invertible g.val
+
+  rw [sss] at triv
+  exact triv
+
+lemma so3_fixes_norm: ∀g : SO3, ∀x : R3, ‖g • x‖ = ‖x‖ := by
+  intro g
+  intro x
+  rw [norm_eq_sqrt_real_inner]
+
+  rw [norm_eq_sqrt_real_inner]
+
+  apply congrArg
+
+  rw [EuclideanSpace.inner_eq_star_dotProduct]
+  simp
+
+  change ((Matrix.mulVec g x.ofLp): R3_raw) ⬝ᵥ ((Matrix.mulVec g x.ofLp): R3_raw) = ‖x‖ ^ 2
+
+  let P: R3_raw := (g: MAT).mulVec x.ofLp
+
+  rw [dot_as_matmul]
+
+  rw [v2m_equiv]
+  rw [Matrix.transpose_mul]
+  rw [Matrix.mul_assoc]
+  nth_rewrite 2 [←Matrix.mul_assoc]
+
+  rw [so3_cancel_lem]
+
+  simp
+  rw [←dot_as_matmul]
+
+  rw [norm_eq_sqrt_real_inner]
+  rw [EuclideanSpace.inner_eq_star_dotProduct]
+  simp
+  rw [Real.sq_sqrt]
+  exact dp_nonneg x.ofLp
+
 
 lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := by
   intro g
@@ -100,18 +184,19 @@ def K_mat (a: R3): MAT := !![
 
 noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT := (1:MAT) + (Real.sin θ)•(K_mat ax) + (1 - Real.cos θ)•((K_mat ax) ^ 2)
 
-noncomputable def rot (ax: S2) (θ:ℝ) : SO3 := by
-  -- First normalize the axis to be on S2
+noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   let M := rot_mat ax θ
-  -- Now prove M ∈ SO3 using the systematic approach:
-  refine ⟨M, ?_⟩
-  rw [Matrix.mem_specialOrthogonalGroup_iff]
-  constructor
-  · rw [Matrix.mem_orthogonalGroup_iff]
-    -- M * Mᵀ = 1
-    sorry
-  · -- M.det = 1
-    sorry
+  have M_is_special : M ∈ SO3 := by
+    rw [Matrix.mem_specialOrthogonalGroup_iff]
+    constructor
+    · rw [Matrix.mem_orthogonalGroup_iff]
+      -- M * Mᵀ = 1
+      sorry
+    · -- M.det = 1
+      sorry
+  ⟨M, M_is_special⟩
+
+
 
 lemma rot_lemma: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
   intro axis θ
