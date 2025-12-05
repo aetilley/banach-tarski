@@ -274,7 +274,27 @@ def ToEquivSO3 (g: SO3) : R3 ≃ R3 :=
 -- Group of Isometries of R3.
 abbrev G3: Type := R3 ≃ᵢ R3
 
-lemma isometry_of_so3 (g: SO3) : Isometry ((f g): R3 → R3) := by sorry
+
+lemma so3_diff_lin (g: SO3) (x y : R3): ((g • x) -  g • y) =  g • (x - y) := by
+  simp only [HSMul.hSMul, SMul.smul]
+  simp
+  rw [←WithLp.toLp_sub]
+  apply congrArg
+  simp [Matrix.mulVec_sub]
+
+
+lemma isometry_of_so3 (g: SO3) : Isometry ((f g): R3 → R3) := by
+  simp [Isometry]
+  intro x y
+  rw [edist_dist]
+  rw [edist_dist]
+  apply congrArg
+  simp [f]
+  rw [dist_eq_norm_sub]
+  rw [so3_diff_lin]
+  rw [so3_fixes_norm]
+  rw [←dist_eq_norm_sub]
+
 
 def SO3_into_G3: SO3 → G3 := fun (g : SO3) ↦ ⟨(ToEquivSO3 g), isometry_of_so3 g⟩
 
@@ -295,7 +315,6 @@ def SO3_iso_G3: SO3 ≃* SO3_in_G3 where
   map_mul' := sorry
 
 
-
 -- Given by function evaluation
 instance : MulAction G3 R3 where
   smul g v := g v
@@ -308,8 +327,8 @@ instance : MulAction G3 R3 where
     have lem: (y.trans x) v = x (y v) := by simp
     exact lem
 
-def SO3_G3_action_equiv : (∀x: R3, ∀g : SO3, (SO3_into_G3 g) • x  = g • x) := sorry
-
+lemma SO3_G3_action_equiv : (∀x: R3, ∀g : SO3, (SO3_into_G3 g) • x  = g • x) := by
+  intro x g; rfl
 
 -------------------------
 
