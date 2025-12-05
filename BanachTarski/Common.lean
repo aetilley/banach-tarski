@@ -37,32 +37,35 @@ lemma so3_invs_coe : ∀g:SO3, (g.val)⁻¹ = g⁻¹.val := by
   rw [←MulMemClass.coe_mul]
   simp
 
+instance so3_has_inv (g: SO3) : Invertible (g:MAT) := by
+  have g_special := g.property
+  simp only [SO3] at g_special
+  rw [Matrix.mem_specialOrthogonalGroup_iff] at g_special
+  rw [Matrix.mem_orthogonalGroup_iff] at g_special
+  exact Matrix.invertibleOfRightInverse g.val g.val.transpose g_special.left
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+lemma so3_closed_under_inverse (g: MAT) : g∈ SO3 → g⁻¹ ∈ SO3 := by
+  intro lhs
+  rw [Matrix.mem_specialOrthogonalGroup_iff]
+  rw [Matrix.mem_orthogonalGroup_iff]
+  have a_tr:_:= Matrix.mem_specialOrthogonalGroup_iff.mp lhs
+  constructor
+  rw [Matrix.mem_orthogonalGroup_iff] at a_tr
+  have part :_:= congrArg (fun x ↦ g⁻¹ *x) a_tr.left
+  simp at part
+  rw [←mul_assoc] at part
+  have invg : _:= so3_has_inv ⟨g, lhs⟩
+  rw [Matrix.inv_mul_of_invertible] at part
+  have part2 :_:= congrArg (fun x ↦ x * (Matrix.transpose g)⁻¹) part
+  simp at part2
+  symm
+  rw [Matrix.transpose_nonsing_inv]
+  exact part2
+  --
+  simp
+  exact a_tr.right
 
 
 
