@@ -204,6 +204,8 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   ⟨M, M_is_special⟩
 
 
+lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by sorry
+
 
 lemma rot_lemma: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
   intro axis θ
@@ -211,9 +213,29 @@ lemma rot_lemma: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
   simp only [f]
   exact so3_fixes_s2 (rot axis θ)
 
+lemma triv_rot (ax: S2): rot ax 0 = 1 := by
+  simp [rot, rot_mat]
+
+
+
+
+lemma inv_rot_lemma (ax: S2) (θ: ℝ): (rot ax (-θ) * (rot ax (θ))) = 1 := by
+  rw [rot_comp_add]
+  simp
+  rw [triv_rot]
+
+
+lemma inv_rot_lemma' (ax: S2) (θ: ℝ): (rot ax (θ) * (rot ax (-θ))) = 1 := by
+  set τ := -θ with tdef
+  have tr: θ = -τ := by linarith
+  rw [tr]
+  exact inv_rot_lemma ax τ
+
+
 
 def Bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X): Set ℝ :=
 {θ: ℝ | ∃n:ℕ, n > 0 ∧ ∃s∈S, (f (F θ))^[n] s ∈ S}
+
 
 
 lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
@@ -233,17 +255,48 @@ def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Se
 --------
 
 
-
-def ToEquivSO3 (g: SO3) : R3 ≃ R3 := sorry
-  -- Matrix.toLin'...
-
-def isIsoSO3 (g: SO3) (y: R3 ≃ R3) : Isometry (y) := sorry
+def ToEquivSO3 (g: SO3) : R3 ≃ R3 :=
+  let lin_eq := Matrix.toLinearEquiv' g.val (so3_has_inv g)
+  {
+    toFun := fun x : R3 => to_R3 (lin_eq.toFun x.ofLp)
+    invFun := fun x : R3 => to_R3 (lin_eq.invFun x.ofLp)
+    left_inv := by
+      intro x
+      simp only [to_R3]
+      rw [lin_eq.left_inv]
+    right_inv := by
+      intro x
+      simp only [to_R3]
+      rw [lin_eq.right_inv]
+  }
 
 
 -- Group of Isometries of R3.
 abbrev G3: Type := R3 ≃ᵢ R3
 
--- The standard action given by matrix multiplication.
+lemma isometry_of_so3 (g: SO3) : Isometry ((f g): R3 → R3) := by sorry
+
+def SO3_into_G3: SO3 → G3 := fun (g : SO3) ↦ ⟨(ToEquivSO3 g), isometry_of_so3 g⟩
+
+def SO3_in_G3: Subgroup G3 where
+  carrier: Set G3 := SO3_into_G3 '' (Set.univ: Set SO3)
+  mul_mem' := sorry
+  one_mem' := sorry
+  inv_mem' := sorry
+
+def SO3_into_G3_SG_forward: SO3 → SO3_in_G3 :=
+  fun (g : SO3) ↦ ⟨SO3_into_G3 g, (by apply Subgroup.mem_carrier.mp; simp [SO3_in_G3])⟩
+
+def SO3_iso_G3: SO3 ≃* SO3_in_G3 where
+  toFun:= SO3_into_G3_SG_forward
+  invFun:= sorry
+  left_inv := sorry
+  right_inv := sorry
+  map_mul' := sorry
+
+
+
+-- Given by function evaluation
 instance : MulAction G3 R3 where
   smul g v := g v
   one_smul v := by
@@ -255,15 +308,11 @@ instance : MulAction G3 R3 where
     have lem: (y.trans x) v = x (y v) := by simp
     exact lem
 
-
-
-
-def SO3_in_G3_carrier: Set G3 := {⟨y, is_iso⟩ | ∃g: SO3,  y = ToEquivSO3 g ∧ is_iso = (isIsoSO3 g y)}
-def SO3_in_G3: Subgroup G3 := sorry
-
-def SO3_into_G3: SO3 ≃* SO3_in_G3 := sorry
-
 def SO3_G3_action_equiv : (∀x: R3, ∀g : SO3, (SO3_into_G3 g) • x  = g • x) := sorry
+
+
+-------------------------
+
 
 noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
 
@@ -548,8 +597,10 @@ lemma map_lemma (n: ℕ) (map: Fin n -> SO3) (famA: Fin n → S2_sub) (famB: Fin
   simp
   exact psw.left.symm
 
-lemma inv_rot_lemma (ax: S2) (θ: ℝ): (rot ax (-θ) * (rot ax (θ))) = 1 :=sorry
-lemma inv_rot_lemma' (ax: S2) (θ: ℝ): (rot ax (θ) * (rot ax (-θ))) = 1 :=sorry
+
+----------------
+----------------
+
 
 
 def x_axis_vec: R3 := to_R3 ![1, 0, 0]
@@ -557,19 +608,24 @@ lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
   simp [S2, x_axis_vec, to_R3]
   simp [norm]
   simp [Fin.sum_univ_three]
-
 def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
+
 
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
 noncomputable def skew_rot (θ: ℝ) : G3 :=
-  let shift: R3 := to_R3 ![0, 0, 0.5]
+  let offset: R3 := to_R3 ![0, 0, 0.5]
+  let shift (p : R3): R3 := p + offset
+  let unshift (p : R3): R3 := p - offset
+
 
   {
-    toFun := fun p: R3 ↦ ((rot x_axis θ) • (p - shift)) + shift
-    invFun := fun p: R3 ↦ ((rot x_axis (-θ)) • (p - shift)) + shift
+    toFun := shift ∘ (f (rot x_axis θ)) ∘ unshift
+    invFun := shift ∘ (f (rot x_axis (-θ))) ∘ unshift
     left_inv := by
       intro x
       simp
+      simp [shift, unshift]
+      simp [f]
       rw [smul_smul]
       rw [inv_rot_lemma]
       simp
@@ -577,20 +633,68 @@ noncomputable def skew_rot (θ: ℝ) : G3 :=
     right_inv := by
       intro x
       simp
-      simp [smul_smul]
-      simp [inv_rot_lemma']
+      simp [shift, unshift]
+      simp [f]
+      rw [smul_smul]
+      rw [inv_rot_lemma']
+      simp
+
 
     isometry_toFun := by
-      simp [Isometry]
+      rw [Isometry]
       intro x1 x2
-      sorry
+      rw [Isometry.comp]
+      --
+      simp [shift]
+      exact isometry_add_right offset
+      --
+      intro x1 x2
+      rw [Isometry.comp]
+      --
+      exact isometry_of_so3 (rot x_axis θ)
+      --
+      simp [unshift]
+      change Isometry (fun p ↦ p + -offset)
+      exact isometry_add_right (-offset)
+
   }
 
 lemma f_triv_g3: (f (skew_rot r)) = skew_rot r := rfl
 
-lemma rot_power_lemma (r: ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := sorry
+lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
+  ext x
+  simp [f]
 
-lemma countable_bad_skew_rot: Countable (Bad skew_rot {origin}) := sorry
+
+lemma skew_rot_comp_add (t1 t2 : ℝ) : (skew_rot t1) ∘ (skew_rot t2) = skew_rot (t1 + t2) := by
+  simp [skew_rot]
+  ext x ind
+  simp
+  simp [f]
+  rw [smul_smul]
+  rw [rot_comp_add x_axis t1 t2]
+
+
+lemma rot_power_lemma (r: ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := by
+  induction' n with k ih
+  simp
+  simp [skew_rot]
+  rw [triv_rot x_axis]
+  rw [triv_so3]
+  simp [to_R3]
+  ext x i
+  fin_cases i
+  <;> simp
+  --
+  rw [Function.iterate_succ']
+  rw [ih]
+  rw [skew_rot_comp_add]
+  apply congrArg
+  apply congrArg
+  simp [Nat.cast_add]
+  linarith
+
+
 
 
 
@@ -609,7 +713,8 @@ lemma origin_cont (T: ℝ) : ‖(skew_rot T) origin‖ ≤ 1 := by
     exact half_lem
 
   calc
-    ‖(skew_rot T) origin‖ = ‖((rot x_axis T) • (origin - to_R3 ![0, 0, 0.5])) + to_R3 ![0, 0, 0.5]‖ := by simp [skew_rot]
+    ‖(skew_rot T) origin‖ = ‖((rot x_axis T) • (origin - to_R3 ![0, 0, 0.5]))
+      + to_R3 ![0, 0, 0.5]‖ := by simp [skew_rot]; simp [f]
     _ ≤ ‖(rot x_axis T) • (origin - to_R3 ![0, 0, 0.5])‖ + ‖to_R3 ![0, 0, 0.5]‖ := by apply norm_add_le
     _ ≤ (0.5 : ℝ) + (0.5 : ℝ) := by linarith [i1, half_lem]
     _ = (1 : ℝ) := by norm_num
@@ -628,3 +733,5 @@ lemma srot_containment: ∀r:ℝ, orbit (skew_rot r) {origin} ⊆ B3 := by
   rw [←pn]
   simp
   exact origin_cont T
+
+lemma countable_bad_skew_rot: Countable (Bad skew_rot {origin}) := sorry

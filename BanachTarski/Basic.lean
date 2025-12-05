@@ -2759,7 +2759,7 @@ theorem banach_tarski_paradox_B3_minus_origin: Paradoxical SO3 B3min := by
 theorem banach_tarski_paradox_B3: Paradoxical G3 B3 := by
 
   have pso3b3m : Paradoxical SO3_in_G3 B3min := by
-    have that :_ :=paradoxical_preserved_by_iso B3min SO3_into_G3 (Equiv.refl R3) SO3_G3_action_equiv banach_tarski_paradox_B3_minus_origin
+    have that :_ :=paradoxical_preserved_by_iso B3min SO3_iso_G3 (Equiv.refl R3) SO3_G3_action_equiv banach_tarski_paradox_B3_minus_origin
     simp at that
     exact that
 
