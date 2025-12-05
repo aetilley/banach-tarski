@@ -2610,28 +2610,8 @@ lemma S2_equidecomposible_of_S2_minus_countable:
   let F:= (fun θ ↦ rot axis θ)
   have countbad: Countable (Bad F S) := countable_bad_rots S axis ⟨subset_of_s2, countable_S, polelem1, polelem2⟩
 
-  have orbit_containment: (∀r:ℝ, (orbit (F r) S ⊆ S2 )) := by
-    intro r
-    simp [orbit]
-    intro i
-    induction' i with i pi
-    --
-    simp
-    exact subset_of_s2
-    --
-    intro s s_in_S
-    simp
-    rw [←Function.iterate_succ_apply]
-    rw [Function.iterate_succ_apply']
-    let w := ((f (F r))^[i] s)
-    have lem: w ∈ S2 := by
-      exact pi s_in_S
-    have mem:f (F r) w ∈ f (F r) '' S2 := Set.mem_image_of_mem (f (F r)) lem
-    have lem2: f (F r) w ∈ S2 := rot_lemma mem
-    exact lem2
-
   exact equidecomposibility_symm (
-    absorption_lemma_3 SO3 S2 S ⟨(fun θ ↦ rot axis θ), countbad, orbit_containment⟩
+    absorption_lemma_3 SO3 S2 S ⟨(fun θ ↦ rot axis θ), countbad, (rot_containment axis subset_of_s2)⟩
     )
 
 

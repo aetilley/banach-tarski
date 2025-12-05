@@ -238,19 +238,42 @@ def Bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set 
 
 
 
+
+
+
+def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
+⋃ i, (f g)^[i] '' S
+
+
+lemma rot_containment (axis: S2) (subset_of_s2: S⊆ S2): (∀r:ℝ, (orbit (rot axis r) S ⊆ S2 )) := by
+  intro r
+  simp [orbit]
+  intro i
+  induction' i with i pi
+  --
+  simp
+  exact subset_of_s2
+  --
+  intro s s_in_S
+  simp
+  rw [←Function.iterate_succ_apply]
+  rw [Function.iterate_succ_apply']
+  let w := ((f (rot axis r))^[i] s)
+  have lem: w ∈ S2 := by
+    exact pi s_in_S
+  have mem:f (rot axis r) w ∈ f (rot axis r) '' S2 := Set.mem_image_of_mem (f (rot axis r)) lem
+  have lem2: f (rot axis r) w ∈ S2 := rot_lemma mem
+  exact lem2
+
 lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
-S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
-Countable (Bad (rot axis) S) := by
+  S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
+  Countable (Bad (rot axis) S) := by
   -- Sketch:
   -- 1) Express s ∈ S in spherical cooardinates
   -- 2) Thre is one rotation g∈ SO3 for s₁, s₂ ∈ S st. f g s₁ = s₂
   -- 3) Prove that the Bad set is a countable union of countable
   -- sets {θ/n : θ(s₁, s₂)}
-sorry
-
-
-def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
-⋃ i, (f g)^[i] '' S
+  sorry
 
 --------
 
