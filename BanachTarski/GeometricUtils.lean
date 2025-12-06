@@ -270,9 +270,9 @@ lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
   Countable (Bad (rot axis) S) := by
   -- Sketch:
   -- 1) Express s ∈ S in spherical cooardinates
-  -- 2) Thre is one rotation g∈ SO3 for s₁, s₂ ∈ S st. f g s₁ = s₂
+  -- 2) Let θ (s₁, s₂)  = the angle in [0, 2π) between s₁ and s₂
   -- 3) Prove that the Bad set is a countable union of countable
-  -- sets {θ/n : θ(s₁, s₂)}
+  -- sets {θ : θ = (θ(s₁, s₂) + k * 2π) / n}
   sorry
 
 --------
@@ -321,11 +321,70 @@ lemma isometry_of_so3 (g: SO3) : Isometry ((f g): R3 → R3) := by
 
 def SO3_into_G3: SO3 → G3 := fun (g : SO3) ↦ ⟨(ToEquivSO3 g), isometry_of_so3 g⟩
 
+lemma so3_closed_under_inverse (g: MAT) : g∈ SO3 → g⁻¹ ∈ SO3 := sorry
+
 def SO3_in_G3: Subgroup G3 where
   carrier: Set G3 := SO3_into_G3 '' (Set.univ: Set SO3)
-  mul_mem' := sorry
-  one_mem' := sorry
-  inv_mem' := sorry
+  mul_mem' := by
+    intro x y xinDom yinDom
+    simp [SO3_into_G3] at *
+    obtain ⟨ax, bx, pabx⟩ := xinDom
+    obtain ⟨ay, bi, paby⟩ := yinDom
+    let p := ax * ay
+    use p
+    have memprod: p ∈ SO3 := SO3.mul_mem bx bi
+    use memprod
+    simp [p]
+    simp [←pabx]
+    simp [←paby]
+    apply IsometryEquiv.ext_iff.mpr
+    intro z
+    simp
+    simp [ToEquivSO3]
+    apply congrArg
+    simp [to_R3]
+
+
+
+  one_mem' := by
+    simp
+    use 1
+    use SO3.one_mem
+    simp [SO3_into_G3]
+    apply IsometryEquiv.ext_iff.mpr
+    intro z
+    simp
+    simp [ToEquivSO3]
+    simp [to_R3]
+
+
+  inv_mem' := by
+    intro x xinDom
+    simp [SO3_into_G3] at *
+    obtain ⟨ax, bx, pabx⟩ := xinDom
+    use ax⁻¹
+    have rws: ax⁻¹ ∈ SO3 := by exact so3_closed_under_inverse ax bx
+    use rws
+    rw [←pabx]
+    sorry
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def SO3_into_G3_SG_forward: SO3 → SO3_in_G3 :=
   fun (g : SO3) ↦ ⟨SO3_into_G3 g, (by apply Subgroup.mem_carrier.mp; simp [SO3_in_G3])⟩
