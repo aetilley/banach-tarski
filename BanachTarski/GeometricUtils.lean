@@ -5,6 +5,8 @@ import Mathlib.GroupTheory.FreeGroup.Basic
 import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Action.Defs
 import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
+import Mathlib.LinearAlgebra.CrossProduct
+import Mathlib.Geometry.Euclidean.Angle.Unoriented.Basic
 
 import BanachTarski.Common
 
@@ -170,16 +172,7 @@ lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := by
   exact lhs1
 
 
-def R3_tspace := R3_raw →ₗ[ℝ] R3_raw
 
-lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
-  let gmap: R3_tspace := Matrix.toLin' g
-  -- sketch
-  -- This is the eigenspace for eigenvalue 1.
-  -- Show that for non-identity members of SO3, this is 1 dimensional.
-  sorry
-
----
 
 -- Rodrigues' formula for the rotation matrix :  I + (sin θ)K + (1-cosθ)K²
 
@@ -206,6 +199,13 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
 
 lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by sorry
 
+lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
+  -- sketch
+  -- This is the eigenspace for eigenvalue 1.
+  -- Show that for non-identity members of SO3, this is 1 dimensional.
+  sorry
+
+
 
 lemma rot_lemma: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
   intro axis θ
@@ -231,19 +231,9 @@ lemma inv_rot_lemma' (ax: S2) (θ: ℝ): (rot ax (θ) * (rot ax (-θ))) = 1 := b
   rw [tr]
   exact inv_rot_lemma ax τ
 
-
-
-def Bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X): Set ℝ :=
-{θ: ℝ | ∃n:ℕ, n > 0 ∧ ∃s∈S, (f (F θ))^[n] s ∈ S}
-
-
-
-
-
-
 def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
 ⋃ i, (f g)^[i] '' S
-
+#check LinearMap.det
 
 lemma rot_containment (axis: S2) (subset_of_s2: S⊆ S2): (∀r:ℝ, (orbit (rot axis r) S ⊆ S2 )) := by
   intro r
@@ -265,15 +255,213 @@ lemma rot_containment (axis: S2) (subset_of_s2: S⊆ S2): (∀r:ℝ, (orbit (rot
   have lem2: f (rot axis r) w ∈ S2 := rot_lemma mem
   exact lem2
 
-lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
-  S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
-  Countable (Bad (rot axis) S) := by
+--------
+
+def BadEl {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Prop :=
+  ∃n:ℕ, n > 0 ∧ ∃s∈S, (f g)^[n] s ∈ S
+
+def Bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X): Set ℝ :=
+{θ: ℝ | (BadEl (F θ) S) }
+
+
+lemma collapse_iter {X : Type*} {G: Type*} [Group G] [MulAction G X] (g h: G) (n : ℕ) :
+-- Note: ` (f (g * g * h⁻¹))^[n] = (f h) ∘ (f g)^[n] ∘ (f (h⁻¹))
+(@f X G _ _ (h * g * h⁻¹))^[n] = (@f X G _ _ h) ∘ (@f X G _ _ g) ^[n] ∘ (@f X G _ _ (h⁻¹)) := by
+  induction' n with k ih
+  simp
+  ext x
+  simp [f]
+  --
+  ext x
+  simp
+  rw [ih]
+  simp [f]
+  apply congrArg
+  rw [smul_smul]
+  rw [←mul_assoc]
+  rw [←mul_assoc]
+  simp
+  rw [←smul_smul]
+
+
+
+lemma conj_bad_el {X : Type*} {G: Type*} [Group G] [MulAction G X] (g h: G) (S: Set X):
+   (BadEl g S) ↔ (BadEl (h * g * h⁻¹) ((f h) '' S)) := by
+    constructor
+    intro lhs
+    simp [BadEl] at lhs
+    simp [BadEl]
+    obtain ⟨n, npos, s, sinS, ps⟩ := lhs
+    use n
+    constructor
+    exact npos
+    rw [collapse_iter]
+    use s
+    constructor
+    exact sinS
+    simp [f]
+    exact ps
+    --
+    intro lhs
+    simp [BadEl] at lhs
+    simp [BadEl]
+    obtain ⟨n, npos, s, sinS, ps⟩ := lhs
+    use n
+    constructor
+    exact npos
+    rw [collapse_iter] at ps
+    simp [f] at ps
+    use s
+
+
+def so3_conj (X : Type*) {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (h: G) : ℝ → G :=
+  fun (θ:ℝ) ↦ h * (F θ) * h⁻¹
+
+lemma conj_equiv_bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X) (h: G) :
+  (Bad F S) = (Bad (so3_conj X F h) ((f h) '' S)) := by
+    simp [Bad]
+    ext r
+    constructor
+    intro lhs
+    simp at lhs
+    simp [so3_conj]
+    exact (conj_bad_el (F r) h S).mp lhs
+    --
+    intro lhs
+    simp [so3_conj] at lhs
+    simp
+    exact (conj_bad_el (F r) h S).mpr lhs
+
+
+
+def z_axis_vec: R3 := to_R3 ![0, 0, 1]
+lemma z_axis_on_sphere: z_axis_vec ∈ S2 := by
+  simp [S2, z_axis_vec, to_R3]
+  simp [norm]
+  simp [Fin.sum_univ_three]
+def z_axis: S2 := ⟨z_axis_vec, z_axis_on_sphere⟩
+
+def x_axis_vec: R3 := to_R3 ![1, 0, 0]
+lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
+  simp [S2, x_axis_vec, to_R3]
+  simp [norm]
+  simp [Fin.sum_univ_three]
+def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
+
+
+noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
+lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
+  intro nonz
+  simp [normed, S2]
+  rw [norm_smul]
+  simp
+  have _ :Invertible ‖v‖ := by
+    apply invertibleOfNonzero
+    exact mt norm_eq_zero.mp nonz
+  apply inv_mul_cancel_of_invertible
+
+
+
+noncomputable def s2_cross (a b: S2) (dif1: a.val≠b.val) (dif2: a.val≠(-b.val)): S2 :=
+
+  let unnormed_cr := to_R3 (crossProduct a.val.ofLp b.val.ofLp)
+
+  have nz: unnormed_cr ≠ 0 := sorry
+
+  let normed_cr := normed unnormed_cr
+  ⟨normed_cr, normed_in_S2 nz⟩
+
+
+noncomputable def ang (v w: R3) := InnerProductGeometry.angle v w
+noncomputable def COB_to_Z (axis: S2) : SO3 :=
+  dite (axis.val≠z_axis.val)
+  (fun p1: _ ↦ (
+    dite (axis.val≠(-z_axis.val))
+    (fun p2 : _ ↦ rot (s2_cross axis z_axis p1 p2) (ang axis z_axis))
+    (fun _ : _ ↦ (1: SO3))
+  ))
+  (fun _ : _ ↦ rot (x_axis) Real.pi)
+
+
+lemma ctza_def (axis: S2):   (COB_to_Z axis) • axis.val = z_axis.val := sorry
+
+lemma rot_conj (axis: S2): (so3_conj R3 (rot axis) (COB_to_Z axis)) = (rot z_axis) := by sorry
+
+
+
+
+
+
+lemma countable_bad_rots_z_axis: ∀S: Set R3, S ⊆ S2 ∧ Countable S ∧ (z_axis.val ∉ S ∧ -z_axis.val ∉ S)  →
+  Countable (Bad (rot z_axis) S) := by
+  rintro S ⟨ sub_S2,  countable_S, ⟨znotinS, mznotinS⟩⟩
   -- Sketch:
   -- 1) Express s ∈ S in spherical cooardinates
   -- 2) Let θ (s₁, s₂)  = the angle in [0, 2π) between s₁ and s₂
   -- 3) Prove that the Bad set is a countable union of countable
   -- sets {θ : θ = (θ(s₁, s₂) + k * 2π) / n}
   sorry
+
+
+lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
+  S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
+  Countable (Bad (rot axis) S) := by
+    intro S axis
+    let ctza := COB_to_Z axis
+    rintro ⟨SsubS2, S_countable, S_contains_neither_pole⟩
+    rw [conj_equiv_bad (rot axis) S (ctza)]
+    rw [rot_conj]
+    apply countable_bad_rots_z_axis (f (ctza) '' S)
+    --
+    constructor
+    have cont1: f (ctza) '' S  ⊆ f (ctza) '' S2 := by
+      -- There seems to be no lemma for this in matlib
+      -- that does not require the function is injective
+      intro x xinlhs
+      simp at *
+      obtain ⟨x, xinS, px⟩ := xinlhs
+      use x
+      constructor
+      exact SsubS2 xinS
+      exact px
+
+    exact subset_trans cont1 (so3_fixes_s2 (ctza))
+    --
+    constructor
+    apply Set.Countable.image S_countable
+    --
+    have axtoax: z_axis.val = (f (ctza)) axis.val:= by
+      simp [ctza]
+      exact (ctza_def axis).symm
+
+    constructor
+    by_contra badaxis
+    rw [axtoax] at badaxis
+    simp at badaxis
+    obtain ⟨x, xinS, px⟩ := badaxis
+    have same_val:_:= congrArg (fun (X: R3) ↦ ((f ctza⁻¹) X)) px
+    simp [f] at same_val
+    rw [same_val] at xinS
+    exact S_contains_neither_pole.left xinS
+
+    --
+    by_contra badaxis
+    rw [axtoax] at badaxis
+    simp at badaxis
+    obtain ⟨x, xinS, px⟩ := badaxis
+    have same_val:_:= congrArg (fun (X: R3) ↦ ((f ctza⁻¹) X)) px
+    simp [f] at same_val
+    have ll: -(ctza • axis.val) = ctza • -axis.val := by
+      simp only [HSMul.hSMul, SMul.smul]
+      rw [←WithLp.toLp_neg]
+      simp only [WithLp.equiv_symm_apply]
+      rw [←Matrix.mulVec_neg]
+      congr 1
+
+    rw [ll] at same_val
+    simp at same_val
+    rw [same_val] at xinS
+    exact S_contains_neither_pole.right xinS
 
 --------
 
@@ -450,8 +638,6 @@ lemma SO3_G3_action_equiv : (∀x: R3, ∀g : SO3, (SO3_into_G3 g) • x  = g �
 
 -------------------------
 
-
-noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
 
 def B3: Set R3 := Metric.closedBall (0: R3) 1
 def B3min: Set R3 := B3 \ {0}
@@ -739,13 +925,6 @@ lemma map_lemma (n: ℕ) (map: Fin n -> SO3) (famA: Fin n → S2_sub) (famB: Fin
 ----------------
 
 
-
-def x_axis_vec: R3 := to_R3 ![1, 0, 0]
-lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
-  simp [S2, x_axis_vec, to_R3]
-  simp [norm]
-  simp [Fin.sum_univ_three]
-def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
 
 
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
