@@ -199,12 +199,34 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
 
 lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by sorry
 
-lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
-  -- sketch
-  -- This is the eigenspace for eigenvalue 1.
-  -- Show that for non-identity members of SO3, this is 1 dimensional.
-  sorry
+lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) (v) = v → ∃k:ℤ, t = k * 2 * Real.pi := sorry
+lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) (v) = v:=sorry
 
+lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := by_contra sorry
+
+
+def inter_0_to_2pi := {x: ℝ // x ∈ (Set.Ico (0 : ℝ) (2 *Real.pi : ℝ))}
+
+-- Matlib code comments say:
+-- Inverse of the cos function, returns values in the range
+-- 0 ≤ arccos x and arccos x ≤ π.
+--It defaults to π on (-∞, -1) and to 0 to (1, ∞)
+noncomputable def R3_ang (s: R3): ℝ := Real.arccos ((s 2) / ‖s‖)
+
+def ang_diff (s t: R3) : inter_0_to_2pi := sorry
+
+def z_axis_vec: R3 := to_R3 ![0, 0, 1]
+lemma z_axis_on_sphere: z_axis_vec ∈ S2 := by
+  simp [S2, z_axis_vec, to_R3]
+  simp [norm]
+  simp [Fin.sum_univ_three]
+def z_axis: S2 := ⟨z_axis_vec, z_axis_on_sphere⟩
+
+lemma rot_fixed_gen_z (v w: R3): f (rot z_axis t) (v) = w →
+   ∃k:ℤ, t = (ang_diff v w).val + (k:ℝ) * 2 * Real.pi := sorry
+
+lemma rot_fixed_back_gen_z (v w: R3) (k: ℤ):
+f (rot z_axis ((ang_diff v w).val + 2 * Real.pi * k)) (v) = w :=sorry
 
 
 lemma rot_lemma: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
@@ -216,6 +238,27 @@ lemma rot_lemma: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
 lemma triv_rot (ax: S2): rot ax 0 = 1 := by
   simp [rot, rot_mat]
 
+lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
+  ext x
+  simp [f]
+
+
+lemma rot_power_lemma (axis: S2) (r: ℝ) (n: ℕ): (@f R3 SO3 _ _ (rot axis r))^[n] =
+  @f R3 SO3 _ _ (rot axis ((n: ℝ)*r)) := by
+  induction' n with k ih
+  simp
+  rw [triv_rot axis]
+  rw [triv_so3]
+  rfl
+  --
+  rw [Function.iterate_succ']
+  rw [ih]
+  ext w i
+  simp [f]
+  rw [smul_smul]
+  rw [rot_comp_add]
+  have  lin1 : (r + ↑k * r) = ((↑k + 1) * r) := by linarith
+  rw [lin1]
 
 
 
@@ -233,7 +276,6 @@ lemma inv_rot_lemma' (ax: S2) (θ: ℝ): (rot ax (θ) * (rot ax (-θ))) = 1 := b
 
 def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
 ⋃ i, (f g)^[i] '' S
-#check LinearMap.det
 
 lemma rot_containment (axis: S2) (subset_of_s2: S⊆ S2): (∀r:ℝ, (orbit (rot axis r) S ⊆ S2 )) := by
   intro r
@@ -256,6 +298,7 @@ lemma rot_containment (axis: S2) (subset_of_s2: S⊆ S2): (∀r:ℝ, (orbit (rot
   exact lem2
 
 --------
+
 
 def BadEl {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Prop :=
   ∃n:ℕ, n > 0 ∧ ∃s∈S, (f g)^[n] s ∈ S
@@ -314,6 +357,142 @@ lemma conj_bad_el {X : Type*} {G: Type*} [Group G] [MulAction G X] (g h: G) (S: 
     use s
 
 
+def BadAtN {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X) (s t : S) (n: ℕ) : Set ℝ:=
+  {θ: ℝ | (f (F θ))^[n+1] s.val = t.val}
+
+def BadAt {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X) (s t : S): Set ℝ:=
+  ⋃ n: ℕ,  BadAtN F S s t n
+
+lemma bad_as_union {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X):
+  Bad F S = (⋃ s :S, ⋃ t : S, (BadAt F S s t)) := by
+    simp only [Bad]
+    ext x
+    constructor
+    intro lhs
+    simp at lhs
+    simp [BadEl] at lhs
+    obtain ⟨n, ⟨npos, ⟨s, sinS, ps⟩⟩⟩ := lhs
+    simp
+    use s
+    use sinS
+    use (f (F x))^[n] s
+    use ps
+    simp [BadAt]
+    use n-1
+    simp [BadAtN]
+    have nform: n.pred.succ = n := by
+      apply Nat.succ_pred
+      linarith
+
+    rw [←nform]
+    simp
+    --
+    intro lhs
+    simp [BadAt] at lhs
+    simp [BadEl]
+    obtain ⟨s, sinS, t, tinS, pst⟩ := lhs
+    obtain ⟨n, xinbadat⟩ := pst
+    use n + 1
+    constructor
+    simp
+    use s
+    constructor
+    exact sinS
+    simp [BadAtN] at xinbadat
+    rw [Function.iterate_succ]
+    simp
+    rw [xinbadat]
+    exact tinS
+
+
+
+lemma BadAtN_zrot: ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
+  (BadAtN (rot z_axis) S s t n) =
+  {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff s t).val } := by
+  rintro S s t s_sub_s2
+  simp [BadAtN]
+  ext θ
+  simp
+  rw [←Function.iterate_succ_apply (f (rot z_axis θ)) n s.val]
+
+  rw [rot_power_lemma]
+  constructor
+  intro lhs
+  have :_:= rot_fixed_gen_z s t lhs
+  obtain ⟨k, pk⟩ := this
+  use k
+  simp at pk
+  rw [pk]
+  linarith
+  --
+  intro lhs
+  obtain ⟨k, pk⟩ := lhs
+  have:_:= rot_fixed_back_gen_z s t k
+  simp
+  rw [pk]
+  rw [add_comm] at this
+  rw [mul_comm (k:ℝ)]
+  exact this
+
+
+lemma BadAtN_zrot_countable: ∀S: Set R3, ∀(s t: S), S ⊆ S2 ∧ (z_axis.val ∉ S ∧ -z_axis.val ∉ S)  →
+  Set.Countable (BadAtN (rot z_axis) S s t n) := by
+
+    rintro S s t ⟨s_sub_s2, axis_nin_s⟩
+    rw [BadAtN_zrot S s t s_sub_s2]
+
+    let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (ang_diff s t).val)/ (n + 1 : ℝ)
+    have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(ang_diff ↑s ↑t).val } = foo '' (Set.univ: Set ℤ) := by
+      ext t
+      simp
+      simp [foo]
+      field_simp
+      norm_num
+      constructor
+      intro lhs
+      obtain ⟨k, pk⟩ := lhs
+      use k
+      rw [pk]
+      simp
+      linarith
+      --
+      intro lhs
+      obtain ⟨k, pk⟩ := lhs
+      use k
+      rw [←pk]
+      simp
+      linarith
+
+    rw [imlem]
+
+    apply Set.Countable.image
+
+    exact Set.countable_univ
+
+
+
+
+lemma bad_as_union_zrot: ∀S: Set R3, S ⊆ S2 →
+  Bad (rot z_axis) S = ⋃ s :S, ⋃ t : S, ⋃ n : ℕ, BadAtN (rot z_axis) S s t n  := by
+  intro S s_sub_s2
+  rw [bad_as_union]
+  simp [BadAt]
+
+lemma countable_bad_rots_z_axis: ∀S: Set R3, S ⊆ S2 ∧ Countable S ∧ (z_axis.val ∉ S ∧ -z_axis.val ∉ S)  →
+  Countable (Bad (rot z_axis) S) := by
+  rintro S ⟨s_sub_s2, countable_s, noaxes⟩
+  rw [bad_as_union_zrot S s_sub_s2]
+  apply Set.countable_iUnion
+  intro s
+  apply Set.countable_iUnion
+  intro t
+  apply Set.countable_iUnion
+  intro n
+  exact BadAtN_zrot_countable S s t ⟨s_sub_s2, noaxes⟩
+
+
+
+----------
 def so3_conj (X : Type*) {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (h: G) : ℝ → G :=
   fun (θ:ℝ) ↦ h * (F θ) * h⁻¹
 
@@ -333,13 +512,6 @@ lemma conj_equiv_bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ �
     exact (conj_bad_el (F r) h S).mpr lhs
 
 
-
-def z_axis_vec: R3 := to_R3 ![0, 0, 1]
-lemma z_axis_on_sphere: z_axis_vec ∈ S2 := by
-  simp [S2, z_axis_vec, to_R3]
-  simp [norm]
-  simp [Fin.sum_univ_three]
-def z_axis: S2 := ⟨z_axis_vec, z_axis_on_sphere⟩
 
 def x_axis_vec: R3 := to_R3 ![1, 0, 0]
 lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
@@ -391,16 +563,6 @@ lemma rot_conj (axis: S2): (so3_conj R3 (rot axis) (COB_to_Z axis)) = (rot z_axi
 
 
 
-
-lemma countable_bad_rots_z_axis: ∀S: Set R3, S ⊆ S2 ∧ Countable S ∧ (z_axis.val ∉ S ∧ -z_axis.val ∉ S)  →
-  Countable (Bad (rot z_axis) S) := by
-  rintro S ⟨ sub_S2,  countable_S, ⟨znotinS, mznotinS⟩⟩
-  -- Sketch:
-  -- 1) Express s ∈ S in spherical cooardinates
-  -- 2) Let θ (s₁, s₂)  = the angle in [0, 2π) between s₁ and s₂
-  -- 3) Prove that the Bad set is a countable union of countable
-  -- sets {θ : θ = (θ(s₁, s₂) + k * 2π) / n}
-  sorry
 
 
 lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
@@ -977,10 +1139,6 @@ noncomputable def skew_rot (θ: ℝ) : G3 :=
 
 lemma f_triv_g3: (f (skew_rot r)) = skew_rot r := rfl
 
-lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
-  ext x
-  simp [f]
-
 
 lemma skew_rot_comp_add (t1 t2 : ℝ) : (skew_rot t1) ∘ (skew_rot t2) = skew_rot (t1 + t2) := by
   simp [skew_rot]
@@ -991,7 +1149,8 @@ lemma skew_rot_comp_add (t1 t2 : ℝ) : (skew_rot t1) ∘ (skew_rot t2) = skew_r
   rw [rot_comp_add x_axis t1 t2]
 
 
-lemma rot_power_lemma (r: ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := by
+
+lemma skew_rot_power_lemma (r: ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := by
   induction' n with k ih
   simp
   simp [skew_rot]
@@ -1009,8 +1168,6 @@ lemma rot_power_lemma (r: ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := by
   apply congrArg
   simp [Nat.cast_add]
   linarith
-
-
 
 
 
@@ -1044,10 +1201,80 @@ lemma srot_containment: ∀r:ℝ, orbit (skew_rot r) {origin} ⊆ B3 := by
   simp  at pinunion
   obtain ⟨n, pn ⟩ := pinunion
   rw [f_triv_g3] at pn
-  rw [rot_power_lemma] at pn
+  rw [skew_rot_power_lemma] at pn
   set T := n * r with Ndef
   rw [←pn]
   simp
   exact origin_cont T
 
-lemma countable_bad_skew_rot: Countable (Bad skew_rot {origin}) := sorry
+
+
+
+def origin_in_s: ({origin} : Set R3) := ⟨origin, (by simp)⟩
+
+lemma BadAtN_skew_rot:
+  (BadAtN skew_rot {origin} origin_in_s origin_in_s n) =
+    {θ: ℝ | ∃k:ℤ, ((n + 1: ℝ) * θ) / (2 * Real.pi) = k } := by
+      simp [BadAtN]
+      simp [origin_in_s]
+      ext θ
+      simp
+      rw [←Function.iterate_succ_apply (f (skew_rot θ)) n origin]
+      rw [f_triv_g3]
+      rw [skew_rot_power_lemma]
+      simp [skew_rot]
+      constructor
+      intro lhs
+      apply congrArg (fun x ↦ x - to_R3 ![0, 0, 0.5]) at lhs
+      simp at lhs
+      have :_ := (rot_fixed x_axis (origin -(to_R3 ![0, 0, 0.5]))) lhs
+      obtain ⟨k, pk⟩ := this
+      use k
+      rw [pk]
+      field_simp
+      --
+      intro lhs
+      have asgood: f (rot x_axis ((↑n + 1) * θ)) (origin - to_R3 ![0, 0, 0.5])  =
+        origin - to_R3 ![0, 0, 0.5] := by
+        obtain ⟨k, pk⟩ := lhs
+        field_simp at pk
+        rw [pk]
+        exact rot_fixed_back x_axis (origin - to_R3 ![0, 0, 0.5]) k
+
+
+      apply congrArg (fun x ↦ x + to_R3 ![0, 0, 0.5]) at asgood
+      simp at asgood
+      exact asgood
+
+
+
+
+lemma BadAtN_skew_rot_countable:
+  Set.Countable (BadAtN skew_rot {origin} origin_in_s origin_in_s n) := by
+    rw [BadAtN_skew_rot]
+    let foo (k : ℤ) := (k : ℝ) * (2 * Real.pi) / (n + 1 : ℝ)
+    have imlem: {θ | ∃ k : ℤ, (↑n + 1) * θ / (2 * Real.pi) = ↑k} = foo '' (Set.univ: Set ℤ) := by
+      ext t
+      simp
+      simp [foo]
+      field_simp
+      norm_num
+      tauto
+    rw [imlem]
+    apply Set.Countable.image
+    exact Set.countable_univ
+
+
+
+
+lemma bad_as_union_skew_rot: Bad skew_rot ({origin}) = ⋃ n : ℕ, BadAtN (skew_rot) {origin} origin_in_s origin_in_s n  := by
+  rw [bad_as_union]
+  simp [BadAt]
+  simp [origin_in_s]
+
+
+lemma countable_bad_skew_rot: Countable (Bad skew_rot {origin}) := by
+  rw [bad_as_union_skew_rot]
+  apply Set.countable_iUnion
+  intro n
+  exact BadAtN_skew_rot_countable
