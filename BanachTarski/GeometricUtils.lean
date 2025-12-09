@@ -183,7 +183,8 @@ instance  R2_dim_2: Fact (Module.finrank ℝ R2 = 2) := by
   simp
   trivial
 
-noncomputable def ang_diff (s t: R3) : Real.Angle :=
+noncomputable def z_ang_diff (s t: R3) : Real.Angle :=
+  -- NOTE! Projects down to the  z = 0 plane
   let s2: R2 := !₂[(s 0), (s 1)]
   let t2: R2 := !₂[(t 0), (t 1)]
   o.oangle s2 t2
@@ -421,13 +422,8 @@ noncomputable def s2_cross (a b: S2) (dif1: a.val≠b.val) (dif2: a.val≠(-b.va
 noncomputable def unsigned_ang (v w: R3) := InnerProductGeometry.angle v w
 
 
-def so3_conj (X : Type*) {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (h: G) : ℝ → G :=
+def so3_conj (F: ℝ → SO3) (h: SO3) : ℝ → SO3 :=
   fun (θ:ℝ) ↦ h * (F θ) * h⁻¹
-
-
-
-
-
 
 -- Rodrigues' formula for the rotation matrix :  I + (sin θ)K + (1-cosθ)K²
 
@@ -438,7 +434,8 @@ def K_mat (a: R3): MAT := !![
 ]
 
 
-noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT := (1:MAT) + (Real.sin θ)•(K_mat ax) + (1 - Real.cos θ)•((K_mat ax) ^ 2)
+noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
+  (1:MAT) + (Real.sin θ)•(K_mat ax) + (1 - Real.cos θ)•((K_mat ax) ^ 2)
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   let M := rot_mat ax θ
@@ -453,44 +450,89 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   ⟨M, M_is_special⟩
 
 
+lemma rot_fixed_back_gen_z_single (v w: R3):
+f (rot z_axis (z_ang_diff v w).toReal) v = w := by
+  sorry
+
+lemma triv_rot_mat (ax: S2): rot_mat ax 0 = 1 := by
+  simp [rot_mat]
+
+lemma triv_rot (ax: S2): rot ax 0 = 1 := by
+  simp [rot, rot_mat]
+
+lemma rot_mat_add_mul2pi  (ax: S2) (k: ℤ) (θ: ℝ) :
+  rot_mat ax (θ + 2 * k * Real.pi) = rot_mat ax θ  := by
+  simp [rot_mat]
+  rw [show 2 * (↑k : ℝ) * Real.pi = ↑k * (2 * Real.pi) by ring]
+  rw [Real.sin_add_int_mul_two_pi]
+  rw [Real.cos_add_int_mul_two_pi]
+
+lemma rot_mat_mul2pi  (ax: S2) (k: ℤ) : rot_mat ax (2 * k * Real.pi) = 1 := by
+  rw [←zero_add (2 * k * Real.pi)]
+  rw [rot_mat_add_mul2pi ax k 0]
+  exact triv_rot_mat ax
+
+lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) v = v:= by
+  simp [rot]
+  simp_rw [show 2 * Real.pi * k = 2 * k * Real.pi by ring]
+  simp [rot_mat_mul2pi]
+  simp [f]
+  exact MulAction.one_smul v
+
+
+lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by
+  simp [rot, rot_mat]
+
+  simp [Real.cos_add, Real.sin_add]
+  simp [add_smul]
+  simp [sub_smul]
+  simp [add_mul]
+  simp [mul_add]
+  sorry
+
+lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) v = v → ∃k:ℤ, t = k * 2 * Real.pi := sorry
+
+lemma rot_fixed_gen_z (v w: R3): f (rot z_axis t) v = w →
+   ∃k:ℤ, t = (z_ang_diff v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
+
+
+lemma rot_fixed_back_gen_z (v w: R3) (k: ℤ):
+f (rot z_axis ((z_ang_diff v w).toReal + 2 * Real.pi * k)) v = w := by
+  rw [show 2 * Real.pi * k = 2 * k * Real.pi by ring]
+  simp [rot]
+  simp [rot_mat_add_mul2pi z_axis k (z_ang_diff v w).toReal ]
+  exact rot_fixed_back_gen_z_single v w
+
+lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
+
+
 noncomputable def COB_to_Z (axis: S2) : SO3 :=
-  dite (axis.val≠z_axis.val)
-  (fun p1: _ ↦ (
-    dite (axis.val≠(-z_axis.val))
-    (fun p2 : _ ↦ rot (s2_cross axis z_axis p1 p2) (unsigned_ang axis z_axis))
+  dite (axis.val≠z_axis.val ∧ axis.val≠(-z_axis.val))
+  (fun p: _ ↦ rot (s2_cross axis z_axis p.left p.right) (unsigned_ang axis z_axis))
+  (fun p: _ ↦ dite (axis.val=z_axis.val)
     (fun _ : _ ↦ (1: SO3))
-  ))
-  (fun _ : _ ↦ rot (x_axis) Real.pi)
+    (fun _ : _ ↦ rot (x_axis) Real.pi)
+  )
 
 
 lemma ctza_def (axis: S2):   (COB_to_Z axis) • axis.val = z_axis.val := sorry
 
-lemma rot_conj (axis: S2): (so3_conj R3 (rot axis) (COB_to_Z axis)) = (rot z_axis) := by sorry
+lemma rot_conj (axis: S2): (so3_conj (rot axis) (COB_to_Z axis)) = (rot z_axis) := by
+  ext θ _ _
+  apply Matrix.ext_iff.mpr
+  apply Matrix.ext_iff_mulVec.mpr
+  intro v
+  simp [so3_conj]
+  simp [COB_to_Z]
+  rcases (em (¬axis.val = z_axis.val ∧ ¬axis.val = -z_axis.val)) with neither_ax | some_ax
+  simp [neither_ax]
+  sorry
 
 
 
-lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by sorry
 
-lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) v = v → ∃k:ℤ, t = k * 2 * Real.pi := sorry
-lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) v = v:=sorry
+  sorry
 
-lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
-
-lemma rot_fixed_gen_z (v w: R3): f (rot z_axis t) v = w →
-   ∃k:ℤ, t = (ang_diff v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
-
-lemma rot_fixed_back_gen_z (v w: R3) (k: ℤ):
-f (rot z_axis ((ang_diff v w).toReal + 2 * Real.pi * k)) v = w :=sorry
-
-
-lemma rot_lemma: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
-  intro axis θ
-  simp only [rot]
-  simp only [f]
-  exact so3_fixes_s2 (rot axis θ)
-
-lemma triv_rot (ax: S2): rot ax 0 = 1 := by
-  simp [rot, rot_mat]
 
 lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
   ext x
@@ -531,7 +573,14 @@ lemma inv_rot_lemma' (ax: S2) (θ: ℝ): (rot ax (θ) * (rot ax (-θ))) = 1 := b
 def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
 ⋃ i, (f g)^[i] '' S
 
-lemma rot_containment (axis: S2) (subset_of_s2: S⊆ S2): (∀r:ℝ, (orbit (rot axis r) S ⊆ S2 )) := by
+
+lemma rot_containment_S2: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
+  intro axis θ
+  simp only [rot]
+  simp only [f]
+  exact so3_fixes_s2 (rot axis θ)
+
+lemma rot_containment_general (axis: S2) (subset_of_s2: S⊆ S2): (∀r:ℝ, (orbit (rot axis r) S ⊆ S2 )) := by
   intro r
   simp [orbit]
   intro i
@@ -548,7 +597,7 @@ lemma rot_containment (axis: S2) (subset_of_s2: S⊆ S2): (∀r:ℝ, (orbit (rot
   have lem: w ∈ S2 := by
     exact pi s_in_S
   have mem:f (rot axis r) w ∈ f (rot axis r) '' S2 := Set.mem_image_of_mem (f (rot axis r)) lem
-  have lem2: f (rot axis r) w ∈ S2 := rot_lemma mem
+  have lem2: f (rot axis r) w ∈ S2 := rot_containment_S2 mem
   exact lem2
 
 --------
@@ -662,7 +711,7 @@ lemma bad_as_union {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → 
 
 lemma BadAtN_zrot: ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
   (BadAtN (rot z_axis) S s t n) =
-  {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff s t).toReal } := by
+  {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (z_ang_diff s t).toReal } := by
   rintro S s t s_sub_s2
   simp [BadAtN]
   ext θ
@@ -695,8 +744,8 @@ lemma BadAtN_zrot_countable: ∀S: Set R3, ∀(s t: S), S ⊆ S2 ∧ (z_axis.val
     rintro S s t ⟨s_sub_s2, axis_nin_s⟩
     rw [BadAtN_zrot S s t s_sub_s2]
 
-    let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (ang_diff s t).toReal)/ (n + 1 : ℝ)
-    have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(ang_diff ↑s ↑t).toReal } = foo '' (Set.univ: Set ℤ) := by
+    let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (z_ang_diff s t).toReal)/ (n + 1 : ℝ)
+    have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(z_ang_diff ↑s ↑t).toReal } = foo '' (Set.univ: Set ℤ) := by
       ext t
       simp
       simp [foo]
@@ -748,8 +797,8 @@ lemma countable_bad_rots_z_axis: ∀S: Set R3, S ⊆ S2 ∧ Countable S ∧ (z_a
 
 ----------
 
-lemma conj_equiv_bad {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X) (h: G) :
-  (Bad F S) = (Bad (so3_conj X F h) ((f h) '' S)) := by
+lemma conj_equiv_bad (F: ℝ → SO3) (S: Set R3) (h: SO3) :
+  (Bad F S) = (Bad (so3_conj F h) ((f h) '' S)) := by
     simp [Bad]
     ext r
     constructor

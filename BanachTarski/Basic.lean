@@ -2611,7 +2611,7 @@ lemma S2_equidecomposible_of_S2_minus_countable:
   have countbad: Countable (Bad F S) := countable_bad_rots S axis ⟨subset_of_s2, countable_S, polelem1, polelem2⟩
 
   exact equidecomposibility_symm (
-    absorption_lemma_3 SO3 S2 S ⟨(fun θ ↦ rot axis θ), countbad, (rot_containment axis subset_of_s2)⟩
+    absorption_lemma_3 SO3 S2 S ⟨(fun θ ↦ rot axis θ), countbad, (rot_containment_general axis subset_of_s2)⟩
     )
 
 
