@@ -27,6 +27,7 @@ def f {X : Type*} {G: Type*} [Group G] [MulAction G X] (g : G): X → X := fun x
 abbrev MAT:= Matrix (Fin 3) (Fin 3) ℝ
 abbrev R3_raw := (Fin 3) → ℝ
 abbrev R3 :=  EuclideanSpace ℝ (Fin 3)
+
 def origin := (0: R3)
 def S2 : Set R3 := Metric.sphere (0: R3) 1
 abbrev SO3 := Matrix.specialOrthogonalGroup (Fin 3) ℝ
