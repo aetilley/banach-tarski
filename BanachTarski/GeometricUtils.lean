@@ -421,10 +421,6 @@ def so3_conj (F: ℝ → SO3) (h: SO3) : ℝ → SO3 :=
 ------------------
 
 
-
-
-
-
 instance  R3_dim_3: Fact (Module.finrank ℝ R3 = 2 + 1) := by
   simp
   trivial
@@ -441,7 +437,7 @@ noncomputable def orth (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)ᗮ
 
 noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=  OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
 
-noncomputable def o3 (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (orth_B ax).toBasis.orientation
+noncomputable def plane_o (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (orth_B ax).toBasis.orientation
 
 instance  orth_dim_2 (ax: S2): Fact (Module.finrank ℝ (orth ax) = 2) := by
   apply fact_iff.mpr
@@ -451,7 +447,7 @@ instance  orth_dim_2 (ax: S2): Fact (Module.finrank ℝ (orth ax) = 2) := by
 
 
 
-noncomputable def rot_iso_plane_equiv (ax: S2) (θ:ℝ) : (orth ax) ≃ₗᵢ[ℝ] (orth ax)  := (o3 ax).rotation θ
+noncomputable def rot_iso_plane_equiv (ax: S2) (θ:ℝ) : (orth ax) ≃ₗᵢ[ℝ] (orth ax)  := (plane_o ax).rotation θ
 noncomputable def rot_iso_plane_to_st (ax: S2) (θ:ℝ) : (orth ax) →ₗᵢ[ℝ] (orth ax)  :=
   (rot_iso_plane_equiv ax θ).toLinearIsometry
 noncomputable def rot_iso_plane_embed (ax: S2) (θ:ℝ) : (orth ax) →ₗᵢ[ℝ] R3  :=
@@ -463,6 +459,10 @@ noncomputable def operp (ax: S2) (v: R3):= (orth ax).orthogonalProjection v
 noncomputable def opar (ax: S2) (v: R3) := (ℝ ∙ ax.val).orthogonalProjection v
 noncomputable def sperp (ax: S2) (v: R3):= (orth ax).starProjection v
 noncomputable def spar (ax: S2) (v: R3) := (ℝ ∙ ax.val).starProjection v
+
+noncomputable def ang_diff (axis: S2) (s t: R3) : Real.Angle :=
+  (plane_o axis).oangle (operp axis s) (operp axis t)
+
 
 noncomputable def rot_by_parts (ax: S2) (θ: ℝ):= fun v ↦ (
     (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
@@ -478,7 +478,7 @@ noncomputable def rot_iso_raw (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
 }
 
 lemma parts_lem (ax: S2): ∀v:R3, ((operp ax v): R3) + (spar ax v) = v := sorry
-lemma rotation_of_perp_in_perp (ax: S2) : ∀ v: R3, spar ax (((o3 ax).rotation θ) ↑(operp ax v)) = 0 := sorry
+lemma rotation_of_perp_in_perp (ax: S2) : ∀ v: R3, spar ax (((plane_o ax).rotation θ) ↑(operp ax v)) = 0 := sorry
 lemma spar_add (ax: S2 ): ∀ u v: R3, spar ax (u + v) = spar ax u + spar ax v := sorry
 lemma spar_idem (ax: S2 ): ∀ v: R3, spar ax (spar ax v) = spar ax v := sorry
 
@@ -571,10 +571,15 @@ lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) v = v → ∃k:ℤ, t = k * 2
 lemma rot_fixed_gen_z (v w: R3): f (rot z_axis t) v = w →
    ∃k:ℤ, t = (z_ang_diff v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
 
+lemma rot_fixed_gen (axis: S2) (v w: R3): f (rot axis t) v = w →
+   ∃k:ℤ, t = (ang_diff axis v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
+
 
 lemma rot_fixed_back_gen_z (v w: R3) (k: ℤ):
 f (rot z_axis ((z_ang_diff v w).toReal + 2 * Real.pi * k)) v = w := by sorry
 
+lemma rot_fixed_back_gen (axis: S2) (v w: R3) (k: ℤ):
+f (rot axis ((ang_diff axis v w).toReal + 2 * Real.pi * k)) v = w := by sorry
 
 lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
 
@@ -888,14 +893,44 @@ lemma bad_as_union_rot (axis: S2): ∀S: Set R3, S ⊆ S2 →
   rw [bad_as_union]
   simp [BadAt]
 
+lemma BadAtN_rot (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
+  (BadAtN (rot axis) S s t n) =
+  {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal } := by
+  rintro S s t s_sub_s2
+  simp [BadAtN]
+  ext θ
+  simp
+  rw [←Function.iterate_succ_apply (f (rot axis θ)) n s.val]
+
+  rw [rot_power_lemma]
+  constructor
+  intro lhs
+  have :_:= rot_fixed_gen axis s t lhs
+  obtain ⟨k, pk⟩ := this
+  use k
+  simp at pk
+  rw [pk]
+  linarith
+  --
+  intro lhs
+  obtain ⟨k, pk⟩ := lhs
+  have:_:= rot_fixed_back_gen axis s t k
+  simp
+  rw [pk]
+  rw [add_comm] at this
+  rw [mul_comm (k:ℝ)]
+  exact this
+
 lemma BadAtN_rot_countable (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2 ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
   Set.Countable (BadAtN (rot axis) S s t n) := by
 
     rintro S s t ⟨s_sub_s2, axis_nin_s⟩
-    rw [BadAtN_zrot S s t s_sub_s2]
+    rw [BadAtN_rot axis S s t s_sub_s2]
 
-    let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (z_ang_diff s t).toReal)/ (n + 1 : ℝ)
-    have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(z_ang_diff ↑s ↑t).toReal } = foo '' (Set.univ: Set ℤ) := by
+    let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (ang_diff axis s t).toReal)/ (n + 1 : ℝ)
+    have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(ang_diff axis ↑s ↑t).toReal } =
+      foo '' (Set.univ: Set ℤ) := by
+
       ext t
       simp
       simp [foo]
@@ -906,7 +941,6 @@ lemma BadAtN_rot_countable (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2 ∧ (
       obtain ⟨k, pk⟩ := lhs
       use k
       rw [pk]
-      simp
       linarith
       --
       intro lhs
