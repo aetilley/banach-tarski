@@ -235,21 +235,30 @@ noncomputable def rot_by_parts (ax: S2) (θ: ℝ):= fun v ↦ (
     (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
   )
 
+lemma ript_lemma (ax: S2) (θ: ℝ) (x: R3): ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x = x := sorry
+
 noncomputable def rot_iso_raw (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
-  toFun := fun v ↦ (
-    (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
-  )
-  map_add' := sorry
-  map_smul' := sorry
-  norm_map' := sorry
+  toFun := rot_by_parts ax θ
+  map_add' := by
+    intro x y
+    simp [rot_by_parts, operp, spar]
+    grind
+
+  map_smul' := by
+    intro m x
+    simp [rot_by_parts, operp, spar]
+
+  norm_map' := by
+    intro x
+    simp
+    simp [rot_by_parts]
+    nth_rewrite 3 [←ript_lemma ax θ x]
+    rfl
+
 }
 
-lemma parts_lem (ax: S2): ∀v:R3, ((operp ax v): R3) + (spar ax v) = v := sorry
-lemma rotation_of_perp_in_perp (ax: S2) : ∀ v: R3, spar ax (((plane_o ax).rotation θ) ↑(operp ax v)) = 0 := sorry
-lemma spar_add (ax: S2 ): ∀ u v: R3, spar ax (u + v) = spar ax u + spar ax v := sorry
-lemma spar_idem (ax: S2 ): ∀ v: R3, spar ax (spar ax v) = spar ax v := sorry
 
-
+noncomputable def Basis3: Module.Basis (Fin 3) ℝ R3 := (EuclideanSpace.basisFun (Fin 3) ℝ).toBasis
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   let M := LinearMap.toMatrix Basis3 Basis3 (rot_iso_raw ax θ).toLinearMap
@@ -264,20 +273,30 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   ⟨M, M_is_special⟩
 
 
-lemma triv_rot (ax: S2): rot ax 0 = 1 := sorry
+lemma triv_rot (ax: S2): rot ax 0 = 1 := by
+  simp [rot]
+  simp [rot_iso_raw]
+  have : (1 : MAT) = (LinearMap.toMatrix Basis3 Basis3) 1 := by simp
+  rw [this]
+  apply congrArg (LinearMap.toMatrix Basis3 Basis3)
+  apply LinearMap.ext
+  intro x
+  simp [rot_by_parts]
+  exact ript_lemma ax
+
 
 
 
 lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) v = v:= by sorry
 
 
-
 lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by sorry
 
-lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) v = v → ∃k:ℤ, t = k * 2 * Real.pi := sorry
 
 lemma rot_fixed_gen (axis: S2) (v w: R3): f (rot axis t) v = w →
    ∃k:ℤ, t = (ang_diff axis v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
+
+lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) v = v → ∃k:ℤ, t = k * 2 * Real.pi := sorry
 
 lemma rot_fixed_back_gen (axis: S2) (v w: R3) (k: ℤ):
 f (rot axis ((ang_diff axis v w).toReal + 2 * Real.pi * k)) v = w := by sorry
@@ -1008,6 +1027,13 @@ lemma map_lemma (n: ℕ) (map: Fin n -> SO3) (famA: Fin n → S2_sub) (famB: Fin
 ----------------
 
 
+
+def x_axis_vec: R3 := to_R3 ![1, 0, 0]
+lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
+  simp [S2, x_axis_vec, to_R3]
+  simp [norm]
+  simp [Fin.sum_univ_three]
+def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
 
 
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
