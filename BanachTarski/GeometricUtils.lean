@@ -200,6 +200,8 @@ lemma s2_nonzero (ax: S2) : ax ≠ (0:R3) := by
   rw [isz] at ax_prop
   simp at ax_prop
 
+
+noncomputable def ax_space (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)
 noncomputable def orth (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)ᗮ
 
 noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=  OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
@@ -217,15 +219,16 @@ instance  orth_dim_2 (ax: S2): Fact (Module.finrank ℝ (orth ax) = 2) := by
 noncomputable def rot_iso_plane_equiv (ax: S2) (θ:ℝ) : (orth ax) ≃ₗᵢ[ℝ] (orth ax)  := (plane_o ax).rotation θ
 noncomputable def rot_iso_plane_to_st (ax: S2) (θ:ℝ) : (orth ax) →ₗᵢ[ℝ] (orth ax)  :=
   (rot_iso_plane_equiv ax θ).toLinearIsometry
-noncomputable def rot_iso_plane_embed (ax: S2) (θ:ℝ) : (orth ax) →ₗᵢ[ℝ] R3  :=
-   (Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)
 
 --noncomputable def rot_extension (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := LinearIsometry.extend (rot_iso_plane_embed ax θ)
 
 noncomputable def operp (ax: S2) (v: R3):= (orth ax).orthogonalProjection v
-noncomputable def opar (ax: S2) (v: R3) := (ℝ ∙ ax.val).orthogonalProjection v
-noncomputable def sperp (ax: S2) (v: R3):= (orth ax).starProjection v
+--noncomputable def opar (ax: S2) (v: R3) := (ℝ ∙ ax.val).orthogonalProjection v
+--noncomputable def sperp (ax: S2) (v: R3):= (orth ax).starProjection v
 noncomputable def spar (ax: S2) (v: R3) := (ℝ ∙ ax.val).starProjection v
+
+lemma el_by_parts (ax: S2) (x: R3):  x = ↑((operp ax x)) + spar ax x := by
+  simp [operp, spar, orth]
 
 noncomputable def ang_diff (axis: S2) (s t: R3) : Real.Angle :=
   (plane_o axis).oangle (operp axis s) (operp axis t)
@@ -235,9 +238,11 @@ noncomputable def rot_by_parts (ax: S2) (θ: ℝ):= fun v ↦ (
     (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
   )
 
-lemma ript_lemma (ax: S2) (θ: ℝ) (x: R3): ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x = x := sorry
+lemma rbp_lemma (ax: S2) (θ: ℝ) (x: R3): (rot_by_parts ax θ) x = ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x := by
+  simp [rot_by_parts]
 
-noncomputable def rot_iso_raw (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
+
+noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
   toFun := rot_by_parts ax θ
   map_add' := by
     intro x y
@@ -251,9 +256,27 @@ noncomputable def rot_iso_raw (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
   norm_map' := by
     intro x
     simp
+    rw [← sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)]
+    rw [Submodule.norm_sq_eq_add_norm_sq_projection  (rot_by_parts ax θ x) (orth ax)]
+    rw [Submodule.norm_sq_eq_add_norm_sq_projection  x (orth ax)]
+    congr 1
+    --
+    apply congrArg (fun x ↦ x^2)
     simp [rot_by_parts]
-    nth_rewrite 3 [←ript_lemma ax θ x]
-    rfl
+    have zero_lem1: (orth ax).starProjection (spar ax x) = 0 := sorry
+    rw [zero_lem1]
+    simp [operp]
+    simp [Submodule.norm_coe]
+    --
+    apply congrArg (fun x ↦ x^2)
+    simp [rot_by_parts]
+    have zero_lem2: (orth ax).starProjection (spar ax x) = 0 := sorry
+    rw [zero_lem2]
+    simp
+    simp [spar]
+    congr 1
+    simp [orth]
+
 
 }
 
@@ -261,7 +284,7 @@ noncomputable def rot_iso_raw (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
 noncomputable def Basis3: Module.Basis (Fin 3) ℝ R3 := (EuclideanSpace.basisFun (Fin 3) ℝ).toBasis
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
-  let M := LinearMap.toMatrix Basis3 Basis3 (rot_iso_raw ax θ).toLinearMap
+  let M := LinearMap.toMatrix Basis3 Basis3 (rot_iso ax θ).toLinearMap
   have M_is_special : M ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
     constructor
