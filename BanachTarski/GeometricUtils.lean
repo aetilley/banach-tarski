@@ -882,16 +882,61 @@ lemma conj_equiv_bad (F: ℝ → SO3) (S: Set R3) (h: SO3) :
     exact (conj_bad_el (F r) h S).mpr lhs
 
 
+lemma bad_as_union_rot (axis: S2): ∀S: Set R3, S ⊆ S2 →
+  Bad (rot axis) S = ⋃ s :S, ⋃ t : S, ⋃ n : ℕ, BadAtN (rot axis) S s t n  := by
+  intro S s_sub_s2
+  rw [bad_as_union]
+  simp [BadAt]
+
+lemma BadAtN_rot_countable (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2 ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
+  Set.Countable (BadAtN (rot axis) S s t n) := by
+
+    rintro S s t ⟨s_sub_s2, axis_nin_s⟩
+    rw [BadAtN_zrot S s t s_sub_s2]
+
+    let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (z_ang_diff s t).toReal)/ (n + 1 : ℝ)
+    have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(z_ang_diff ↑s ↑t).toReal } = foo '' (Set.univ: Set ℤ) := by
+      ext t
+      simp
+      simp [foo]
+      field_simp
+      norm_num
+      constructor
+      intro lhs
+      obtain ⟨k, pk⟩ := lhs
+      use k
+      rw [pk]
+      simp
+      linarith
+      --
+      intro lhs
+      obtain ⟨k, pk⟩ := lhs
+      use k
+      rw [←pk]
+      simp
+      linarith
+
+    rw [imlem]
+
+    apply Set.Countable.image
+
+    exact Set.countable_univ
+
+
 lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
   S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
   Countable (Bad (rot axis) S) := by
 
-  have for_maps: ∀S: Set R3, ∀ axis:S2, S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
-  Countable (Bad (rot_iso axis) S) := by sorry
+  rintro S axis ⟨s_sub_s2, countable_s, noaxes⟩
 
-  sorry
-
-
+  rw [bad_as_union_rot axis S s_sub_s2]
+  apply Set.countable_iUnion
+  intro s
+  apply Set.countable_iUnion
+  intro t
+  apply Set.countable_iUnion
+  intro n
+  exact BadAtN_rot_countable axis S s t ⟨s_sub_s2, noaxes⟩
 
 
 --------
