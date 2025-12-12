@@ -176,8 +176,9 @@ lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := by
 
 abbrev R2_raw := (Fin 2) → ℝ
 abbrev R2 :=  EuclideanSpace ℝ (Fin 2)
-noncomputable def B: Module.Basis (Fin 2) ℝ R2 := (EuclideanSpace.basisFun (Fin 2) ℝ).toBasis
-noncomputable def o : Orientation ℝ R2 (Fin 2) := B.orientation
+noncomputable def Basis2: Module.Basis (Fin 2) ℝ R2 := (EuclideanSpace.basisFun (Fin 2) ℝ).toBasis
+noncomputable def Basis3: Module.Basis (Fin 3) ℝ R3 := (EuclideanSpace.basisFun (Fin 3) ℝ).toBasis
+noncomputable def o : Orientation ℝ R2 (Fin 2) := Basis2.orientation
 
 instance  R2_dim_2: Fact (Module.finrank ℝ R2 = 2) := by
   simp
@@ -389,14 +390,6 @@ lemma r3_cross_nonzero (a b: S2) (dif1: a.val≠b.val) (dif2: a.val≠(-b.val)):
 
     simp [hs] at psg
 
-
-
-
-
-
-
-
-
 noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
 lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
   intro nonz
@@ -425,20 +418,128 @@ noncomputable def unsigned_ang (v w: R3) := InnerProductGeometry.angle v w
 def so3_conj (F: ℝ → SO3) (h: SO3) : ℝ → SO3 :=
   fun (θ:ℝ) ↦ h * (F θ) * h⁻¹
 
--- Rodrigues' formula for the rotation matrix :  I + (sin θ)K + (1-cosθ)K²
-
-def K_mat (a: R3): MAT := !![
-  0, -(a 2), (a 1);
-  (a 2), 0, -(a 0);
-  -(a 1), (a 0), 0;
-]
+------------------
 
 
-noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
-  (1:MAT) + (Real.sin θ)•(K_mat ax) + (1 - Real.cos θ)•((K_mat ax) ^ 2)
+
+
+
+
+instance  R3_dim_3: Fact (Module.finrank ℝ R3 = 2 + 1) := by
+  simp
+  trivial
+
+lemma s2_nonzero (ax: S2) : ax ≠ (0:R3) := by
+  have ax_prop := ax.property
+  simp only [S2] at ax_prop
+  simp only [Metric.sphere] at ax_prop
+  by_contra isz
+  rw [isz] at ax_prop
+  simp at ax_prop
+
+noncomputable def orth (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)ᗮ
+
+noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=  OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
+
+noncomputable def o3 (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (orth_B ax).toBasis.orientation
+
+instance  orth_dim_2 (ax: S2): Fact (Module.finrank ℝ (orth ax) = 2) := by
+  apply fact_iff.mpr
+  simp [orth]
+  apply Submodule.finrank_orthogonal_span_singleton
+  exact s2_nonzero ax
+
+
+
+noncomputable def rot_iso_plane_equiv (ax: S2) (θ:ℝ) : (orth ax) ≃ₗᵢ[ℝ] (orth ax)  := (o3 ax).rotation θ
+noncomputable def rot_iso_plane_to_st (ax: S2) (θ:ℝ) : (orth ax) →ₗᵢ[ℝ] (orth ax)  :=
+  (rot_iso_plane_equiv ax θ).toLinearIsometry
+noncomputable def rot_iso_plane_embed (ax: S2) (θ:ℝ) : (orth ax) →ₗᵢ[ℝ] R3  :=
+   (Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)
+
+--noncomputable def rot_extension (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := LinearIsometry.extend (rot_iso_plane_embed ax θ)
+
+noncomputable def operp (ax: S2) (v: R3):= (orth ax).orthogonalProjection v
+noncomputable def opar (ax: S2) (v: R3) := (ℝ ∙ ax.val).orthogonalProjection v
+noncomputable def sperp (ax: S2) (v: R3):= (orth ax).starProjection v
+noncomputable def spar (ax: S2) (v: R3) := (ℝ ∙ ax.val).starProjection v
+
+noncomputable def rot_by_parts (ax: S2) (θ: ℝ):= fun v ↦ (
+    (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
+  )
+
+noncomputable def rot_iso_raw (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
+  toFun := fun v ↦ (
+    (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
+  )
+  map_add' := sorry
+  map_smul' := sorry
+  norm_map' := sorry
+}
+
+lemma parts_lem (ax: S2): ∀v:R3, ((operp ax v): R3) + (spar ax v) = v := sorry
+lemma rotation_of_perp_in_perp (ax: S2) : ∀ v: R3, spar ax (((o3 ax).rotation θ) ↑(operp ax v)) = 0 := sorry
+lemma spar_add (ax: S2 ): ∀ u v: R3, spar ax (u + v) = spar ax u + spar ax v := sorry
+lemma spar_idem (ax: S2 ): ∀ v: R3, spar ax (spar ax v) = spar ax v := sorry
+
+
+
+def rot_isos_sg (ax: S2): Submonoid (R3 →ₗᵢ[ℝ] R3) where
+  carrier := (rot_iso_raw ax) '' (Set.univ: Set ℝ)
+  mul_mem' := by
+    intro a b
+    intro alhs blhs
+    simp at *
+    obtain ⟨t1, pt1⟩ := alhs
+    obtain ⟨t2, pt2⟩ := blhs
+    use t1 + t2
+    rw [←pt1 , ←pt2]
+    simp [rot_iso_raw]
+    simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
+    apply LinearIsometry.ext
+    intro x
+    simp
+    rw [←Orientation.rotation_rotation]
+    congr 1
+    sorry
+
+    ---
+
+    rw [spar_add]
+    rw [rotation_of_perp_in_perp ax x]
+    rw [spar_idem]
+    simp
+
+
+  one_mem' := by
+    simp
+    use 0
+    simp [rot_iso_raw]
+    simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
+    apply LinearIsometry.ext
+    intro x
+    simp
+    rw [parts_lem ax x]
+
+
+
+
+
+
+
+
+
+instance : Group rot_isos_sg where
+
+instance : MulAction rot_isos_sg R3 := sorry
+
+noncomputable def rot_iso (ax: S2) (θ:ℝ) : rot_isos_sg  := ⟨rot_iso_raw ax θ, (by
+ simp [rot_isos_sg]; use ax.val; use ax.prop; use θ)⟩
+
+
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
-  let M := rot_mat ax θ
+  let M := LinearMap.toMatrix Basis3 Basis3 (rot_iso_raw ax θ).toLinearMap
   have M_is_special : M ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
     constructor
@@ -454,41 +555,16 @@ lemma rot_fixed_back_gen_z_single (v w: R3):
 f (rot z_axis (z_ang_diff v w).toReal) v = w := by
   sorry
 
-lemma triv_rot_mat (ax: S2): rot_mat ax 0 = 1 := by
-  simp [rot_mat]
 
-lemma triv_rot (ax: S2): rot ax 0 = 1 := by
-  simp [rot, rot_mat]
-
-lemma rot_mat_add_mul2pi  (ax: S2) (k: ℤ) (θ: ℝ) :
-  rot_mat ax (θ + 2 * k * Real.pi) = rot_mat ax θ  := by
-  simp [rot_mat]
-  rw [show 2 * (↑k : ℝ) * Real.pi = ↑k * (2 * Real.pi) by ring]
-  rw [Real.sin_add_int_mul_two_pi]
-  rw [Real.cos_add_int_mul_two_pi]
-
-lemma rot_mat_mul2pi  (ax: S2) (k: ℤ) : rot_mat ax (2 * k * Real.pi) = 1 := by
-  rw [←zero_add (2 * k * Real.pi)]
-  rw [rot_mat_add_mul2pi ax k 0]
-  exact triv_rot_mat ax
-
-lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) v = v:= by
-  simp [rot]
-  simp_rw [show 2 * Real.pi * k = 2 * k * Real.pi by ring]
-  simp [rot_mat_mul2pi]
-  simp [f]
-  exact MulAction.one_smul v
+lemma triv_rot (ax: S2): rot ax 0 = 1 := sorry
 
 
-lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by
-  simp [rot, rot_mat]
 
-  simp [Real.cos_add, Real.sin_add]
-  simp [add_smul]
-  simp [sub_smul]
-  simp [add_mul]
-  simp [mul_add]
-  sorry
+lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) v = v:= by sorry
+
+
+
+lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by sorry
 
 lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) v = v → ∃k:ℤ, t = k * 2 * Real.pi := sorry
 
@@ -497,11 +573,8 @@ lemma rot_fixed_gen_z (v w: R3): f (rot z_axis t) v = w →
 
 
 lemma rot_fixed_back_gen_z (v w: R3) (k: ℤ):
-f (rot z_axis ((z_ang_diff v w).toReal + 2 * Real.pi * k)) v = w := by
-  rw [show 2 * Real.pi * k = 2 * k * Real.pi by ring]
-  simp [rot]
-  simp [rot_mat_add_mul2pi z_axis k (z_ang_diff v w).toReal ]
-  exact rot_fixed_back_gen_z_single v w
+f (rot z_axis ((z_ang_diff v w).toReal + 2 * Real.pi * k)) v = w := by sorry
+
 
 lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
 
@@ -527,10 +600,6 @@ lemma rot_conj (axis: S2): (so3_conj (rot axis) (COB_to_Z axis)) = (rot z_axis) 
   rcases (em (¬axis.val = z_axis.val ∧ ¬axis.val = -z_axis.val)) with neither_ax | some_ax
   simp [neither_ax]
   sorry
-
-
-
-
   sorry
 
 
@@ -813,66 +882,17 @@ lemma conj_equiv_bad (F: ℝ → SO3) (S: Set R3) (h: SO3) :
     exact (conj_bad_el (F r) h S).mpr lhs
 
 
-
 lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
   S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
   Countable (Bad (rot axis) S) := by
-    intro S axis
-    let ctza := COB_to_Z axis
-    rintro ⟨SsubS2, S_countable, S_contains_neither_pole⟩
-    rw [conj_equiv_bad (rot axis) S (ctza)]
-    rw [rot_conj]
-    apply countable_bad_rots_z_axis (f (ctza) '' S)
-    --
-    constructor
-    have cont1: f (ctza) '' S  ⊆ f (ctza) '' S2 := by
-      -- There seems to be no lemma for this in matlib
-      -- that does not require the function is injective
-      intro x xinlhs
-      simp at *
-      obtain ⟨x, xinS, px⟩ := xinlhs
-      use x
-      constructor
-      exact SsubS2 xinS
-      exact px
 
-    exact subset_trans cont1 (so3_fixes_s2 (ctza))
-    --
-    constructor
-    apply Set.Countable.image S_countable
-    --
-    have axtoax: z_axis.val = (f (ctza)) axis.val:= by
-      simp [ctza]
-      exact (ctza_def axis).symm
+  have for_maps: ∀S: Set R3, ∀ axis:S2, S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
+  Countable (Bad (rot_iso axis) S) := by sorry
 
-    constructor
-    by_contra badaxis
-    rw [axtoax] at badaxis
-    simp at badaxis
-    obtain ⟨x, xinS, px⟩ := badaxis
-    have same_val:_:= congrArg (fun (X: R3) ↦ ((f ctza⁻¹) X)) px
-    simp [f] at same_val
-    rw [same_val] at xinS
-    exact S_contains_neither_pole.left xinS
+  sorry
 
-    --
-    by_contra badaxis
-    rw [axtoax] at badaxis
-    simp at badaxis
-    obtain ⟨x, xinS, px⟩ := badaxis
-    have same_val:_:= congrArg (fun (X: R3) ↦ ((f ctza⁻¹) X)) px
-    simp [f] at same_val
-    have ll: -(ctza • axis.val) = ctza • -axis.val := by
-      simp only [HSMul.hSMul, SMul.smul]
-      rw [←WithLp.toLp_neg]
-      simp only [WithLp.equiv_symm_apply]
-      rw [←Matrix.mulVec_neg]
-      congr 1
 
-    rw [ll] at same_val
-    simp at same_val
-    rw [same_val] at xinS
-    exact S_contains_neither_pole.right xinS
+
 
 --------
 
