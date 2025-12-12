@@ -171,224 +171,6 @@ lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := by
   rw [so3_fixes_norm g]
   exact lhs1
 
--- We will project members of R3 into the z=0 plane to consider
--- their oriented angle difference with respect to the z-axis.
-
-abbrev R2_raw := (Fin 2) → ℝ
-abbrev R2 :=  EuclideanSpace ℝ (Fin 2)
-noncomputable def Basis2: Module.Basis (Fin 2) ℝ R2 := (EuclideanSpace.basisFun (Fin 2) ℝ).toBasis
-noncomputable def Basis3: Module.Basis (Fin 3) ℝ R3 := (EuclideanSpace.basisFun (Fin 3) ℝ).toBasis
-noncomputable def o : Orientation ℝ R2 (Fin 2) := Basis2.orientation
-
-instance  R2_dim_2: Fact (Module.finrank ℝ R2 = 2) := by
-  simp
-  trivial
-
-noncomputable def z_ang_diff (s t: R3) : Real.Angle :=
-  -- NOTE! Projects down to the  z = 0 plane
-  let s2: R2 := !₂[(s 0), (s 1)]
-  let t2: R2 := !₂[(t 0), (t 1)]
-  o.oangle s2 t2
-
-def z_axis_vec: R3 := to_R3 ![0, 0, 1]
-lemma z_axis_on_sphere: z_axis_vec ∈ S2 := by
-  simp [S2, z_axis_vec, to_R3]
-  simp [norm]
-  simp [Fin.sum_univ_three]
-def z_axis: S2 := ⟨z_axis_vec, z_axis_on_sphere⟩
-
-def x_axis_vec: R3 := to_R3 ![1, 0, 0]
-lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
-  simp [S2, x_axis_vec, to_R3]
-  simp [norm]
-  simp [Fin.sum_univ_three]
-def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
-
-noncomputable def r3_cross (a b: S2) (dif1: a.val≠b.val) (dif2: a.val≠(-b.val)): R3 :=
-  to_R3 (crossProduct a.val.ofLp b.val.ofLp)
-
-lemma r3_cross_nonzero (a b: S2) (dif1: a.val≠b.val) (dif2: a.val≠(-b.val)):
-  r3_cross a b dif1 dif2 ≠ 0 :=  by
-    simp [r3_cross, to_R3]
-    apply crossProduct_ne_zero_iff_linearIndependent.mpr
-    by_contra notli
-    have :_:= not_linearIndependent_iff.mp notli
-    obtain ⟨s, g, psg⟩ := this
-    simp at psg
-
-    ---
-    have aprop: _:= a.property
-    simp only [S2] at aprop
-    have this1:_:= mem_sphere_iff_norm.mp aprop
-    rw [sub_zero] at this1
-    --
-    have bprop: _:= b.property
-    simp only [S2] at bprop
-    have this2:_:= mem_sphere_iff_norm.mp bprop
-    rw [sub_zero] at this2
-
-
-
-    by_cases h0 : (0 : Fin 2) ∈ s
-
-
-
-    -----
-    by_cases h1 : (1 : Fin 2) ∈ s
-
-    -----
-    --set t := fun x: Fin 2 ↦  g x • ![a.val.ofLp, b.val.ofLp] x with tdef
-    have hs : s = (Finset.univ : Finset (Fin 2)) := by
-      ext w
-      fin_cases w
-      simp
-      exact h0
-      simp
-      exact h1
-
-
-    simp [hs] at psg
-    have left := psg.left
-    have leftr3: (g 0) • (a.val) + (g 1) • (b.val) = 0 := by
-      apply congrArg to_R3 at left
-      simp [to_R3] at left
-      exact left
-
-
-
-    ---
-    rcases psg.right with v0nn | v1nn
-    ----
-    apply add_eq_zero_iff_eq_neg.mp at leftr3
-    apply congrArg (fun x ↦ (g 0)⁻¹ • x) at leftr3
-    simp at leftr3
-    rw [smul_smul] at leftr3
-    rw [inv_mul_cancel₀] at leftr3
-    apply congrArg (fun x ↦ ‖x‖) at leftr3
-    simp at leftr3
-    simp [norm_smul] at leftr3
-    apply congrArg (fun x ↦ |g 0| * x) at leftr3
-    rw [←mul_assoc] at leftr3
-    rw [mul_inv_cancel₀] at leftr3
-    rw [mul_one, one_mul] at leftr3
-    apply  abs_eq_abs.mp at leftr3
-    rcases leftr3 with c1 | c2
-    --
-    rw [c1] at leftr3
-    rw [smul_smul] at leftr3
-    rw [inv_mul_cancel₀] at leftr3
-    rw [one_smul] at leftr3
-    rw [one_smul] at leftr3
-    exact dif2 leftr3
-    rw [←c1]
-    exact v0nn
-    --
-    rw [c2] at leftr3
-    rw [inv_neg] at leftr3
-    rw [neg_smul] at leftr3
-    rw [smul_smul] at leftr3
-    have eqneg:_:=  neg_eq_iff_eq_neg.mpr c2
-    rw [inv_mul_cancel₀] at leftr3
-    simp at leftr3
-    exact dif1 leftr3
-    rw [←eqneg]
-    by_contra eqz
-    simp at eqz
-    exact v0nn eqz
-    by_contra abseqz
-    simp at abseqz
-    exact v0nn abseqz
-    exact v0nn
-    ----
-    rw [add_comm] at leftr3
-    apply add_eq_zero_iff_eq_neg.mp at leftr3
-    apply congrArg (fun x ↦ (g 1)⁻¹ • x) at leftr3
-    simp at leftr3
-    rw [smul_smul] at leftr3
-    rw [inv_mul_cancel₀] at leftr3
-    apply congrArg (fun x ↦ ‖x‖) at leftr3
-    simp at leftr3
-    simp [norm_smul] at leftr3
-    apply congrArg (fun x ↦ |g 1| * x) at leftr3
-    rw [←mul_assoc] at leftr3
-    rw [mul_inv_cancel₀] at leftr3
-    rw [mul_one, one_mul] at leftr3
-    apply  abs_eq_abs.mp at leftr3
-    rcases leftr3 with c1 | c2
-    --
-    rw [c1] at leftr3
-    rw [smul_smul] at leftr3
-    rw [inv_mul_cancel₀] at leftr3
-    rw [one_smul] at leftr3
-    rw [one_smul] at leftr3
-    have eqiv: _:=neg_eq_iff_eq_neg.mpr leftr3
-    exact dif2 eqiv.symm
-    rw [←c1]
-    exact v1nn
-
-    --
-    rw [c2] at leftr3
-    rw [inv_neg] at leftr3
-    rw [neg_smul] at leftr3
-    rw [smul_smul] at leftr3
-    have eqneg:_:=  neg_eq_iff_eq_neg.mpr c2
-    rw [inv_mul_cancel₀] at leftr3
-    simp at leftr3
-    exact dif1 leftr3.symm
-    by_contra eqz
-    rw [eqz] at eqneg
-    simp at eqneg
-    exact v1nn eqneg
-    simp
-    exact v1nn
-    exact v1nn
-
-    -----
-
-    have hs : s = {0} := by
-      ext w
-      fin_cases w
-      simp
-      exact h0
-      simp
-      exact h1
-
-
-    simp [hs] at psg
-    have azero: a = (0:R3) := by tauto
-    rw [azero] at this1
-    simp at this1
-
-    -----
-
-    by_cases h1 : (1 : Fin 2) ∈ s
-
-
-    have hs : s = {1} := by
-      ext w
-      fin_cases w
-      simp
-      exact h0
-      simp
-      exact h1
-
-
-    simp [hs] at psg
-    have bzero: b = (0:R3) := by tauto
-    rw [bzero] at this2
-    simp at this2
-
-
-    ---
-    have hs : s = {} := by
-      ext w
-      fin_cases w
-      simp
-      exact h0
-      simp
-      exact h1
-
-    simp [hs] at psg
 
 noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
 lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
@@ -402,21 +184,6 @@ lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
   apply inv_mul_cancel_of_invertible
 
 
-noncomputable def s2_cross (a b: S2) (dif1: a.val≠b.val) (dif2: a.val≠(-b.val)): S2 :=
-
-  let unnormed_cr := to_R3 (crossProduct a.val.ofLp b.val.ofLp)
-
-  have nz: unnormed_cr ≠ 0 := r3_cross_nonzero a b dif1 dif2
-
-  let normed_cr := normed unnormed_cr
-  ⟨normed_cr, normed_in_S2 nz⟩
-
-
-noncomputable def unsigned_ang (v w: R3) := InnerProductGeometry.angle v w
-
-
-def so3_conj (F: ℝ → SO3) (h: SO3) : ℝ → SO3 :=
-  fun (θ:ℝ) ↦ h * (F θ) * h⁻¹
 
 ------------------
 
@@ -484,60 +251,6 @@ lemma spar_idem (ax: S2 ): ∀ v: R3, spar ax (spar ax v) = spar ax v := sorry
 
 
 
-def rot_isos_sg (ax: S2): Submonoid (R3 →ₗᵢ[ℝ] R3) where
-  carrier := (rot_iso_raw ax) '' (Set.univ: Set ℝ)
-  mul_mem' := by
-    intro a b
-    intro alhs blhs
-    simp at *
-    obtain ⟨t1, pt1⟩ := alhs
-    obtain ⟨t2, pt2⟩ := blhs
-    use t1 + t2
-    rw [←pt1 , ←pt2]
-    simp [rot_iso_raw]
-    simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
-    apply LinearIsometry.ext
-    intro x
-    simp
-    rw [←Orientation.rotation_rotation]
-    congr 1
-    sorry
-
-    ---
-
-    rw [spar_add]
-    rw [rotation_of_perp_in_perp ax x]
-    rw [spar_idem]
-    simp
-
-
-  one_mem' := by
-    simp
-    use 0
-    simp [rot_iso_raw]
-    simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
-    apply LinearIsometry.ext
-    intro x
-    simp
-    rw [parts_lem ax x]
-
-
-
-
-
-
-
-
-
-instance : Group rot_isos_sg where
-
-instance : MulAction rot_isos_sg R3 := sorry
-
-noncomputable def rot_iso (ax: S2) (θ:ℝ) : rot_isos_sg  := ⟨rot_iso_raw ax θ, (by
- simp [rot_isos_sg]; use ax.val; use ax.prop; use θ)⟩
-
-
-
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   let M := LinearMap.toMatrix Basis3 Basis3 (rot_iso_raw ax θ).toLinearMap
   have M_is_special : M ∈ SO3 := by
@@ -549,11 +262,6 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
     · -- M.det = 1
       sorry
   ⟨M, M_is_special⟩
-
-
-lemma rot_fixed_back_gen_z_single (v w: R3):
-f (rot z_axis (z_ang_diff v w).toReal) v = w := by
-  sorry
 
 
 lemma triv_rot (ax: S2): rot ax 0 = 1 := sorry
@@ -568,44 +276,14 @@ lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax 
 
 lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) v = v → ∃k:ℤ, t = k * 2 * Real.pi := sorry
 
-lemma rot_fixed_gen_z (v w: R3): f (rot z_axis t) v = w →
-   ∃k:ℤ, t = (z_ang_diff v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
-
 lemma rot_fixed_gen (axis: S2) (v w: R3): f (rot axis t) v = w →
    ∃k:ℤ, t = (ang_diff axis v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
-
-
-lemma rot_fixed_back_gen_z (v w: R3) (k: ℤ):
-f (rot z_axis ((z_ang_diff v w).toReal + 2 * Real.pi * k)) v = w := by sorry
 
 lemma rot_fixed_back_gen (axis: S2) (v w: R3) (k: ℤ):
 f (rot axis ((ang_diff axis v w).toReal + 2 * Real.pi * k)) v = w := by sorry
 
 lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
 
-
-noncomputable def COB_to_Z (axis: S2) : SO3 :=
-  dite (axis.val≠z_axis.val ∧ axis.val≠(-z_axis.val))
-  (fun p: _ ↦ rot (s2_cross axis z_axis p.left p.right) (unsigned_ang axis z_axis))
-  (fun p: _ ↦ dite (axis.val=z_axis.val)
-    (fun _ : _ ↦ (1: SO3))
-    (fun _ : _ ↦ rot (x_axis) Real.pi)
-  )
-
-
-lemma ctza_def (axis: S2):   (COB_to_Z axis) • axis.val = z_axis.val := sorry
-
-lemma rot_conj (axis: S2): (so3_conj (rot axis) (COB_to_Z axis)) = (rot z_axis) := by
-  ext θ _ _
-  apply Matrix.ext_iff.mpr
-  apply Matrix.ext_iff_mulVec.mpr
-  intro v
-  simp [so3_conj]
-  simp [COB_to_Z]
-  rcases (em (¬axis.val = z_axis.val ∧ ¬axis.val = -z_axis.val)) with neither_ax | some_ax
-  simp [neither_ax]
-  sorry
-  sorry
 
 
 lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
@@ -650,7 +328,6 @@ def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Se
 
 lemma rot_containment_S2: ∀ {axis : S2} {θ:ℝ}, (f (rot axis θ)) '' S2 ⊆ S2 := by
   intro axis θ
-  simp only [rot]
   simp only [f]
   exact so3_fixes_s2 (rot axis θ)
 
@@ -781,110 +458,6 @@ lemma bad_as_union {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → 
     rw [xinbadat]
     exact tinS
 
-
-
-lemma BadAtN_zrot: ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
-  (BadAtN (rot z_axis) S s t n) =
-  {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (z_ang_diff s t).toReal } := by
-  rintro S s t s_sub_s2
-  simp [BadAtN]
-  ext θ
-  simp
-  rw [←Function.iterate_succ_apply (f (rot z_axis θ)) n s.val]
-
-  rw [rot_power_lemma]
-  constructor
-  intro lhs
-  have :_:= rot_fixed_gen_z s t lhs
-  obtain ⟨k, pk⟩ := this
-  use k
-  simp at pk
-  rw [pk]
-  linarith
-  --
-  intro lhs
-  obtain ⟨k, pk⟩ := lhs
-  have:_:= rot_fixed_back_gen_z s t k
-  simp
-  rw [pk]
-  rw [add_comm] at this
-  rw [mul_comm (k:ℝ)]
-  exact this
-
-
-lemma BadAtN_zrot_countable: ∀S: Set R3, ∀(s t: S), S ⊆ S2 ∧ (z_axis.val ∉ S ∧ -z_axis.val ∉ S)  →
-  Set.Countable (BadAtN (rot z_axis) S s t n) := by
-
-    rintro S s t ⟨s_sub_s2, axis_nin_s⟩
-    rw [BadAtN_zrot S s t s_sub_s2]
-
-    let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (z_ang_diff s t).toReal)/ (n + 1 : ℝ)
-    have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(z_ang_diff ↑s ↑t).toReal } = foo '' (Set.univ: Set ℤ) := by
-      ext t
-      simp
-      simp [foo]
-      field_simp
-      norm_num
-      constructor
-      intro lhs
-      obtain ⟨k, pk⟩ := lhs
-      use k
-      rw [pk]
-      simp
-      linarith
-      --
-      intro lhs
-      obtain ⟨k, pk⟩ := lhs
-      use k
-      rw [←pk]
-      simp
-      linarith
-
-    rw [imlem]
-
-    apply Set.Countable.image
-
-    exact Set.countable_univ
-
-
-
-
-lemma bad_as_union_zrot: ∀S: Set R3, S ⊆ S2 →
-  Bad (rot z_axis) S = ⋃ s :S, ⋃ t : S, ⋃ n : ℕ, BadAtN (rot z_axis) S s t n  := by
-  intro S s_sub_s2
-  rw [bad_as_union]
-  simp [BadAt]
-
-lemma countable_bad_rots_z_axis: ∀S: Set R3, S ⊆ S2 ∧ Countable S ∧ (z_axis.val ∉ S ∧ -z_axis.val ∉ S)  →
-  Countable (Bad (rot z_axis) S) := by
-  rintro S ⟨s_sub_s2, countable_s, noaxes⟩
-  rw [bad_as_union_zrot S s_sub_s2]
-  apply Set.countable_iUnion
-  intro s
-  apply Set.countable_iUnion
-  intro t
-  apply Set.countable_iUnion
-  intro n
-  exact BadAtN_zrot_countable S s t ⟨s_sub_s2, noaxes⟩
-
-
-
-----------
-
-lemma conj_equiv_bad (F: ℝ → SO3) (S: Set R3) (h: SO3) :
-  (Bad F S) = (Bad (so3_conj F h) ((f h) '' S)) := by
-    simp [Bad]
-    ext r
-    constructor
-    intro lhs
-    simp at lhs
-    simp [so3_conj]
-    exact (conj_bad_el (F r) h S).mp lhs
-    --
-    intro lhs
-    simp [so3_conj] at lhs
-    simp
-    exact (conj_bad_el (F r) h S).mpr lhs
 
 
 lemma bad_as_union_rot (axis: S2): ∀S: Set R3, S ⊆ S2 →
