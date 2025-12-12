@@ -220,11 +220,14 @@ noncomputable def rot_iso_plane_equiv (ax: S2) (θ:ℝ) : (orth ax) ≃ₗᵢ[�
 noncomputable def rot_iso_plane_to_st (ax: S2) (θ:ℝ) : (orth ax) →ₗᵢ[ℝ] (orth ax)  :=
   (rot_iso_plane_equiv ax θ).toLinearIsometry
 
---noncomputable def rot_extension (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := LinearIsometry.extend (rot_iso_plane_embed ax θ)
+lemma triv_rot_inner (ax: S2): (rot_iso_plane_to_st ax 0) = 1 := by
+  simp [rot_iso_plane_to_st]
+  simp [rot_iso_plane_equiv]
+  apply LinearIsometry.ext
+  intro x
+  simp
 
 noncomputable def operp (ax: S2) (v: R3):= (orth ax).orthogonalProjection v
---noncomputable def opar (ax: S2) (v: R3) := (ℝ ∙ ax.val).orthogonalProjection v
---noncomputable def sperp (ax: S2) (v: R3):= (orth ax).starProjection v
 noncomputable def spar (ax: S2) (v: R3) := (ℝ ∙ ax.val).starProjection v
 
 lemma el_by_parts (ax: S2) (x: R3):  x = ↑((operp ax x)) + spar ax x := by
@@ -259,24 +262,32 @@ noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
     rw [← sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)]
     rw [Submodule.norm_sq_eq_add_norm_sq_projection  (rot_by_parts ax θ x) (orth ax)]
     rw [Submodule.norm_sq_eq_add_norm_sq_projection  x (orth ax)]
+    have zero_lem1: (orth ax).starProjection (spar ax x) = 0 := by
+      simp [orth, spar]
+      have  idem :(Submodule.span ℝ {ax.val}).starProjection  ((Submodule.span ℝ {ax.val}).starProjection x)
+        = ((Submodule.span ℝ {ax.val}).starProjection ) x := by
+          apply Submodule.starProjection_eq_self_iff.mpr
+          simp
+      rw [idem]
+      simp
     congr 1
     --
     apply congrArg (fun x ↦ x^2)
     simp [rot_by_parts]
-    have zero_lem1: (orth ax).starProjection (spar ax x) = 0 := sorry
+
+
+
     rw [zero_lem1]
     simp [operp]
     simp [Submodule.norm_coe]
     --
     apply congrArg (fun x ↦ x^2)
     simp [rot_by_parts]
-    have zero_lem2: (orth ax).starProjection (spar ax x) = 0 := sorry
-    rw [zero_lem2]
+    rw [zero_lem1]
     simp
     simp [spar]
     congr 1
     simp [orth]
-
 
 }
 
@@ -298,16 +309,17 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
 
 lemma triv_rot (ax: S2): rot ax 0 = 1 := by
   simp [rot]
-  simp [rot_iso_raw]
+  simp [rot_iso]
   have : (1 : MAT) = (LinearMap.toMatrix Basis3 Basis3) 1 := by simp
   rw [this]
   apply congrArg (LinearMap.toMatrix Basis3 Basis3)
   apply LinearMap.ext
   intro x
   simp [rot_by_parts]
-  exact ript_lemma ax
-
-
+  have :_:= rbp_lemma ax 0 x
+  rw [triv_rot_inner]
+  simp
+  exact (el_by_parts ax x).symm
 
 
 lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) v = v:= by sorry
