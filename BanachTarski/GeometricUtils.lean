@@ -15,6 +15,8 @@ import BanachTarski.Common
 set_option warningAsError false
 set_option linter.all false
 
+set_option maxHeartbeats 2000000
+
 
 -- The interval [0, π/2]
 def IccT := {x: ℝ // x ∈ (Set.Icc (0 : ℝ) (Real.pi/2 : ℝ))}
@@ -206,7 +208,8 @@ lemma s2_nonzero (ax: S2) : ax ≠ (0:R3) := by
 noncomputable def ax_space (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)
 noncomputable def orth (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)ᗮ
 
-noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=  OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
+noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=
+  OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
 
 noncomputable def plane_o (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (orth_B ax).toBasis.orientation
 
@@ -243,7 +246,15 @@ noncomputable def rot_by_parts (ax: S2) (θ: ℝ):= fun v ↦ (
     (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
   )
 
-lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by sorry
+lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by
+  funext w
+  simp [rot_by_parts]
+  rw [triv_rot_inner]
+  simp
+  exact (el_by_parts ax w).symm
+
+
+
 
 lemma rbp_lemma (ax: S2) (θ: ℝ) (x: R3): (rot_by_parts ax θ) x = ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x := by
   simp [rot_by_parts]
@@ -326,29 +337,49 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   let M_obasis := Basis3.map Lmap
   let M := M_obasis.toBasis.toMatrix Basis3
 
+
   have M_is_special : M ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
     constructor
     exact OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary M_obasis Basis3
+    --
+    simp [M]
+    have rot_det: LinearMap.det (rot_iso_plane_to_st ax θ).toLinearMap = (1 : ℝ) := by
+      simp [rot_iso_plane_to_st]
+      simp [rot_iso_plane_equiv]
+      exact (plane_o ax).det_rotation θ
+    set mat := (M_obasis.toBasis.toMatrix ⇑Basis3) with mat_def
+    have unitdet : mat.det = 1 ∨ mat.det = -1 := OrthonormalBasis.det_to_matrix_orthonormalBasis_real M_obasis Basis3
+    rcases unitdet with dplus | dminus
+    --
+    exact dplus
+    --
     sorry
-
 
   ⟨M, M_is_special⟩
 
 
 lemma triv_rot (ax: S2): rot ax 0 = 1 := by
   simp [rot]
-  simp [rot_iso]
-  have : (1 : MAT) = (LinearMap.toMatrix Basis3 Basis3) 1 := by simp
-  rw [this]
-  apply congrArg (LinearMap.toMatrix Basis3 Basis3)
-  apply LinearMap.ext
-  intro x
-  simp [rot_by_parts]
-  have :_:= rbp_lemma ax 0 x
-  rw [triv_rot_inner]
+  #check LinearMap.toMatrix'_one
+  let e := Basis3.toBasis
+  have :  e.toMatrix e = 1 :=  Module.Basis.toMatrix_self e
+  simp [e] at this
+  rw [←this]
+  apply congrArg
+  have isidsym: (rot_iso ax 0).symm = (fun x: R3 ↦ x) := by
+    funext w
+    apply (@Equiv.symm_apply_eq R3 R3 ((rot_iso ax 0) : R3 ≃ R3) w w).mpr
+    simp [rot_iso]
+    simp [rot_by_parts]
+    rw [triv_rot_inner]
+    simp
+    exact (el_by_parts ax w)
+
+  rw [isidsym]
+  ext x
   simp
-  exact (el_by_parts ax x).symm
+
 
 
 lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) v = v:= by sorry
