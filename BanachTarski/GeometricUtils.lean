@@ -6,7 +6,9 @@ import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Action.Defs
 import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
 import Mathlib.LinearAlgebra.CrossProduct
+import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Mathlib.Geometry.Euclidean.Angle.Oriented.Affine
+import Mathlib.Analysis.InnerProductSpace.PiL2
 
 import BanachTarski.Common
 
@@ -241,12 +243,32 @@ noncomputable def rot_by_parts (ax: S2) (θ: ℝ):= fun v ↦ (
     (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
   )
 
+lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by sorry
+
 lemma rbp_lemma (ax: S2) (θ: ℝ) (x: R3): (rot_by_parts ax θ) x = ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x := by
   simp [rot_by_parts]
 
+lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ): rot_by_parts ax θ (rot_by_parts ax τ x) = rot_by_parts ax (θ + τ) x :=sorry
 
-noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
+noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 ≃ₗᵢ[ℝ] R3  := {
   toFun := rot_by_parts ax θ
+  invFun := rot_by_parts ax (-θ)
+  left_inv := by
+    simp [Function.LeftInverse]
+    intro x
+    rw [rot_by_parts_comp]
+    simp
+    rw [triv_rot_by_parts]
+    simp
+
+  right_inv := by
+    simp [Function.RightInverse]
+    intro x
+    rw [rot_by_parts_comp]
+    simp
+    rw [triv_rot_by_parts]
+    simp
+
   map_add' := by
     intro x y
     simp [rot_by_parts, operp, spar]
@@ -291,19 +313,26 @@ noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 →ₗᵢ[ℝ] R3  := {
 
 }
 
+instance  orth_dim_3 : Fact (Module.finrank ℝ R3 = 3) := by
+  simp
+  trivial
 
-noncomputable def Basis3: Module.Basis (Fin 3) ℝ R3 := (EuclideanSpace.basisFun (Fin 3) ℝ).toBasis
+noncomputable def Basis3: OrthonormalBasis (Fin 3) ℝ R3 :=
+  (stdOrthonormalBasis ℝ R3).reindex <| finCongr orth_dim_3.out
+
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
-  let M := LinearMap.toMatrix Basis3 Basis3 (rot_iso ax θ).toLinearMap
+  let Lmap := (rot_iso ax θ)
+  let M_obasis := Basis3.map Lmap
+  let M := M_obasis.toBasis.toMatrix Basis3
+
   have M_is_special : M ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
     constructor
-    · rw [Matrix.mem_orthogonalGroup_iff]
-      -- M * Mᵀ = 1
-      sorry
-    · -- M.det = 1
-      sorry
+    exact OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary M_obasis Basis3
+    sorry
+
+
   ⟨M, M_is_special⟩
 
 
