@@ -254,12 +254,10 @@ lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by
   exact (el_by_parts ax w).symm
 
 
-
-
 lemma rbp_lemma (ax: S2) (θ: ℝ) (x: R3): (rot_by_parts ax θ) x = ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x := by
   simp [rot_by_parts]
 
-lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ): rot_by_parts ax θ (rot_by_parts ax τ x) = rot_by_parts ax (θ + τ) x :=sorry
+lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ): rot_by_parts ax θ (rot_by_parts ax τ x) = rot_by_parts ax (θ + τ) x := sorry
 
 noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 ≃ₗᵢ[ℝ] R3  := {
   toFun := rot_by_parts ax θ
@@ -354,7 +352,15 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
     --
     exact dplus
     --
-    sorry
+    -- If `q` is a complement of `p`, then `p × q` is isomorphic to `E`. -/
+    -- def prodEquivOfIsCompl (h : IsCompl p q) : (p × q) ≃ₗ[R] E := by
+
+    #check LinearMap.det_prodMap
+
+
+
+
+
 
   ⟨M, M_is_special⟩
 
