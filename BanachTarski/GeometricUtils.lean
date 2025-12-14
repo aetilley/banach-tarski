@@ -364,15 +364,17 @@ lemma rot_iso_power_lemma (axis: S2) (r: ℝ) (n: ℕ):
   rw [Function.iterate_succ']
   rw [ih]
   rw [rot_iso_comp_add ]
+  apply congrArg
+  apply congrArg
 
+  simp only [Nat.cast_add, Nat.cast_one]
+  linarith
 
+lemma rot_iso_fixed_gen (axis: S2) (v w: R3): (rot_iso axis t) v = w →
+   ∃k:ℤ, t = (ang_diff axis v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
 
-  ext w i
-  simp [f]
-  rw [smul_smul]
-  have  lin1 : (r + ↑k * r) = ((↑k + 1) * r) := by linarith
-  rw [lin1]
-
+lemma rot_iso_fixed_back_gen (axis: S2) (v w: R3) (k: ℤ):
+(rot_iso axis ((ang_diff axis v w).toReal + 2 * Real.pi * k)) v = w := by sorry
 
 lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
   (BadAtN_rot_iso axis S s t n) =
@@ -383,10 +385,10 @@ lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
   simp
   rw [←Function.iterate_succ_apply ((rot_iso axis θ)) n s.val]
 
-  rw [rot_power_lemma]
+  rw [rot_iso_power_lemma]
   constructor
   intro lhs
-  have :_:= rot_fixed_gen axis s t lhs
+  have :_:= rot_iso_fixed_gen axis s t lhs
   obtain ⟨k, pk⟩ := this
   use k
   simp at pk
@@ -395,7 +397,7 @@ lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
   --
   intro lhs
   obtain ⟨k, pk⟩ := lhs
-  have:_:= rot_fixed_back_gen axis s t k
+  have:_:= rot_iso_fixed_back_gen axis s t k
   simp
   rw [pk]
   rw [add_comm] at this
