@@ -68,6 +68,8 @@ lemma s2_uncountable: Uncountable (S2) := by
 
 lemma lb_card_s2 : Cardinal.aleph0 < Cardinal.mk S2 := Cardinal.aleph0_lt_mk_iff.mpr s2_uncountable
 
+----
+lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
 --------
 
 
@@ -205,6 +207,7 @@ lemma triv_rot (ax: S2): rot ax 0 = 1 := by
   have :  e.toMatrix e = 1 :=  Module.Basis.toMatrix_self e
   simp [e] at this
   rw [←this]
+  simp [rot_mat]
   apply congrArg
   have isidsym: (rot_iso ax 0).symm = (fun x: R3 ↦ x) := by
     funext w
@@ -221,21 +224,8 @@ lemma triv_rot (ax: S2): rot ax 0 = 1 := by
 
 
 
-lemma rot_fixed_back (axis: S2) (v: R3) (k: ℤ): f (rot axis (2 * Real.pi * k)) v = v:= by sorry
 
 
-lemma rot_comp_add (ax: S2) (t1 t2 : ℝ) : (rot ax t1) * (rot ax t2) = (rot ax (t1 + t2)) := by sorry
-
-
-lemma rot_fixed_gen (axis: S2) (v w: R3): f (rot axis t) v = w →
-   ∃k:ℤ, t = (ang_diff axis v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
-
-lemma rot_fixed (axis: S2) (v: R3): f (rot axis t) v = v → ∃k:ℤ, t = k * 2 * Real.pi := sorry
-
-lemma rot_fixed_back_gen (axis: S2) (v w: R3) (k: ℤ):
-f (rot axis ((ang_diff axis v w).toReal + 2 * Real.pi * k)) v = w := by sorry
-
-lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
 
 
 
@@ -244,36 +234,8 @@ lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
   simp [f]
 
 
-lemma rot_power_lemma (axis: S2) (r: ℝ) (n: ℕ): (@f R3 SO3 _ _ (rot axis r))^[n] =
-  @f R3 SO3 _ _ (rot axis ((n: ℝ)*r)) := by
-  induction' n with k ih
-  simp
-  rw [triv_rot axis]
-  rw [triv_so3]
-  rfl
-  --
-  rw [Function.iterate_succ']
-  rw [ih]
-  ext w i
-  simp [f]
-  rw [smul_smul]
-  rw [rot_comp_add]
-  have  lin1 : (r + ↑k * r) = ((↑k + 1) * r) := by linarith
-  rw [lin1]
 
 
-
-lemma inv_rot_lemma (ax: S2) (θ: ℝ): (rot ax (-θ) * (rot ax (θ))) = 1 := by
-  rw [rot_comp_add]
-  simp
-  rw [triv_rot]
-
-
-lemma inv_rot_lemma' (ax: S2) (θ: ℝ): (rot ax (θ) * (rot ax (-θ))) = 1 := by
-  set τ := -θ with tdef
-  have tr: θ = -τ := by linarith
-  rw [tr]
-  exact inv_rot_lemma ax τ
 
 def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
 ⋃ i, (f g)^[i] '' S
@@ -367,6 +329,84 @@ lemma conj_bad_el {X : Type*} {G: Type*} [Group G] [MulAction G X] (g h: G) (S: 
 def BadAtN {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X) (s t : S) (n: ℕ) : Set ℝ:=
   {θ: ℝ | (f (F θ))^[n+1] s.val = t.val}
 
+def BadAtN_rot (ax: S2) (S: Set R3) (s t : S) (n: ℕ) : Set ℝ:=
+  {θ: ℝ | (f (rot ax θ))^[n+1] s.val = t.val}
+
+
+def BadAtN_rot_iso (ax: S2) (S: Set R3) (s t : S) (n: ℕ) : Set ℝ:=
+  {θ: ℝ | (rot_iso ax θ)^[n+1] s.val = t.val}
+
+lemma triv_rot_iso (ax: S2): rot_iso ax 0 = 1 := by
+  have isidsym: (rot_iso ax 0) = (fun x: R3 ↦ x) := by
+    funext w
+    simp [rot_iso]
+    simp [rot_by_parts]
+    rw [triv_rot_inner]
+    simp [up]
+    exact (el_by_parts ax w).symm
+  apply LinearIsometryEquiv.ext
+  intro x
+  rw [isidsym]
+  simp
+
+
+lemma rot_iso_comp_add (ax: S2) (t1 t2 : ℝ) :
+  (rot_iso ax t1) ∘ (rot_iso ax t2) = (rot_iso ax (t1 + t2)) := by sorry
+
+
+lemma rot_iso_power_lemma (axis: S2) (r: ℝ) (n: ℕ):
+(rot_iso axis r)^[n] = (rot_iso axis ((n: ℝ)*r)) := by
+  induction' n with k ih
+  simp
+  rw [triv_rot_iso axis]
+  rfl
+  --
+  rw [Function.iterate_succ']
+  rw [ih]
+  rw [rot_iso_comp_add ]
+
+
+
+  ext w i
+  simp [f]
+  rw [smul_smul]
+  have  lin1 : (r + ↑k * r) = ((↑k + 1) * r) := by linarith
+  rw [lin1]
+
+
+lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
+  (BadAtN_rot_iso axis S s t n) =
+  {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal } := by
+  rintro S s t s_sub_s2
+  simp [BadAtN_rot_iso]
+  ext θ
+  simp
+  rw [←Function.iterate_succ_apply ((rot_iso axis θ)) n s.val]
+
+  rw [rot_power_lemma]
+  constructor
+  intro lhs
+  have :_:= rot_fixed_gen axis s t lhs
+  obtain ⟨k, pk⟩ := this
+  use k
+  simp at pk
+  rw [pk]
+  linarith
+  --
+  intro lhs
+  obtain ⟨k, pk⟩ := lhs
+  have:_:= rot_fixed_back_gen axis s t k
+  simp
+  rw [pk]
+  rw [add_comm] at this
+  rw [mul_comm (k:ℝ)]
+  exact this
+
+
+lemma same_bad (ax: S2) (S: Set R3) (s t : S) (n: ℕ) :
+BadAtN_rot ax S s t n = BadAtN_rot_iso ax S s t n := sorry
+
+
 def BadAt {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X) (s t : S): Set ℝ:=
   ⋃ n: ℕ,  BadAtN F S s t n
 
@@ -419,39 +459,14 @@ lemma bad_as_union_rot (axis: S2): ∀S: Set R3, S ⊆ S2 →
   rw [bad_as_union]
   simp [BadAt]
 
-lemma BadAtN_rot (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
-  (BadAtN (rot axis) S s t n) =
-  {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal } := by
-  rintro S s t s_sub_s2
-  simp [BadAtN]
-  ext θ
-  simp
-  rw [←Function.iterate_succ_apply (f (rot axis θ)) n s.val]
 
-  rw [rot_power_lemma]
-  constructor
-  intro lhs
-  have :_:= rot_fixed_gen axis s t lhs
-  obtain ⟨k, pk⟩ := this
-  use k
-  simp at pk
-  rw [pk]
-  linarith
-  --
-  intro lhs
-  obtain ⟨k, pk⟩ := lhs
-  have:_:= rot_fixed_back_gen axis s t k
-  simp
-  rw [pk]
-  rw [add_comm] at this
-  rw [mul_comm (k:ℝ)]
-  exact this
 
-lemma BadAtN_rot_countable (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2 ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
-  Set.Countable (BadAtN (rot axis) S s t n) := by
+lemma BadAtN_rot_iso_countable (axis: S2) (S: Set R3) :∀ (s t :S),
+(S ⊆ S2 ∧ (axis.val ∉ S ∧ -axis.val ∉ S)) →
+(BadAtN_rot_iso axis S s t n).Countable := by
 
-    rintro S s t ⟨s_sub_s2, axis_nin_s⟩
-    rw [BadAtN_rot axis S s t s_sub_s2]
+    rintro s t ⟨s_sub_s2, axis_nin_s⟩
+    rw [BadAtN_rot_iso_equiv axis S s t s_sub_s2]
 
     let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (ang_diff axis s t).toReal)/ (n + 1 : ℝ)
     have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(ang_diff axis ↑s ↑t).toReal } =
@@ -478,9 +493,13 @@ lemma BadAtN_rot_countable (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2 ∧ (
 
     rw [imlem]
 
+
     apply Set.Countable.image
 
+
     exact Set.countable_univ
+
+
 
 
 lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
@@ -496,7 +515,9 @@ lemma countable_bad_rots: ∀S: Set R3, ∀ axis:S2,
   intro t
   apply Set.countable_iUnion
   intro n
-  exact BadAtN_rot_countable axis S s t ⟨s_sub_s2, noaxes⟩
+  change (BadAtN_rot axis S s t n).Countable
+  rw [same_bad]
+  exact BadAtN_rot_iso_countable axis S s t ⟨s_sub_s2, noaxes⟩
 
 
 --------
@@ -971,53 +992,50 @@ def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
 
 
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
-noncomputable def skew_rot (θ: ℝ) : G3 := sorry
---noncomputable def skew_rot (θ: ℝ) : G3 :=
---  let offset: R3 := to_R3 ![0, 0, 0.5]
---  let shift (p : R3): R3 := p + offset
---  let unshift (p : R3): R3 := p - offset
---
---
---  {
---    toFun := shift ∘ (f (rot x_axis θ)) ∘ unshift
---    invFun := shift ∘ (f (rot x_axis (-θ))) ∘ unshift
---    left_inv := by
---      intro x
---      simp
---      simp [shift, unshift]
---      simp [f]
---      rw [smul_smul]
---      rw [inv_rot_lemma]
---      simp
---
---    right_inv := by
---      intro x
---      simp
---      simp [shift, unshift]
---      simp [f]
---      rw [smul_smul]
---      rw [inv_rot_lemma']
---      simp
---
---
---    isometry_toFun := by
---      rw [Isometry]
---      intro x1 x2
---      rw [Isometry.comp]
---      --
---      simp [shift]
---      exact isometry_add_right offset
---      --
---      intro x1 x2
---      rw [Isometry.comp]
---      --
---      exact isometry_of_so3 (rot x_axis θ)
---      --
---      simp [unshift]
---      change Isometry (fun p ↦ p + -offset)
---      exact isometry_add_right (-offset)
---
---  }
+noncomputable def skew_rot (θ: ℝ) : G3 :=
+  let offset: R3 := to_R3 ![0, 0, 0.5]
+  let shift (p : R3): R3 := p + offset
+  let unshift (p : R3): R3 := p - offset
+
+
+  {
+    toFun := shift ∘ (f (rot x_axis θ)) ∘ unshift
+    invFun := shift ∘ (f (rot x_axis (-θ))) ∘ unshift
+    left_inv := by
+      intro x
+      simp
+      simp [shift, unshift]
+      simp [f]
+      rw [smul_smul]
+      sorry
+
+    right_inv := by
+      intro x
+      simp
+      simp [shift, unshift]
+      simp [f]
+      rw [smul_smul]
+      sorry
+
+
+    isometry_toFun := by
+      rw [Isometry]
+      intro x1 x2
+      rw [Isometry.comp]
+      --
+      simp [shift]
+      exact isometry_add_right offset
+      --
+      intro x1 x2
+      rw [Isometry.comp]
+      --
+      exact isometry_of_so3 (rot x_axis θ)
+      --
+      simp [unshift]
+      change Isometry (fun p ↦ p + -offset)
+      exact isometry_add_right (-offset)
+
+  }
 
 lemma f_triv_g3: (f (skew_rot r)) = skew_rot r := rfl
 
