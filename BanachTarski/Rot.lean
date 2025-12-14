@@ -63,8 +63,8 @@ noncomputable def spar (ax: S2) (v: R3) := (ℝ ∙ ax.val).starProjection v
 lemma operp_add (ax: S2) : operp ax (u + v) = (operp ax u) + (operp ax v) := sorry
 lemma spar_add (ax: S2) : spar ax (u + v) = (spar ax u) + (spar ax v) := sorry
 
-lemma perp_spar (ax: S2) : operp ax (spar ax v) = 0 := sorry
-lemma spar_perp (ax: S2) : (spar ax (operp ax v)) = 0 := sorry
+lemma operp_spar (ax: S2) : operp ax (spar ax v) = 0 := sorry
+lemma spar_operp (ax: S2) : (spar ax (operp ax v)) = 0 := sorry
 lemma spar_spar (ax: S2) : (spar ax (spar ax v)) = spar ax v := sorry
 
 lemma rips_add (ax: S2) (v: orth ax): (rot_iso_plane_to_st ax S (rot_iso_plane_to_st ax T v)) =
@@ -72,7 +72,7 @@ lemma rips_add (ax: S2) (v: orth ax): (rot_iso_plane_to_st ax S (rot_iso_plane_t
 
 
 noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
-noncomputable def perp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
+noncomputable def operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
 lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
 
 
@@ -96,18 +96,14 @@ lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by
   exact (el_by_parts ax w).symm
 
 
-lemma rbp_lemma (ax: S2) (θ: ℝ) (x: R3): (rot_by_parts ax θ) x = ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x := by
-  simp [rot_by_parts]
-  simp [up]
-
 
 lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ):
   rot_by_parts ax θ (rot_by_parts ax τ x) = rot_by_parts ax (θ + τ) x := by
     simp [rot_by_parts]
     simp [operp_add]
     simp [spar_add]
-    simp [perp_up]
-    simp [perp_spar]
+    simp [operp_up]
+    simp [operp_spar]
     simp [spar_up_rot]
     simp [spar_spar]
     rw [rips_add]

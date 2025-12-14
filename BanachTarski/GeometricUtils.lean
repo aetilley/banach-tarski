@@ -351,8 +351,10 @@ lemma triv_rot_iso (ax: S2): rot_iso ax 0 = 1 := by
 
 
 lemma rot_iso_comp_add (ax: S2) (t1 t2 : ℝ) :
-  (rot_iso ax t1) ∘ (rot_iso ax t2) = (rot_iso ax (t1 + t2)) := by sorry
-
+  (rot_iso ax t1) ∘ (rot_iso ax t2) = (rot_iso ax (t1 + t2)) := by
+    funext w
+    simp [rot_iso]
+    exact rot_by_parts_comp ax t1 t2
 
 lemma rot_iso_power_lemma (axis: S2) (r: ℝ) (n: ℕ):
 (rot_iso axis r)^[n] = (rot_iso axis ((n: ℝ)*r)) := by
@@ -371,22 +373,42 @@ lemma rot_iso_power_lemma (axis: S2) (r: ℝ) (n: ℕ):
   linarith
 
 lemma rot_iso_fixed_gen (axis: S2) (v w: R3): (rot_iso axis t) v = w →
-   ∃k:ℤ, t = (ang_diff axis v w).toReal + (k:ℝ) * 2 * Real.pi := sorry
+   ∃k:ℤ, t = (ang_diff axis v w).toReal + (k:ℝ) * 2 * Real.pi := by
+    intro lhs
+    simp [rot_iso] at lhs
+    simp [rot_by_parts] at lhs
+    apply congrArg (operp axis) at lhs
+    rw [operp_add] at lhs
+    rw [operp_up] at lhs
+    rw [operp_spar] at lhs
+    simp at lhs
+    simp [rot_iso_plane_to_st] at lhs
+    simp [rot_iso_plane_equiv] at lhs
+    simp [ang_diff]
+    let A:= ((plane_o axis).oangle (operp axis v) (operp axis w)).toReal
+    let K:= (t - A) / (2 * Real.pi)
+    have isint : ∃ k : ℤ, (k : ℝ) = K := sorry
+    obtain ⟨k, pk⟩ := isint
+    use k
+    rw [pk]
+    simp [K]
+    field_simp
+    simp [A]
 
-lemma rot_iso_fixed_back_gen (axis: S2) (v w: R3) (k: ℤ):
-(rot_iso axis ((ang_diff axis v w).toReal + 2 * Real.pi * k)) v = w := by sorry
 
-lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
-  (BadAtN_rot_iso axis S s t n) =
+
+
+
+lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), ∀n: ℕ, S ⊆ S2  →
+  (BadAtN_rot_iso axis S s t n) ⊆
   {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal } := by
-  rintro S s t s_sub_s2
+  rintro S s t n s_sub_s2
   simp [BadAtN_rot_iso]
-  ext θ
-  simp
+  intro θ
   rw [←Function.iterate_succ_apply ((rot_iso axis θ)) n s.val]
 
+
   rw [rot_iso_power_lemma]
-  constructor
   intro lhs
   have :_:= rot_iso_fixed_gen axis s t lhs
   obtain ⟨k, pk⟩ := this
@@ -394,15 +416,7 @@ lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), S ⊆ S2  →
   simp at pk
   rw [pk]
   linarith
-  --
-  intro lhs
-  obtain ⟨k, pk⟩ := lhs
-  have:_:= rot_iso_fixed_back_gen axis s t k
-  simp
-  rw [pk]
-  rw [add_comm] at this
-  rw [mul_comm (k:ℝ)]
-  exact this
+
 
 
 lemma same_bad (ax: S2) (S: Set R3) (s t : S) (n: ℕ) :
@@ -468,38 +482,42 @@ lemma BadAtN_rot_iso_countable (axis: S2) (S: Set R3) :∀ (s t :S),
 (BadAtN_rot_iso axis S s t n).Countable := by
 
     rintro s t ⟨s_sub_s2, axis_nin_s⟩
-    rw [BadAtN_rot_iso_equiv axis S s t s_sub_s2]
-
-    let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (ang_diff axis s t).toReal)/ (n + 1 : ℝ)
-    have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(ang_diff axis ↑s ↑t).toReal } =
-      foo '' (Set.univ: Set ℤ) := by
-
-      ext t
-      simp
-      simp [foo]
-      field_simp
-      norm_num
-      constructor
-      intro lhs
-      obtain ⟨k, pk⟩ := lhs
-      use k
-      rw [pk]
-      linarith
-      --
-      intro lhs
-      obtain ⟨k, pk⟩ := lhs
-      use k
-      rw [←pk]
-      simp
-      linarith
-
-    rw [imlem]
+    have better:
+      {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal }.Countable := by
 
 
-    apply Set.Countable.image
+      let foo (k : ℤ) := ((k : ℝ) * (2 * Real.pi) + (ang_diff axis s t).toReal)/ (n + 1 : ℝ)
+      have imlem: {θ |∃ k:ℤ, (↑n + 1) * θ = ↑k * (2 * Real.pi) + ↑(ang_diff axis ↑s ↑t).toReal } =
+        foo '' (Set.univ: Set ℤ) := by
+
+        ext t
+        simp
+        simp [foo]
+        field_simp
+        norm_num
+        constructor
+        intro lhs
+        obtain ⟨k, pk⟩ := lhs
+        use k
+        rw [pk]
+        linarith
+        --
+        intro lhs
+        obtain ⟨k, pk⟩ := lhs
+        use k
+        rw [←pk]
+        simp
+        linarith
+
+      rw [imlem]
+      apply Set.Countable.image
+      exact Set.countable_univ
 
 
-    exact Set.countable_univ
+    have sub:_ := BadAtN_rot_iso_equiv axis S s t n s_sub_s2
+
+    exact better.mono sub
+
 
 
 
