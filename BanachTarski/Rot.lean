@@ -71,8 +71,6 @@ lemma rips_add (ax: S2) (v: orth ax): (rot_iso_plane_to_st ax S (rot_iso_plane_t
   (rot_iso_plane_to_st ax (S + T) v) := sorry
 
 
-
-
 noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
 noncomputable def perp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
 lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
@@ -100,6 +98,8 @@ lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by
 
 lemma rbp_lemma (ax: S2) (θ: ℝ) (x: R3): (rot_by_parts ax θ) x = ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x := by
   simp [rot_by_parts]
+  simp [up]
+
 
 lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ):
   rot_by_parts ax θ (rot_by_parts ax τ x) = rot_by_parts ax (θ + τ) x := by
