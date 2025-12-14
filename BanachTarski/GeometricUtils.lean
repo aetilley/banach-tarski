@@ -426,9 +426,9 @@ lemma rot_iso_fixed_gen (axis: S2) (v w: R3):
 
 
 lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), ∀n: ℕ, S ⊆ S2  →
-  (BadAtN_rot_iso axis S s t n) ⊆
+  (operp axis s) ≠ 0 → (BadAtN_rot_iso axis S s t n) ⊆
   {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal } := by
-  rintro S s t n s_sub_s2
+  rintro S s t n s_sub_s2 nzs
   simp [BadAtN_rot_iso]
   intro θ
   rw [←Function.iterate_succ_apply ((rot_iso axis θ)) n s.val]
@@ -436,7 +436,7 @@ lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), ∀n: ℕ, S �
 
   rw [rot_iso_power_lemma]
   intro lhs
-  have :_:= rot_iso_fixed_gen axis s t lhs
+  have :_:= rot_iso_fixed_gen axis s t ⟨nzs, lhs⟩
   obtain ⟨k, pk⟩ := this
   use k
   simp at pk
@@ -538,8 +538,34 @@ lemma BadAtN_rot_iso_countable (axis: S2) (S: Set R3) :∀ (s t :S),
       apply Set.Countable.image
       exact Set.countable_univ
 
+    have nzs : (operp axis s) ≠ 0 := by
+      by_contra bad
+      simp [operp] at bad
+      simp [orth] at bad
+      apply  Submodule.mem_span_singleton.mp at bad
+      obtain ⟨a, pa⟩ := bad
+      have paold := pa
+      apply congrArg (‖·‖) at pa
+      simp [norm_smul] at pa
+      have ins2:_:= s_sub_s2 s.property
+      simp only [S2] at ins2
+      simp only [Metric.sphere] at ins2
+      simp at ins2
+      rw [ins2 ] at pa
+      rcases eq_or_eq_neg_of_abs_eq pa with pos | neg
+      --
+      rw [pos] at paold
+      simp at paold
+      rw [paold] at axis_nin_s
+      simp at axis_nin_s
+      --
+      rw [neg] at paold
+      simp at paold
+      rw [paold] at axis_nin_s
+      simp at axis_nin_s
 
-    have sub:_ := BadAtN_rot_iso_equiv axis S s t n s_sub_s2
+
+    have sub:_ := BadAtN_rot_iso_equiv axis S s t n s_sub_s2 nzs
 
     exact better.mono sub
 
