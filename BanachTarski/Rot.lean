@@ -154,80 +154,68 @@ instance  orth_dim_3 : Fact (Module.finrank ℝ R3 = 3) := by
 noncomputable def Basis3: OrthonormalBasis (Fin 3) ℝ R3 :=
   (stdOrthonormalBasis ℝ R3).reindex <| finCongr orth_dim_3.out
 
---noncomputable def rot_basis (ax: S2) (θ: ℝ) : OrthonormalBasis (Fin 3) ℝ R3  :=
---  let Lmap := (rot_iso ax θ)
---  Basis3.map Lmap
 
---noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
---  (rot_basis ax θ).toBasis.toMatrix Basis3
 noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
-  let map := (rot_iso ax θ).toContinuousLinearMap
-  LinearMap.toMatrix Basis3.toBasis Basis3.toBasis map
+  let Lmap := (rot_iso ax θ)
+  let M_obasis := Basis3.map Lmap
+  M_obasis.toBasis.toMatrix Basis3.toBasis
 
+lemma unitdet (ax: S2) (θ: ℝ)  :
+  (rot_mat ax θ).det = 1 ∨ (rot_mat ax θ).det = -1 := sorry
 
-
-lemma rot_mat_special (ax: S2) (θ: ℝ) : rot_mat ax θ ∈ SO3 := by
+lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
     constructor
-    --exact OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary (Basis3.map (rot_iso ax θ)) Basis3
-    sorry
-    --
-    set mapper := fun T ↦ (rot_iso ax T).toContinuousLinearMap
-
     simp only [rot_mat]
-    rw [LinearMap.det_toMatrix]
+    exact OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary
+      (Basis3.map (rot_iso ax θ)) Basis3
+    ---
+
+    --
+    --theorem OrthonormalBasis.det_to_matrix_orthonormalBasis_real :
+    --  a.toBasis.det b = 1 ∨ a.toBasis.det b = -1 := by
+    --have rot_det: LinearMap.det (rot_iso_plane_to_st ax θ).toLinearMap = (1 : ℝ) := by
+    --  simp [rot_iso_plane_to_st]
+    --  simp [rot_iso_plane_equiv]
+    --  exact (plane_o ax).det_rotation θ
 
 
-    let to_map (t: ℝ) : R3 →L[ℝ] R3  := (rot_iso ax t).toContinuousLinearMap
-    let map_det : (R3 →L[ℝ] R3) → ℝ := ContinuousLinearMap.det
 
-    let map := mapper θ
-    change (ContinuousLinearMap.det map) = (1:ℝ)
+    let map := Matrix.toLin Basis3.toBasis Basis3.toBasis M
+    have samedet: map.det = M.det := by
+      simp [M, map]
 
-    let clmdet: (R3 →L[ℝ] R3 )→ ℝ := ContinuousLinearMap.det
-
-    let fcomp := clmdet ∘ mapper
-    have same: map.det = fcomp θ := sorry
-    rw [same]
-
-    have cont_clmdet : Continuous clmdet := by exact ContinuousLinearMap.continuous_det
-
-    have cont_mapper : Continuous mapper := sorry
-
-    have cont_fcomp: Continuous fcomp := by
-      simp [fcomp]
-      exact Continuous.comp cont_clmdet cont_mapper
-
-    have posdet: fcomp 0 = 1 := sorry
-
-    have isunit: ∀θ:ℝ, fcomp θ = 1 ∨ fcomp θ = -1 := sorry
-
-
-    by_contra bad
-    have detcases: fcomp θ= 1 ∨ fcomp θ = -1 := by
-      exact isunit θ
-    have negdet: fcomp θ = -1 := by
-      tauto
-
-
-    have hasmore: Set.Icc (fcomp θ) (fcomp 0) ⊆ Set.range fcomp :=
-      (intermediate_value_univ θ 0) cont_fcomp
-
-    rw [negdet, posdet] at hasmore
-    have zeroin: (0:ℝ) ∈ (Set.Icc (-1) 1) := by simp
-    have zeroin: (0:ℝ) ∈ Set.range fcomp:= hasmore zeroin
-    simp at zeroin
-    obtain ⟨τ, pτ⟩ := zeroin
-    have :_:= isunit τ
-    simp at this
-    have :_:= isunit τ
-    rw [pτ] at this
-    simp at this
-
+    rw [←samedet]
 
 
 
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
-  let M := rot_mat ax θ
-  ⟨M, rot_mat_special ax θ⟩
+  ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
+
+
+
+
+
+
+
+    #check Module.Basis.det_map
+    #check LinearMap.det_toMatrix
+
+    --
+
+    --
+    -- If `q` is a complement of `p`, then `p × q` is isomorphic to `E`. -/
+    -- def prodEquivOfIsCompl (h : IsCompl p q) : (p × q) ≃ₗ[R] E := by
+    #check Submodule.prodEquivOfIsCompl
+
+    #check LinearMap.det_prodMap
+    #check LinearMap.IsProj.eq_conj_prodMap
+    sorry
+
+
+
+
+
+
+  ⟨M, M_is_special⟩
