@@ -1062,6 +1062,9 @@ lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
 def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
 
 
+lemma rot_inv : (rot x_axis (-θ) * rot x_axis θ)  = 1 := sorry
+lemma rot_inv2 : (rot x_axis (θ) * rot x_axis (-θ))  = 1 := sorry
+
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
 noncomputable def skew_rot (θ: ℝ) : G3 :=
   let offset: R3 := to_R3 ![0, 0, 0.5]
@@ -1078,7 +1081,10 @@ noncomputable def skew_rot (θ: ℝ) : G3 :=
       simp [shift, unshift]
       simp [f]
       rw [smul_smul]
-      sorry
+      rw [rot_inv]
+      simp
+
+
 
     right_inv := by
       intro x
@@ -1086,7 +1092,8 @@ noncomputable def skew_rot (θ: ℝ) : G3 :=
       simp [shift, unshift]
       simp [f]
       rw [smul_smul]
-      sorry
+      rw [rot_inv2]
+      simp
 
 
     isometry_toFun := by
