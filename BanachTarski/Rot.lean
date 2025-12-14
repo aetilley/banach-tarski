@@ -60,6 +60,25 @@ lemma triv_rot_inner (ax: S2): (rot_iso_plane_to_st ax 0) = 1 := by
 noncomputable def operp (ax: S2) (v: R3):= (orth ax).orthogonalProjection v
 noncomputable def spar (ax: S2) (v: R3) := (ℝ ∙ ax.val).starProjection v
 
+lemma operp_add (ax: S2) : operp ax (u + v) = (operp ax u) + (operp ax v) := sorry
+lemma spar_add (ax: S2) : spar ax (u + v) = (spar ax u) + (spar ax v) := sorry
+
+lemma perp_spar (ax: S2) : operp ax (spar ax v) = 0 := sorry
+lemma spar_perp (ax: S2) : (spar ax (operp ax v)) = 0 := sorry
+lemma spar_spar (ax: S2) : (spar ax (spar ax v)) = spar ax v := sorry
+
+lemma rips_add (ax: S2) (v: orth ax): (rot_iso_plane_to_st ax S (rot_iso_plane_to_st ax T v)) =
+  (rot_iso_plane_to_st ax (S + T) v) := sorry
+
+
+
+
+noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
+noncomputable def perp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
+lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
+
+
+
 lemma el_by_parts (ax: S2) (x: R3):  x = ↑((operp ax x)) + spar ax x := by
   simp [operp, spar, orth]
 
@@ -68,7 +87,7 @@ noncomputable def ang_diff (axis: S2) (s t: R3) : Real.Angle :=
 
 
 noncomputable def rot_by_parts (ax: S2) (θ: ℝ):= fun v ↦ (
-    (((Submodule.subtypeₗᵢ (orth ax)).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
+    (((up ax).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
   )
 
 lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by
@@ -82,7 +101,17 @@ lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by
 lemma rbp_lemma (ax: S2) (θ: ℝ) (x: R3): (rot_by_parts ax θ) x = ↑((rot_iso_plane_to_st ax θ) (operp ax x)) + spar ax x := by
   simp [rot_by_parts]
 
-lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ): rot_by_parts ax θ (rot_by_parts ax τ x) = rot_by_parts ax (θ + τ) x := sorry
+lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ):
+  rot_by_parts ax θ (rot_by_parts ax τ x) = rot_by_parts ax (θ + τ) x := by
+    simp [rot_by_parts]
+    simp [operp_add]
+    simp [spar_add]
+    simp [perp_up]
+    simp [perp_spar]
+    simp [spar_up_rot]
+    simp [spar_spar]
+    rw [rips_add]
+
 
 noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 ≃ₗᵢ[ℝ] R3  := {
   toFun := rot_by_parts ax θ
@@ -135,6 +164,7 @@ noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 ≃ₗᵢ[ℝ] R3  := {
 
     rw [zero_lem1]
     simp [operp]
+    simp [up]
     simp [Submodule.norm_coe]
     --
     apply congrArg (fun x ↦ x^2)
@@ -143,6 +173,7 @@ noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 ≃ₗᵢ[ℝ] R3  := {
     simp
     simp [spar]
     congr 1
+    simp [up]
     simp [orth]
 
 }
@@ -160,7 +191,7 @@ noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
   let M_obasis := Basis3.map Lmap
   M_obasis.toBasis.toMatrix Basis3.toBasis
 
-lemma triv_rot_mat (ax: S2) : rot_mat ax 0 = 1 := sorry
+
 
 lemma unitdet (ax: S2) (θ: ℝ)  :
   (rot_mat ax θ).det = 1 ∨ (rot_mat ax θ).det = -1 := by
@@ -171,10 +202,7 @@ lemma unitdet (ax: S2) (θ: ℝ)  :
     OrthonormalBasis.det_to_matrix_orthonormalBasis_real T Basis3
   simpa [T] using detlem
 
-instance R3funtop: TopologicalSpace (R3 →ₗ[ℝ] R3) := sorry
-instance R3modtop: IsModuleTopology ℝ (R3 →ₗ[ℝ] R3) := sorry
-instance contaddR3 : ContinuousAdd (R3 →ₗ[ℝ] R3) := sorry
-instance mt2: IsModuleTopology ℝ (Matrix (Fin 3) (Fin 3) ℝ) := sorry
+
 
 lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
@@ -186,7 +214,9 @@ lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
 
     let mats (T: ℝ):= rot_mat ax T
     set M := mats θ with M_def
-    let maps (T:ℝ):  R3 →L[ℝ] R3  := LinearMap.toContinuousLinearMap (Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T))
+    --let maps (T:ℝ):  R3 →L[ℝ] R3  := LinearMap.toContinuousLinearMap (Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T))
+    let maps (T:ℝ) := (Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T))
+
 
     have samedet: ∀ T:ℝ, (maps T).det = (mats T).det := by
       simp [mats, maps]
@@ -197,94 +227,9 @@ lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
       simp [mats]
       exact unitdet ax T
 
-    let map_det : (R3 →L[ℝ] R3) → ℝ := ContinuousLinearMap.det
-
-    let case_map := maps θ
-
-    change (ContinuousLinearMap.det case_map) = (1:ℝ)
+    sorry
 
 
-    let clmdet: (R3 →L[ℝ] R3 )→ ℝ := ContinuousLinearMap.det
-
-    let fcomp := clmdet ∘ maps
-    have same: case_map.det = fcomp θ := by
-      simp [fcomp]
-      simp [case_map]
-      simp [clmdet]
-
-    rw [same]
-
-    have cont_clmdet : Continuous clmdet := by exact ContinuousLinearMap.continuous_det
-
-    have cont_mapper : Continuous maps := by
-      simp [maps]
-      let F1 : (R3 →ₗ[ℝ] R3) ≃ₗ[ℝ] R3 →L[ℝ] R3 := LinearMap.toContinuousLinearMap
-      let F2 :_ := fun M ↦ (Matrix.toLin Basis3.toBasis Basis3.toBasis) M
-      let F3 : ℝ → MAT := fun T ↦ mats T
-      change Continuous (F1 ∘ F2 ∘ F3)
-      have f1cont : Continuous F1 := by
-        simp [F1]
-        apply IsModuleTopology.continuous_of_linearMap
-
-      have f2cont:  Continuous F2 := by
-        simp [F2]
-        apply IsModuleTopology.continuous_of_linearMap
-
-      have f3cont: Continuous F3 := by
-        simp [F3]
-        simp [mats]
-        simp [rot_mat]
-        sorry
-
-
-
-      exact f1cont.comp (f2cont.comp f3cont)
-
-
-
-    have cont_fcomp: Continuous fcomp := by
-      simp [fcomp]
-      exact Continuous.comp cont_clmdet cont_mapper
-
-    have posdet: fcomp 0 = 1 := by
-      simp [fcomp]
-      have izz: (maps 0) = (ContinuousLinearMap.id ℝ R3) := by
-        simp [maps]
-        simp [mats]
-        rw [triv_rot_mat]
-        simp
-        rfl
-      rw [izz]
-      simp [clmdet, ContinuousLinearMap.det]
-
-
-
-    have isunit: ∀θ:ℝ, fcomp θ = 1 ∨ fcomp θ = -1 := by
-      simp [fcomp]
-      simp only [clmdet]
-      exact unitdet_lm
-
-
-    by_contra bad
-    have detcases: fcomp θ= 1 ∨ fcomp θ = -1 := by
-      exact isunit θ
-    have negdet: fcomp θ = -1 := by
-      grind
-
-
-    have hasmore: Set.Icc (fcomp θ) (fcomp 0) ⊆ Set.range fcomp :=
-      (intermediate_value_univ θ 0) cont_fcomp
-
-    rw [negdet, posdet] at hasmore
-    have zeroin: (0:ℝ) ∈ (Set.Icc (-1) 1) := by simp
-    have zeroin: (0:ℝ) ∈ Set.range fcomp:= hasmore zeroin
-    simp at zeroin
-    obtain ⟨τ, pτ⟩ := zeroin
-    have :_:= isunit τ
-    simp at this
-    have :_:= isunit τ
-    rw [pτ] at this
-    simp at this
 
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
