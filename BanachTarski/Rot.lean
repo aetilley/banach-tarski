@@ -178,51 +178,21 @@ lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
       (Basis3.map (rot_iso ax θ)) Basis3
     ---
 
-    --
-    --theorem OrthonormalBasis.det_to_matrix_orthonormalBasis_real :
-    --  a.toBasis.det b = 1 ∨ a.toBasis.det b = -1 := by
-    --have rot_det: LinearMap.det (rot_iso_plane_to_st ax θ).toLinearMap = (1 : ℝ) := by
-    --  simp [rot_iso_plane_to_st]
-    --  simp [rot_iso_plane_equiv]
-    --  exact (plane_o ax).det_rotation θ
-
-
-
-    let map := Matrix.toLin Basis3.toBasis Basis3.toBasis M
-    have samedet: map.det = M.det := by
-      simp [M, map]
-
+    let mats (T: ℝ):= rot_mat ax T
+    set M := mats θ with M_def
+    let maps (T:ℝ) := Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T)
+    have samedet: ∀ T:ℝ, (maps T).det = (mats T).det := by
+      simp [mats, maps]
     rw [←samedet]
+
+    have unitdet_lm  (T: ℝ) : (maps T).det = 1 ∨ (maps T).det = -1 := by
+      rw [samedet]
+      simp [mats]
+      exact unitdet ax T
+
 
 
 
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
   ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
-
-
-
-
-
-
-
-    #check Module.Basis.det_map
-    #check LinearMap.det_toMatrix
-
-    --
-
-    --
-    -- If `q` is a complement of `p`, then `p × q` is isomorphic to `E`. -/
-    -- def prodEquivOfIsCompl (h : IsCompl p q) : (p × q) ≃ₗ[R] E := by
-    #check Submodule.prodEquivOfIsCompl
-
-    #check LinearMap.det_prodMap
-    #check LinearMap.IsProj.eq_conj_prodMap
-    sorry
-
-
-
-
-
-
-  ⟨M, M_is_special⟩
