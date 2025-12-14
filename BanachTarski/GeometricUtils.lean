@@ -385,37 +385,78 @@ lemma rot_iso_fixed_gen (axis: S2) (v w: R3): (rot_iso axis t) v = w →
     simp [rot_iso_plane_to_st] at lhs
     simp [rot_iso_plane_equiv] at lhs
     simp [ang_diff]
-    let A:= ((plane_o axis).oangle (operp axis v) (operp axis w)).toReal
-    let K:= (t - A) / (2 * Real.pi)
-    have isint : ∃ k : ℤ, (k : ℝ) = K := sorry
-    obtain ⟨k, pk⟩ := isint
-    use k
-    rw [pk]
-    simp [K]
-    field_simp
-    simp [A]
+    have l2:  (1:Z) • ((plane_o axis).rotation ↑t) (operp axis v) = operp axis w  := sorry
+
+    have  : (plane_o axis).oangle (operp axis v) (operp axis w) = ↑t := by
+      have nzv : (operp axis v) ≠ 0 := sorry
+      have nzw : (operp axis w) ≠ 0 := sorry
+
+      apply ((plane_o axis).oangle_eq_iff_eq_pos_smul_rotation_of_ne_zero nzv nzw ↑t).mpr
+      use 1
+      constructor
+      simp
+      exact l2.symm
+    rw [this]
+    rw [Real.Angle.toReal_coe]
+
+    use (toIocDiv Real.two_pi_pos (-Real.pi) t )
+    -- theorem toIcoMod_add_toIcoDiv_zsmul (a b : α) : toIcoMod hp a b + toIcoDiv hp a b • p = b
+    have : toIocMod Real.two_pi_pos (-Real.pi) t +
+      toIocDiv Real.two_pi_pos (-Real.pi) t • (2 * Real.pi) = t  := by
+        apply toIocMod_add_toIocDiv_zsmul
+
+    symm
+    sorry
 
 
 
 
 
-lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), ∀n: ℕ, S ⊆ S2  →
-  (BadAtN_rot_iso axis S s t n) ⊆
-  {θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal } := by
-  rintro S s t n s_sub_s2
-  simp [BadAtN_rot_iso]
-  intro θ
-  rw [←Function.iterate_succ_apply ((rot_iso axis θ)) n s.val]
 
 
-  rw [rot_iso_power_lemma]
-  intro lhs
-  have :_:= rot_iso_fixed_gen axis s t lhs
-  obtain ⟨k, pk⟩ := this
-  use k
-  simp at pk
-  rw [pk]
-  linarith
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    --let A:= ((plane_o axis).oangle (operp axis v) (operp axis w)).toReal
+
+
+
+
+
+
+  --(BadAtN_rot_iso axis S s t n) ⊆
+  --{θ: ℝ | ∃k: ℤ, ((n + 1: ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal } := by
+  --rintro S s t n s_sub_s2
+  --simp [BadAtN_rot_iso]
+  --intro θ
+  --rw [←Function.iterate_succ_apply ((rot_iso axis θ)) n s.val]
+
+
+  --rw [rot_iso_power_lemma]
+  --intro lhs
+  --have :_:= rot_iso_fixed_gen axis s t lhs
+  --obtain ⟨k, pk⟩ := this
+  --use k
+  --simp at pk
+  --rw [pk]
+  --linarith
 
 
 
