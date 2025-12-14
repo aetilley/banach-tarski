@@ -160,6 +160,8 @@ noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
   let M_obasis := Basis3.map Lmap
   M_obasis.toBasis.toMatrix Basis3.toBasis
 
+lemma triv_rot_mat (ax: S2) : rot_mat ax 0 = 1 := sorry
+
 lemma unitdet (ax: S2) (θ: ℝ)  :
   (rot_mat ax θ).det = 1 ∨ (rot_mat ax θ).det = -1 := by
   simp only [rot_mat]
@@ -180,7 +182,8 @@ lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
 
     let mats (T: ℝ):= rot_mat ax T
     set M := mats θ with M_def
-    let maps (T:ℝ) := Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T)
+    let maps (T:ℝ):  R3 →L[ℝ] R3  := LinearMap.toContinuousLinearMap (Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T))
+
     have samedet: ∀ T:ℝ, (maps T).det = (mats T).det := by
       simp [mats, maps]
     rw [←samedet]
@@ -190,8 +193,70 @@ lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
       simp [mats]
       exact unitdet ax T
 
+    let map_det : (R3 →L[ℝ] R3) → ℝ := ContinuousLinearMap.det
+
+    let case_map := maps θ
+
+    change (ContinuousLinearMap.det case_map) = (1:ℝ)
 
 
+    let clmdet: (R3 →L[ℝ] R3 )→ ℝ := ContinuousLinearMap.det
+
+    let fcomp := clmdet ∘ maps
+    have same: case_map.det = fcomp θ := by
+      simp [fcomp]
+      simp [case_map]
+      simp [clmdet]
+
+    rw [same]
+
+    have cont_clmdet : Continuous clmdet := by exact ContinuousLinearMap.continuous_det
+
+    have cont_mapper : Continuous maps := sorry
+
+    have cont_fcomp: Continuous fcomp := by
+      simp [fcomp]
+      exact Continuous.comp cont_clmdet cont_mapper
+
+    have posdet: fcomp 0 = 1 := by
+      simp [fcomp]
+      have izz: (maps 0) = (ContinuousLinearMap.id ℝ R3) := by
+        simp [maps]
+        simp [mats]
+        rw [triv_rot_mat]
+        simp
+        rfl
+      rw [izz]
+      simp [clmdet, ContinuousLinearMap.det]
+
+
+
+    have isunit: ∀θ:ℝ, fcomp θ = 1 ∨ fcomp θ = -1 := by
+      simp [fcomp]
+      simp only [clmdet]
+      exact unitdet_lm
+
+
+    by_contra bad
+    have detcases: fcomp θ= 1 ∨ fcomp θ = -1 := by
+      exact isunit θ
+    have negdet: fcomp θ = -1 := by
+      grind
+
+
+    have hasmore: Set.Icc (fcomp θ) (fcomp 0) ⊆ Set.range fcomp :=
+      (intermediate_value_univ θ 0) cont_fcomp
+
+    rw [negdet, posdet] at hasmore
+    have zeroin: (0:ℝ) ∈ (Set.Icc (-1) 1) := by simp
+    have zeroin: (0:ℝ) ∈ Set.range fcomp:= hasmore zeroin
+    simp at zeroin
+    obtain ⟨τ, pτ⟩ := zeroin
+    have :_:= isunit τ
+    simp at this
+    have :_:= isunit τ
+    rw [pτ] at this
+    simp at this
 
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
