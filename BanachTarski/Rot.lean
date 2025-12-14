@@ -161,7 +161,14 @@ noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
   M_obasis.toBasis.toMatrix Basis3.toBasis
 
 lemma unitdet (ax: S2) (θ: ℝ)  :
-  (rot_mat ax θ).det = 1 ∨ (rot_mat ax θ).det = -1 := sorry
+  (rot_mat ax θ).det = 1 ∨ (rot_mat ax θ).det = -1 := by
+  simp only [rot_mat]
+  rw [←Module.Basis.det_apply]
+  let T:= Basis3.map (rot_iso ax θ)
+  have detlem: T.toBasis.det ⇑Basis3.toBasis  = (1:ℝ) ∨ T.toBasis.det ⇑Basis3.toBasis  = (-1:ℝ) :=
+    OrthonormalBasis.det_to_matrix_orthonormalBasis_real T Basis3
+  simpa [T] using detlem
+
 
 lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
