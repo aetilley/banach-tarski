@@ -171,6 +171,10 @@ lemma unitdet (ax: S2) (θ: ℝ)  :
     OrthonormalBasis.det_to_matrix_orthonormalBasis_real T Basis3
   simpa [T] using detlem
 
+instance R3funtop: TopologicalSpace (R3 →ₗ[ℝ] R3) := sorry
+instance R3modtop: IsModuleTopology ℝ (R3 →ₗ[ℝ] R3) := sorry
+instance contaddR3 : ContinuousAdd (R3 →ₗ[ℝ] R3) := sorry
+instance mt2: IsModuleTopology ℝ (Matrix (Fin 3) (Fin 3) ℝ) := sorry
 
 lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
@@ -212,7 +216,31 @@ lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
 
     have cont_clmdet : Continuous clmdet := by exact ContinuousLinearMap.continuous_det
 
-    have cont_mapper : Continuous maps := sorry
+    have cont_mapper : Continuous maps := by
+      simp [maps]
+      let F1 : (R3 →ₗ[ℝ] R3) ≃ₗ[ℝ] R3 →L[ℝ] R3 := LinearMap.toContinuousLinearMap
+      let F2 :_ := fun M ↦ (Matrix.toLin Basis3.toBasis Basis3.toBasis) M
+      let F3 : ℝ → MAT := fun T ↦ mats T
+      change Continuous (F1 ∘ F2 ∘ F3)
+      have f1cont : Continuous F1 := by
+        simp [F1]
+        apply IsModuleTopology.continuous_of_linearMap
+
+      have f2cont:  Continuous F2 := by
+        simp [F2]
+        apply IsModuleTopology.continuous_of_linearMap
+
+      have f3cont: Continuous F3 := by
+        simp [F3]
+        simp [mats]
+        simp [rot_mat]
+        sorry
+
+
+
+      exact f1cont.comp (f2cont.comp f3cont)
+
+
 
     have cont_fcomp: Continuous fcomp := by
       simp [fcomp]
