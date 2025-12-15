@@ -105,11 +105,17 @@ lemma operp_spar (ax: S2) : operp ax (spar ax v) = 0 := sorry
 lemma spar_operp (ax: S2) : (spar ax (operp ax v)) = 0 := sorry
 lemma spar_spar (ax: S2) : (spar ax (spar ax v)) = spar ax v := sorry
 
+lemma spar_of_orth (ax: S2) (x: R3) : x ∈ orth ax → spar ax x = 0 := sorry
+lemma spar_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → spar ax x = x := sorry
+lemma operp_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → operp ax x = 0 := sorry
+
 lemma rips_add (ax: S2) (v: orth ax): (rot_iso_plane_to_st ax S (rot_iso_plane_to_st ax T v)) =
   (rot_iso_plane_to_st ax (S + T) v) := sorry
 
 
 noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
+lemma up_mem (ax: S2) (v: orth ax) : (up ax v) ∈ orth ax := sorry
+
 noncomputable def operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
 lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
 
@@ -252,28 +258,134 @@ block diagonal matrix with respect to bases compatible with the direct sum decom
 --
 
 
-noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
+def mod_dim: (Fin 2) → Type
+  | ⟨0,_⟩ => Fin 2
+  | ⟨1,_⟩ => Fin 1
 
-  let f := (rot_iso ax θ)
+instance mod_dim_fintype (i : Fin 2) : Fintype (mod_dim i) :=
+  match i with
+  | ⟨0, _⟩ => Fin.fintype 2
+  | ⟨1, _⟩ => Fin.fintype 1
 
-  let submods : Fin 2 → Submodule ℝ R3:= ![orth ax, ax_space ax]
-  have int: DirectSum.IsInternal submods := sorry
-  let dim:= ![Fin 2, Fin 1]
-  let b1 : (i : Fin 2) → Module.Basis (dim i) ℝ (submods i) := ![(orth_B ax).toBasis, (ax_B ax).toBasis]
-  have hf : ∀ i, Set.MapsTo f (submods i) (submods i) := sorry
+instance mod_dim_decidableEq (i : Fin 2) : DecidableEq (mod_dim i) :=
+  match i with
+  | ⟨0, _⟩ => by
+    simp [mod_dim]
+    exact instDecidableEqFin 2
+  | ⟨1, _⟩ => by
+    simp [mod_dim]
+    exact instDecidableEqFin 1
 
-  LinearMap.toMatrix_directSum_collectedBasis_eq_blockDiagonal' int int b1 b1 hf
+noncomputable def submods (ax: S2): Fin 2 → Submodule ℝ R3 := ![orth ax, ax_space ax]
+
+lemma internal_pr (ax: S2): DirectSum.IsInternal (submods ax):= by
+  apply DirectSum.isInternal_submodule_of_iSupIndep_of_iSup_eq_top
+  --
+  have inter: (ax_space ax) ⊓ (orth ax)  = ⊥ := by
+    simp [orth]
+    simp [ax_space]
+    exact (ax_space ax).inf_orthogonal_eq_bot
+
+  simp [iSupIndep]
+  constructor
+  simp [Disjoint]
+  intro x
+  simp [submods]
+  intro lhs
+  intro lhs2
+  apply le_iSup_iff.mp at lhs2
+  have th:= lhs2 (ax_space ax)
+  simp at th
+  have bad:  x ≤ ⊥ := by
+    rw [←inter]
+    simp
+    constructor
+    --
+    exact th
+    exact lhs
+  simpa using bad
+  --
+  simp [Disjoint]
+  intro x
+  simp [submods]
+  intro lhs
+  intro lhs2
+  apply le_iSup_iff.mp at lhs2
+  have th:= lhs2 (orth ax)
+  simp at th
+  have bad:  x ≤ ⊥ := by
+    rw [←inter]
+    simp
+    constructor
+    --
+    exact lhs
+    exact th
+  simpa using bad
+
+  --
+  simp [iSup]
+  simp [submods]
+  simp [ax_space, orth]
+  exact Submodule.sup_orthogonal_of_hasOrthogonalProjection
 
 
 
-lemma unitdet (ax: S2) (θ: ℝ)  :
-  (rot_mat ax θ).det = 1 ∨ (rot_mat ax θ).det = -1 := by
-  simp only [rot_mat]
-  rw [←Module.Basis.det_apply]
-  let T:= Basis3.map (rot_iso ax θ)
-  have detlem: T.toBasis.det ⇑Basis3.toBasis  = (1:ℝ) ∨ T.toBasis.det ⇑Basis3.toBasis  = (-1:ℝ) :=
-    OrthonormalBasis.det_to_matrix_orthonormalBasis_real T Basis3
-  simpa [T] using detlem
+noncomputable def sm_bases (ax: S2) : (i : Fin 2) → (Module.Basis (mod_dim i) ℝ (submods ax i))
+| ⟨0, _⟩ => (orth_B ax).toBasis
+| ⟨1, _⟩ => (ax_B ax).toBasis
+
+
+lemma hf (ax: S2): ∀ i, Set.MapsTo (rot_iso ax θ).toLinearMap (submods ax i) (submods ax i) := by
+  intro i
+  fin_cases i
+  simp
+  simp [submods]
+  simp [rot_iso]
+  simp [Set.MapsTo]
+  simp [rot_by_parts]
+  intro x
+  intro lhs
+  rw [spar_of_orth ax x lhs]
+  simp
+  exact up_mem ax ((rot_iso_plane_to_st ax θ) (operp ax x))
+  --
+  simp [Set.MapsTo]
+  intro x
+  intro lhs
+  simp [submods]
+  simp [submods] at lhs
+  simp [rot_iso]
+  simp [rot_by_parts]
+  rw [operp_of_ax_space ax x lhs]
+  simp
+  have :_:= spar_of_ax_space ax x lhs
+  rw [this]
+  exact lhs
+
+
+
+
+
+
+
+
+def BLOCK_MAT := Matrix ((i : Fin 2) × mod_dim i) ((i : Fin 2) × mod_dim i) ℝ
+
+noncomputable def rot_mat_block (ax: S2) (θ:ℝ) : BLOCK_MAT :=
+ (LinearMap.toMatrix
+  ((internal_pr ax).collectedBasis (sm_bases ax))
+  ((internal_pr ax).collectedBasis (sm_bases ax)))
+  (rot_iso ax θ).toLinearEquiv
+
+
+lemma rot_mat_block_prop (ax: S2) (θ:ℝ):
+  rot_mat_block ax θ =
+  Matrix.blockDiagonal'
+  fun i ↦ LinearMap.toMatrix (sm_bases ax i) (sm_bases ax i) ((rot_iso ax θ).restrict (hf ax i)) := by
+
+  exact LinearMap.toMatrix_directSum_collectedBasis_eq_blockDiagonal'
+    (internal_pr ax) (internal_pr ax) (sm_bases ax) (sm_bases ax) (hf ax)
+
 
 
 
