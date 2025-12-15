@@ -4,6 +4,7 @@ import Mathlib.GroupTheory.GroupAction.Basic
 import Mathlib.GroupTheory.FreeGroup.Basic
 import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Action.Defs
+import Mathlib.Algebra.DirectSum.LinearMap
 import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
 import Mathlib.LinearAlgebra.CrossProduct
 import Mathlib.Analysis.InnerProductSpace.Adjoint
@@ -35,6 +36,18 @@ noncomputable def orth (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)ᗮ
 
 noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=
   OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
+
+--protected def mk (hon : Orthonormal 𝕜 v) (hsp : ⊤ ≤ Submodule.span 𝕜 (Set.range v)) :
+--    OrthonormalBasis ι 𝕜 E :=
+noncomputable def ax_B (ax : S2): OrthonormalBasis (Fin 1) ℝ (ax_space ax) :=
+  let v: Fin 1 → (ax_space ax) := ![1 • ax.val]
+  let hon: Orthonormal ℝ v := by
+    simp [Orthonormal]
+    simp [v]
+    sorry
+
+  let hsp: ⊤ ≤ Submodule.span ℝ (Set.range v) := sorry
+  OrthonormalBasis.mk hon hsp
 
 noncomputable def plane_o (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (orth_B ax).toBasis.orientation
 
@@ -200,10 +213,31 @@ noncomputable def Basis3: OrthonormalBasis (Fin 3) ℝ R3 :=
   (stdOrthonormalBasis ℝ R3).reindex <| finCongr orth_dim_3.out
 
 
+
+/-- If a linear map `f : M₁ → M₂` respects direct sum decompositions of `M₁` and `M₂`, then it has a
+block diagonal matrix with respect to bases compatible with the direct sum decompositions. -/
+--lemma toMatrix_directSum_collectedBasis_eq_blockDiagonal' {R M₁ M₂ : Type*} [CommSemiring R]
+--    [AddCommMonoid M₁] [Module R M₁] {N₁ : ι → Submodule R M₁} (h₁ : IsInternal N₁)
+--    [AddCommMonoid M₂] [Module R M₂] {N₂ : ι → Submodule R M₂} (h₂ : IsInternal N₂)
+--    {κ₁ κ₂ : ι → Type*} [∀ i, Fintype (κ₁ i)] [∀ i, Finite (κ₂ i)] [∀ i, DecidableEq (κ₁ i)]
+--    [Fintype ι] (b₁ : (i : ι) → Basis (κ₁ i) R (N₁ i)) (b₂ : (i : ι) → Basis (κ₂ i) R (N₂ i))
+--    {f : M₁ →ₗ[R] M₂} (hf : ∀ i, MapsTo f (N₁ i) (N₂ i)) :
+--    toMatrix (h₁.collectedBasis b₁) (h₂.collectedBasis b₂) f =
+--    Matrix.blockDiagonal' fun i ↦ toMatrix (b₁ i) (b₂ i) (f.restrict (hf i)) := by
+--
+
+
 noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
-  let Lmap := (rot_iso ax θ)
-  let M_obasis := Basis3.map Lmap
-  M_obasis.toBasis.toMatrix Basis3.toBasis
+
+  let f := (rot_iso ax θ)
+
+  let submods : Fin 2 → Submodule ℝ R3:= ![orth ax, ax_space ax]
+  have int: DirectSum.IsInternal submods := sorry
+  let dim:= ![Fin 2, Fin 1]
+  let b1 : (i : Fin 2) → Module.Basis (dim i) ℝ (submods i) := ![(orth_B ax).toBasis, (ax_B ax).toBasis]
+  have hf : ∀ i, Set.MapsTo f (submods i) (submods i) := sorry
+
+  LinearMap.toMatrix_directSum_collectedBasis_eq_blockDiagonal' int int b1 b1 hf
 
 
 
