@@ -40,13 +40,38 @@ noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=
 --protected def mk (hon : Orthonormal 𝕜 v) (hsp : ⊤ ≤ Submodule.span 𝕜 (Set.range v)) :
 --    OrthonormalBasis ι 𝕜 E :=
 noncomputable def ax_B (ax : S2): OrthonormalBasis (Fin 1) ℝ (ax_space ax) :=
-  let v: Fin 1 → (ax_space ax) := ![1 • ax.val]
+  -- (There's gotta be a better way.)
+  --theorem mem_span_of_mem {s : Set M} {x : M} (hx : x ∈ s) : x ∈ span R s := subset_span hx
+  have ismem: ax.val ∈ ax_space ax := by
+    apply Submodule.mem_span_of_mem
+    simp
+  let gen: ax_space ax := ⟨ax, ismem⟩
+  let v: Fin 1 → (ax_space ax) := ![gen]
   let hon: Orthonormal ℝ v := by
     simp [Orthonormal]
     simp [v]
-    sorry
+    simp [gen]
 
-  let hsp: ⊤ ≤ Submodule.span ℝ (Set.range v) := sorry
+  let hsp: ⊤ ≤ Submodule.span ℝ (Set.range v) := by
+    simp [v]
+    simp [gen]
+    rw [←Submodule.span_setOf_mem_eq_top]
+    simp
+    apply congrArg
+    ext x
+    constructor
+    --
+    intro lhs
+    simp at lhs
+    rw [lhs]
+    rfl
+    --
+    intro lhs
+    change (↑x) = (ax.val) at lhs
+    simp
+    exact Subtype.ext lhs
+
+
   OrthonormalBasis.mk hon hsp
 
 noncomputable def plane_o (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (orth_B ax).toBasis.orientation
