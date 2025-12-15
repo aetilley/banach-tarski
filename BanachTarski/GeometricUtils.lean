@@ -336,18 +336,7 @@ def BadAtN_rot (ax: S2) (S: Set R3) (s t : S) (n: ℕ) : Set ℝ:=
 def BadAtN_rot_iso (ax: S2) (S: Set R3) (s t : S) (n: ℕ) : Set ℝ:=
   {θ: ℝ | (rot_iso ax θ)^[n+1] s.val = t.val}
 
-lemma triv_rot_iso (ax: S2): rot_iso ax 0 = 1 := by
-  have isidsym: (rot_iso ax 0) = (fun x: R3 ↦ x) := by
-    funext w
-    simp [rot_iso]
-    simp [rot_by_parts]
-    rw [triv_rot_inner]
-    simp [up]
-    exact (el_by_parts ax w).symm
-  apply LinearIsometryEquiv.ext
-  intro x
-  rw [isidsym]
-  simp
+
 
 
 lemma rot_iso_comp_add (ax: S2) (t1 t2 : ℝ) :
@@ -419,6 +408,17 @@ lemma rot_iso_fixed_gen (axis: S2) (v w: R3):
     rw [zsmul_eq_mul] at this
     rw [mul_assoc]
     exact this
+
+
+
+lemma rot_iso_fixed (axis: S2) (v: R3): ((operp axis v) ≠ 0) ∧(rot_iso axis t) v = v → ∃k:ℤ, t = k * 2 * Real.pi := by
+  intro ⟨nzv, eqq⟩
+  have :_:= rot_iso_fixed_gen axis v v ⟨nzv, eqq⟩
+  have z: (ang_diff axis v v) = 0 := by
+    simp [ang_diff]
+  rw [z] at this
+  simp at this
+  exact this
 
 
 
@@ -1062,8 +1062,6 @@ lemma x_axis_on_sphere: x_axis_vec ∈ S2 := by
 def x_axis: S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
 
 
-lemma rot_inv : (rot x_axis (-θ) * rot x_axis θ)  = 1 := sorry
-lemma rot_inv2 : (rot x_axis (θ) * rot x_axis (-θ))  = 1 := sorry
 
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
 noncomputable def skew_rot (θ: ℝ) : G3 :=
@@ -1073,26 +1071,26 @@ noncomputable def skew_rot (θ: ℝ) : G3 :=
 
 
   {
-    toFun := shift ∘ (f (rot x_axis θ)) ∘ unshift
-    invFun := shift ∘ (f (rot x_axis (-θ))) ∘ unshift
+    toFun := shift ∘ (rot_iso x_axis θ) ∘ unshift
+    invFun := shift ∘ (rot_iso x_axis (-θ)) ∘ unshift
     left_inv := by
       intro x
       simp
       simp [shift, unshift]
-      simp [f]
-      rw [smul_smul]
-      rw [rot_inv]
+      rw [rot_iso_comp]
+      rw [rot_iso_comp]
       simp
-
+      rw [triv_rot_iso]
+      simp
 
 
     right_inv := by
       intro x
       simp
       simp [shift, unshift]
-      simp [f]
-      rw [smul_smul]
-      rw [rot_inv2]
+      repeat  rw [rot_iso_comp]
+      simp
+      rw [triv_rot_iso]
       simp
 
 
@@ -1107,7 +1105,7 @@ noncomputable def skew_rot (θ: ℝ) : G3 :=
       intro x1 x2
       rw [Isometry.comp]
       --
-      exact isometry_of_so3 (rot x_axis θ)
+      simp [Isometry]
       --
       simp [unshift]
       change Isometry (fun p ↦ p + -offset)
@@ -1122,9 +1120,8 @@ lemma skew_rot_comp_add (t1 t2 : ℝ) : (skew_rot t1) ∘ (skew_rot t2) = skew_r
   simp [skew_rot]
   ext x ind
   simp
-  simp [f]
-  rw [smul_smul]
-  rw [rot_comp_add x_axis t1 t2]
+  rw [←rot_iso_comp_add x_axis t1 t2]
+  simp
 
 
 
@@ -1132,8 +1129,7 @@ lemma skew_rot_power_lemma (r: ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := b
   induction' n with k ih
   simp
   simp [skew_rot]
-  rw [triv_rot x_axis]
-  rw [triv_so3]
+  rw [triv_rot_iso x_axis]
   simp [to_R3]
   ext x i
   fin_cases i
@@ -1157,16 +1153,17 @@ lemma origin_cont (T: ℝ) : ‖(skew_rot T) origin‖ ≤ 1 := by
     simp [Fin.sum_univ_three]
     norm_num
 
-  have i1: ‖rot (x_axis) T • (origin - to_R3 ![0, 0, 0.5])‖ ≤ (0.5 : ℝ) := by
-    have norm_pres: ‖rot (x_axis) T • (origin - to_R3 ![0, 0, 0.5])‖ = ‖origin - to_R3 ![0, 0, 0.5]‖ := by rw [so3_fixes_norm]
+  have i1: ‖rot_iso (x_axis) T  (origin - to_R3 ![0, 0, 0.5])‖ ≤ (0.5 : ℝ) := by
+    have norm_pres: ‖(rot_iso (x_axis) T) (origin - to_R3 ![0, 0, 0.5])‖ =
+      ‖origin - to_R3 ![0, 0, 0.5]‖ := by rw [(rot_iso (x_axis) T).norm_map ]
     rw [norm_pres]
     simp [origin, to_R3]
     exact half_lem
 
   calc
-    ‖(skew_rot T) origin‖ = ‖((rot x_axis T) • (origin - to_R3 ![0, 0, 0.5]))
-      + to_R3 ![0, 0, 0.5]‖ := by simp [skew_rot]; simp [f]
-    _ ≤ ‖(rot x_axis T) • (origin - to_R3 ![0, 0, 0.5])‖ + ‖to_R3 ![0, 0, 0.5]‖ := by apply norm_add_le
+    ‖(skew_rot T) origin‖ = ‖((rot_iso x_axis T)  (origin - to_R3 ![0, 0, 0.5]))
+      + to_R3 ![0, 0, 0.5]‖ := by simp [skew_rot];
+    _ ≤ ‖(rot_iso x_axis T) (origin - to_R3 ![0, 0, 0.5])‖ + ‖to_R3 ![0, 0, 0.5]‖ := by apply norm_add_le
     _ ≤ (0.5 : ℝ) + (0.5 : ℝ) := by linarith [i1, half_lem]
     _ = (1 : ℝ) := by norm_num
 
@@ -1187,6 +1184,18 @@ lemma srot_containment: ∀r:ℝ, orbit (skew_rot r) {origin} ⊆ B3 := by
 
 
 
+lemma rot_iso_fixed_back (axis: S2) (v: R3) (k: ℤ): (rot_iso axis (2 * Real.pi * k)) v = v:= by
+  simp [rot_iso]
+  simp [rot_by_parts]
+  simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
+
+  have angcoe: Real.Angle.coe (2 * Real.pi * ↑k) = (0:ℝ) := by
+    apply Real.Angle.angle_eq_iff_two_pi_dvd_sub.mpr
+    simp
+  rw [angcoe]
+  simp
+  exact (el_by_parts axis v).symm
+
 
 def origin_in_s: ({origin} : Set R3) := ⟨origin, (by simp)⟩
 
@@ -1205,26 +1214,39 @@ lemma BadAtN_skew_rot:
       intro lhs
       apply congrArg (fun x ↦ x - to_R3 ![0, 0, 0.5]) at lhs
       simp at lhs
-      have :_ := (rot_fixed x_axis (origin -(to_R3 ![0, 0, 0.5]))) lhs
+      rw [←map_sub (rot_iso x_axis ((↑n + 1) * θ))] at lhs
+
+      have nzv : ((operp x_axis (origin - to_R3 ![0, 0, 0.5])) ≠ 0) := by
+        rw [operp, origin]
+        simp
+        simp [orth]
+        simp [to_R3]
+        simp [x_axis, x_axis_vec]
+        by_contra inspan
+        obtain ⟨a, pa⟩ := Submodule.mem_span_singleton.mp inspan
+        simp [to_R3] at pa
+        norm_num at pa
+        have h0 := congrArg (fun v => v 2) pa
+        simp at h0
+
+
+      have :_ := (rot_iso_fixed x_axis (origin -(to_R3 ![0, 0, 0.5]))) ⟨nzv, lhs⟩
       obtain ⟨k, pk⟩ := this
       use k
       rw [pk]
       field_simp
       --
       intro lhs
-      have asgood: f (rot x_axis ((↑n + 1) * θ)) (origin - to_R3 ![0, 0, 0.5])  =
+      have asgood: (rot_iso x_axis ((↑n + 1) * θ)) (origin - to_R3 ![0, 0, 0.5])  =
         origin - to_R3 ![0, 0, 0.5] := by
         obtain ⟨k, pk⟩ := lhs
         field_simp at pk
         rw [pk]
-        exact rot_fixed_back x_axis (origin - to_R3 ![0, 0, 0.5]) k
-
+        exact rot_iso_fixed_back x_axis (origin - to_R3 ![0, 0, 0.5]) k
 
       apply congrArg (fun x ↦ x + to_R3 ![0, 0, 0.5]) at asgood
       simp at asgood
       exact asgood
-
-
 
 
 lemma BadAtN_skew_rot_countable:

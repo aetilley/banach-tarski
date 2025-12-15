@@ -174,6 +174,24 @@ noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 ≃ₗᵢ[ℝ] R3  := {
 
 }
 
+lemma rot_iso_comp (ax :S2) (θ τ: ℝ):
+  rot_iso ax θ (rot_iso ax τ x) = rot_iso ax (θ + τ) x := by sorry
+
+
+lemma triv_rot_iso (ax: S2): rot_iso ax 0 = 1 := by
+  have isidsym: (rot_iso ax 0) = (fun x: R3 ↦ x) := by
+    funext w
+    simp [rot_iso]
+    simp [rot_by_parts]
+    rw [triv_rot_inner]
+    simp [up]
+    exact (el_by_parts ax w).symm
+  apply LinearIsometryEquiv.ext
+  intro x
+  rw [isidsym]
+  simp
+
+
 instance  orth_dim_3 : Fact (Module.finrank ℝ R3 = 3) := by
   simp
   trivial
