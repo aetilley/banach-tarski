@@ -4,6 +4,7 @@ import Mathlib.GroupTheory.GroupAction.Basic
 import Mathlib.GroupTheory.FreeGroup.Basic
 import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Action.Defs
+import Mathlib.Algebra.DirectSum.LinearMap
 import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
 import Mathlib.LinearAlgebra.CrossProduct
 import Mathlib.Analysis.InnerProductSpace.Adjoint
@@ -33,8 +34,43 @@ lemma s2_nonzero (ax: S2) : ax ≠ (0:R3) := by
 noncomputable def ax_space (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)
 noncomputable def orth (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)ᗮ
 
-noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=
-  OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
+noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) := sorry
+  --OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
+
+noncomputable def ax_B (ax : S2): OrthonormalBasis (Fin 1) ℝ (ax_space ax) := sorry
+  -- (There's gotta be a better way.)
+  ----theorem mem_span_of_mem {s : Set M} {x : M} (hx : x ∈ s) : x ∈ span R s := subset_span hx
+  --have ismem: ax.val ∈ ax_space ax := by
+  --  apply Submodule.mem_span_of_mem
+  --  simp
+  --let gen: ax_space ax := ⟨ax, ismem⟩
+  --let v: Fin 1 → (ax_space ax) := ![gen]
+  --let hon: Orthonormal ℝ v := by
+  --  simp [Orthonormal]
+  --  simp [v]
+  --  simp [gen]
+
+  --let hsp: ⊤ ≤ Submodule.span ℝ (Set.range v) := by
+  --  simp [v]
+  --  simp [gen]
+  --  rw [←Submodule.span_setOf_mem_eq_top]
+  --  simp
+  --  apply congrArg
+  --  ext x
+  --  constructor
+  --  --
+  --  intro lhs
+  --  simp at lhs
+  --  rw [lhs]
+  --  rfl
+  --  --
+  --  intro lhs
+  --  change (↑x) = (ax.val) at lhs
+  --  simp
+  --  exact Subtype.ext lhs
+
+
+  --OrthonormalBasis.mk hon hsp
 
 noncomputable def plane_o (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (orth_B ax).toBasis.orientation
 
@@ -60,21 +96,84 @@ lemma triv_rot_inner (ax: S2): (rot_iso_plane_to_st ax 0) = 1 := by
 noncomputable def operp (ax: S2) (v: R3):= (orth ax).orthogonalProjection v
 noncomputable def spar (ax: S2) (v: R3) := (ℝ ∙ ax.val).starProjection v
 
-lemma operp_add (ax: S2) : operp ax (u + v) = (operp ax u) + (operp ax v) := sorry
-lemma spar_add (ax: S2) : spar ax (u + v) = (spar ax u) + (spar ax v) := sorry
+lemma operp_add (ax: S2) : operp ax (u + v) = (operp ax u) + (operp ax v) := by
+  simp [operp]
 
-lemma operp_spar (ax: S2) : operp ax (spar ax v) = 0 := sorry
-lemma spar_operp (ax: S2) : (spar ax (operp ax v)) = 0 := sorry
-lemma spar_spar (ax: S2) : (spar ax (spar ax v)) = spar ax v := sorry
+lemma spar_add (ax: S2) : spar ax (u + v) = (spar ax u) + (spar ax v) := by
+  simp [spar]
 
-lemma rips_add (ax: S2) (v: orth ax): (rot_iso_plane_to_st ax S (rot_iso_plane_to_st ax T v)) =
-  (rot_iso_plane_to_st ax (S + T) v) := sorry
+
+lemma operp_spar (ax: S2) : operp ax (spar ax v) = 0 := by
+  simp [operp, spar]
+  simp [orth]
+
+lemma spar_spar (ax: S2) : (spar ax (spar ax v)) = spar ax v := by
+  simp [spar]
+  set V := (Submodule.span ℝ {ax.val}).starProjection v with vdef
+  have : (Submodule.span ℝ {ax.val}).starProjection V = V :=by
+    apply Submodule.starProjection_eq_self_iff.mpr
+    rw [vdef]
+    simp
+  exact this
+
+lemma spar_operp (ax: S2) : (spar ax (operp ax v)) = 0 := by
+  simp [operp]
+  simp [orth]
+  simp [spar]
+  set V := (Submodule.span ℝ {ax.val}).starProjection v with vdef
+  have : (Submodule.span ℝ {ax.val}).starProjection V = V :=by
+    apply Submodule.starProjection_eq_self_iff.mpr
+    rw [vdef]
+    simp
+  simp [this]
+
+
+lemma spar_of_orth (ax: S2) (x: R3) : x ∈ orth ax → spar ax x = 0 := by
+  intro lhs
+  simp [orth] at lhs
+  simp [spar]
+  apply (Submodule.starProjection_apply_eq_zero_iff (Submodule.span ℝ {ax.val})).mpr
+  exact lhs
+
+
+
+lemma spar_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → spar ax x = x := by
+  simp [ax_space, spar]
+  intro lhs
+  have := Submodule.mem_span_singleton.mp lhs
+  obtain ⟨a, pa⟩ := this
+  rw [←pa]
+  simp
+  apply congrArg
+  apply Submodule.starProjection_eq_self_iff.mpr
+  simp
+
+
+lemma operp_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → operp ax x = 0 := by
+  simp [ax_space, operp]
+  intro lhs
+  simp [orth]
+  exact lhs
+
+lemma rips_add (ax: S2) (v: orth ax):
+  (rot_iso_plane_to_st ax S (rot_iso_plane_to_st ax T v)) =
+  (rot_iso_plane_to_st ax (S + T) v) := by
+  simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
 
 
 noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
-noncomputable def operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
-lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
+lemma up_mem (ax: S2) (v: orth ax) : (up ax v) ∈ orth ax := by
+  simp [up]
 
+lemma operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := by
+  simp [up, operp]
+
+lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := by
+  simp only [up]
+  have vinorth : (((orth ax).subtypeₗᵢ) v) ∈ (orth ax) := by
+    simp
+  have := spar_of_orth ax ((orth ax).subtypeₗᵢ v) vinorth
+  exact this
 
 
 lemma el_by_parts (ax: S2) (x: R3):  x = ↑((operp ax x)) + spar ax x := by
@@ -94,7 +193,6 @@ lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by
   rw [triv_rot_inner]
   simp
   exact (el_by_parts ax w).symm
-
 
 
 lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ):
@@ -175,7 +273,10 @@ noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 ≃ₗᵢ[ℝ] R3  := {
 }
 
 lemma rot_iso_comp (ax :S2) (θ τ: ℝ):
-  rot_iso ax θ (rot_iso ax τ x) = rot_iso ax (θ + τ) x := by sorry
+  rot_iso ax θ (rot_iso ax τ x) = rot_iso ax (θ + τ) x := by
+  simp [rot_iso]
+  simp [rot_by_parts_comp]
+
 
 
 lemma triv_rot_iso (ax: S2): rot_iso ax 0 = 1 := by
@@ -200,51 +301,343 @@ noncomputable def Basis3: OrthonormalBasis (Fin 3) ℝ R3 :=
   (stdOrthonormalBasis ℝ R3).reindex <| finCongr orth_dim_3.out
 
 
-noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
-  let Lmap := (rot_iso ax θ)
-  let M_obasis := Basis3.map Lmap
-  M_obasis.toBasis.toMatrix Basis3.toBasis
+
+/-- If a linear map `f : M₁ → M₂` respects direct sum decompositions of `M₁` and `M₂`, then it has a
+block diagonal matrix with respect to bases compatible with the direct sum decompositions. -/
+--lemma toMatrix_directSum_collectedBasis_eq_blockDiagonal' {R M₁ M₂ : Type*} [CommSemiring R]
+--    [AddCommMonoid M₁] [Module R M₁] {N₁ : ι → Submodule R M₁} (h₁ : IsInternal N₁)
+--    [AddCommMonoid M₂] [Module R M₂] {N₂ : ι → Submodule R M₂} (h₂ : IsInternal N₂)
+--    {κ₁ κ₂ : ι → Type*} [∀ i, Fintype (κ₁ i)] [∀ i, Finite (κ₂ i)] [∀ i, DecidableEq (κ₁ i)]
+--    [Fintype ι] (b₁ : (i : ι) → Basis (κ₁ i) R (N₁ i)) (b₂ : (i : ι) → Basis (κ₂ i) R (N₂ i))
+--    {f : M₁ →ₗ[R] M₂} (hf : ∀ i, MapsTo f (N₁ i) (N₂ i)) :
+--    toMatrix (h₁.collectedBasis b₁) (h₂.collectedBasis b₂) f =
+--    Matrix.blockDiagonal' fun i ↦ toMatrix (b₁ i) (b₂ i) (f.restrict (hf i)) := by
+--
 
 
+def mod_dim: (Fin 2) → Type
+  | ⟨0,_⟩ => Fin 2
+  | ⟨1,_⟩ => Fin 1
 
-lemma unitdet (ax: S2) (θ: ℝ)  :
-  (rot_mat ax θ).det = 1 ∨ (rot_mat ax θ).det = -1 := by
-  simp only [rot_mat]
-  rw [←Module.Basis.det_apply]
-  let T:= Basis3.map (rot_iso ax θ)
-  have detlem: T.toBasis.det ⇑Basis3.toBasis  = (1:ℝ) ∨ T.toBasis.det ⇑Basis3.toBasis  = (-1:ℝ) :=
-    OrthonormalBasis.det_to_matrix_orthonormalBasis_real T Basis3
-  simpa [T] using detlem
+instance mod_dim_fintype (i : Fin 2) : Fintype (mod_dim i) :=
+  match i with
+  | ⟨0, _⟩ => Fin.fintype 2
+  | ⟨1, _⟩ => Fin.fintype 1
 
+instance mod_dim_decidableEq (i : Fin 2) : DecidableEq (mod_dim i) :=
+  match i with
+  | ⟨0, _⟩ => by
+    simp [mod_dim]
+    exact instDecidableEqFin 2
+  | ⟨1, _⟩ => by
+    simp [mod_dim]
+    exact instDecidableEqFin 1
 
+noncomputable def submods (ax: S2): Fin 2 → Submodule ℝ R3 := ![orth ax, ax_space ax]
 
-lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
-    rw [Matrix.mem_specialOrthogonalGroup_iff]
+lemma internal_pr (ax: S2): DirectSum.IsInternal (submods ax):= by
+  apply DirectSum.isInternal_submodule_of_iSupIndep_of_iSup_eq_top
+  --
+  have inter: (ax_space ax) ⊓ (orth ax)  = ⊥ := by
+    simp [orth]
+    simp [ax_space]
+    exact (ax_space ax).inf_orthogonal_eq_bot
+
+  simp [iSupIndep]
+  constructor
+  simp [Disjoint]
+  intro x
+  simp [submods]
+  intro lhs
+  intro lhs2
+  apply le_iSup_iff.mp at lhs2
+  have th:= lhs2 (ax_space ax)
+  simp at th
+  have bad:  x ≤ ⊥ := by
+    rw [←inter]
+    simp
     constructor
-    simp only [rot_mat]
-    exact OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary
-      (Basis3.map (rot_iso ax θ)) Basis3
-    ---
+    --
+    exact th
+    exact lhs
+  simpa using bad
+  --
+  simp [Disjoint]
+  intro x
+  simp [submods]
+  intro lhs
+  intro lhs2
+  apply le_iSup_iff.mp at lhs2
+  have th:= lhs2 (orth ax)
+  simp at th
+  have bad:  x ≤ ⊥ := by
+    rw [←inter]
+    simp
+    constructor
+    --
+    exact lhs
+    exact th
+  simpa using bad
 
-    let mats (T: ℝ):= rot_mat ax T
-    set M := mats θ with M_def
-    --let maps (T:ℝ):  R3 →L[ℝ] R3  := LinearMap.toContinuousLinearMap (Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T))
-    let maps (T:ℝ) := (Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T))
-
-
-    have samedet: ∀ T:ℝ, (maps T).det = (mats T).det := by
-      simp [mats, maps]
-    rw [←samedet]
-
-    have unitdet_lm  (T: ℝ) : (maps T).det = 1 ∨ (maps T).det = -1 := by
-      rw [samedet]
-      simp [mats]
-      exact unitdet ax T
-
-    sorry
+  --
+  simp [iSup]
+  simp [submods]
+  simp [ax_space, orth]
+  exact Submodule.sup_orthogonal_of_hasOrthogonalProjection
 
 
 
+noncomputable def sm_bases (ax: S2) : (i : Fin 2) → (Module.Basis (mod_dim i) ℝ (submods ax i))
+| ⟨0, _⟩ => (orth_B ax).toBasis
+| ⟨1, _⟩ => (ax_B ax).toBasis
 
-noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
-  ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
+
+lemma hf (ax: S2): ∀ i, Set.MapsTo (rot_iso ax θ).toLinearMap (submods ax i) (submods ax i) := by
+  intro i
+  fin_cases i
+  simp
+  simp [submods]
+  simp [rot_iso]
+  simp [Set.MapsTo]
+  simp [rot_by_parts]
+  intro x
+  intro lhs
+  rw [spar_of_orth ax x lhs]
+  simp
+  exact up_mem ax ((rot_iso_plane_to_st ax θ) (operp ax x))
+  --
+  simp [Set.MapsTo]
+  intro x
+  intro lhs
+  simp [submods]
+  simp [submods] at lhs
+  simp [rot_iso]
+  simp [rot_by_parts]
+  rw [operp_of_ax_space ax x lhs]
+  simp
+  have :_:= spar_of_ax_space ax x lhs
+  rw [this]
+  exact lhs
+
+
+
+def PROD_BLOCK := Matrix ((i : Fin 2) × mod_dim i) ((i : Fin 2) × mod_dim i) ℝ
+
+
+noncomputable def rot_mat_block_1 (ax: S2) (θ:ℝ) : PROD_BLOCK :=
+ (LinearMap.toMatrix
+  ((internal_pr ax).collectedBasis (sm_bases ax))
+  ((internal_pr ax).collectedBasis (sm_bases ax)))
+  (rot_iso ax θ).toLinearEquiv
+
+
+
+noncomputable def rot_mat_block_2 (ax: S2) (θ:ℝ) : PROD_BLOCK:=
+  Matrix.blockDiagonal'
+  fun i ↦ LinearMap.toMatrix (sm_bases ax i) (sm_bases ax i) ((rot_iso ax θ).restrict (hf ax i))
+
+
+lemma rot_mat_block_prop (ax: S2) (θ:ℝ): rot_mat_block_1 ax θ = rot_mat_block_2 ax θ := by
+  simp [rot_mat_block_1, rot_mat_block_2]
+  exact LinearMap.toMatrix_directSum_collectedBasis_eq_blockDiagonal'
+    (internal_pr ax) (internal_pr ax) (sm_bases ax) (sm_bases ax) (hf ax)
+
+noncomputable def rot_mat_inner (ax: S2) (θ:ℝ) : MAT :=
+    !![
+      θ.cos, -θ.sin, 0;
+      θ.sin, θ.cos, 0;
+      0, 0, 1;
+    ]
+
+noncomputable def rot_mat_inner_trans (ax: S2) (θ:ℝ) : MAT :=
+    !![
+      θ.cos, θ.sin, 0;
+      -θ.sin, θ.cos, 0;
+      0, 0, 1;
+    ]
+
+lemma rmi_trans_equiv (ax: S2) (θ: ℝ) :
+(rot_mat_inner ax θ).transpose = (rot_mat_inner_trans ax θ) := by
+  simp [rot_mat_inner, rot_mat_inner_trans]
+  ext i j
+  fin_cases i, j
+  <;> simp
+
+
+
+lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) : rot_mat_inner ax θ ∈ SO3 := by
+  apply Matrix.mem_specialOrthogonalGroup_iff.mpr
+  constructor
+  rw [Matrix.mem_orthogonalGroup_iff]
+  rw [rmi_trans_equiv]
+  simp only [rot_mat_inner, rot_mat_inner_trans]
+  rw [Matrix.mul_fin_three]
+  simp
+  repeat  rw [←sq]
+  rw [Real.sin_sq_add_cos_sq θ]
+  rw [add_comm (Real.cos θ ^ 2)]
+  rw [Real.sin_sq_add_cos_sq θ]
+  rw [mul_comm]
+  simp
+  rw [Matrix.one_fin_three]
+  -----
+  --
+  simp [rot_mat_inner]
+  rw [Matrix.det_fin_three]
+  simp
+  repeat  rw [←sq]
+  rw [add_comm]
+  exact Real.sin_sq_add_cos_sq θ
+
+
+def COB (ax: S2) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
+noncomputable def COB_mat (ax: S2) : MAT := Basis3.toBasis.toMatrix (COB ax)
+
+lemma COB_mat_is_ortho (ax:S2) : COB_mat ax ∈ Matrix.orthogonalGroup (Fin 3) ℝ := by
+  apply OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary
+
+noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
+  let cob := COB_mat ax
+  cob⁻¹ * (rot_mat_inner ax θ) * cob
+
+
+lemma rot_mat_is_special(ax: S2) (θ:ℝ) : rot_mat ax θ ∈ SO3 := by
+  simp [rot_mat]
+  have innerspecial := Matrix.mem_specialOrthogonalGroup_iff.mp (rot_mat_inner_is_special ax θ)
+  apply Matrix.mem_specialOrthogonalGroup_iff.mpr
+  have cob_is_orth: (COB_mat ax ) ∈ Matrix.orthogonalGroup (Fin 3) ℝ := COB_mat_is_ortho ax
+  constructor
+  apply mul_mem
+  apply mul_mem
+
+  have pprop := (⟨(COB_mat ax), cob_is_orth⟩:Matrix.orthogonalGroup (Fin 3) ℝ )⁻¹.property
+  rw [←unitary_invs_coe ] at pprop
+  simpa using pprop
+  ---
+  exact innerspecial.left
+  --
+  exact cob_is_orth
+  --
+  simp
+  rw [mul_comm]
+  rw [←mul_assoc]
+  have : Matrix.det (COB_mat ax) * (Matrix.det (COB_mat ax))⁻¹ = 1 := by
+    apply mul_inv_cancel₀
+    have:  (COB_mat ax).det = 1 ∨ (COB_mat ax).det = -1 := by
+      simp only [COB_mat]
+      rw [←Module.Basis.det_apply]
+      have detlem: Basis3.toBasis.det (COB ax)  = (1:ℝ) ∨ Basis3.toBasis.det (COB ax)   = (-1:ℝ) :=
+        OrthonormalBasis.det_to_matrix_orthonormalBasis_real Basis3 (COB ax)
+      exact detlem
+    by_contra eqz
+    rw [eqz] at this
+    simp at this
+
+  rw [this]
+  simp
+  exact innerspecial.right
+
+
+
+noncomputable def rot (ax: S2) (θ:ℝ) : SO3 := ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
+
+
+
+lemma triv_rot (ax: S2): rot ax 0 = 1 := by
+  simp [rot]
+  simp [rot_mat]
+  have inner_eq_1: rot_mat_inner ax 0 = (1: MAT) := by
+    simp [rot_mat_inner]
+    simp [Matrix.one_fin_three]
+  simp [inner_eq_1]
+  set C:= COB_mat ax with Cdef
+  have isorth: C ∈ Matrix.orthogonalGroup (Fin 3) ℝ := COB_mat_is_ortho ax
+  let el := (⟨C, isorth⟩: Matrix.orthogonalGroup (Fin 3) ℝ)
+  have cdef: C = el.val := by rfl
+  have pr := (el⁻¹).property
+  rw [cdef]
+  rw [unitary_invs_coe]
+  simp
+
+lemma rot_mat_inner_comp_add (ax: S2) (s t : ℝ): rot_mat_inner ax s * rot_mat_inner ax t = rot_mat_inner ax (s + t) := by
+  simp [rot_mat_inner]
+  constructor
+  constructor
+  rw [Real.cos_add]
+  ring
+  --
+  rw [Real.sin_add]
+  ring
+  --
+  constructor
+  rw [Real.sin_add]
+  --
+  rw [Real.cos_add]
+  ring
+
+
+lemma rot_mat_comp_add (ax: S2) (s t : ℝ): rot_mat ax s * rot_mat ax t = rot_mat ax (s + t) := by
+  simp [rot_mat]
+  rw [←mul_assoc ((COB_mat ax)⁻¹ * rot_mat_inner ax s * COB_mat ax)]
+  rw [←mul_assoc ((COB_mat ax)⁻¹ * rot_mat_inner ax s * COB_mat ax)]
+  have :COB_mat ax * (COB_mat ax)⁻¹ = 1 := by
+    set el := COB_mat ax
+    have : el ∈ Matrix.orthogonalGroup (Fin 3) ℝ:= by exact COB_mat_is_ortho ax
+    let E: Matrix.orthogonalGroup (Fin 3) ℝ:= ⟨el, this⟩
+    change E.val * E.val⁻¹ = 1
+    rw [unitary_invs_coe]
+    simp
+
+  rw [mul_assoc ((COB_mat ax)⁻¹ * rot_mat_inner ax s )]
+  rw [this]
+  simp
+  rw [mul_assoc (COB_mat ax)⁻¹]
+  rw [rot_mat_inner_comp_add]
+
+
+lemma rot_comp_add (ax: S2) (s t : ℝ): f (rot ax s) ∘ f (rot ax t) = (f (rot ax (s + t)) : R3 → R3):= by
+  funext w
+  simp [f]
+  rw [smul_smul]
+  simp [rot]
+  simp [rot_mat_comp_add]
+
+
+lemma rot_pow_lemma (ax: S2) (θ: ℝ) (N: ℕ):
+  ((f (rot ax θ)): R3 → R3)^[N] = ((f (rot ax ((N: ℝ) * θ))): R3 → R3) := by
+  induction' N with n pn
+  simp
+  simp [triv_rot]
+  funext w
+  simp [f]
+  --
+  rw [Function.iterate_succ]
+  rw [pn]
+  rw [rot_comp_add]
+  have :↑n * θ + θ =↑(n + 1) * θ := by
+    norm_num
+    linarith
+
+  rw [this]
+
+
+
+lemma rot_iso_pow_lemma (ax: S2) (θ: ℝ) (N: ℕ):
+(rot_iso ax θ)^[N] = (rot_iso ax (N * θ)) := by
+  induction' N with n pn
+  simp
+  rw [triv_rot_iso]
+  simp
+  --
+  rw [Function.iterate_succ]
+  rw [pn]
+  funext w
+  rw [Function.comp_apply]
+  rw [rot_iso_comp]
+  have :↑n * θ + θ =↑(n + 1) * θ := by
+    norm_num
+    linarith
+  rw [this]
+
+
+lemma same_thing(ax: S2) (S: Set R3) (s : R3) : rot ax T • s = (rot_iso ax T) s := sorry

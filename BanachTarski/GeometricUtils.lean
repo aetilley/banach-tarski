@@ -194,47 +194,9 @@ lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
 
 ------------------
 
-
-
-
-
-
-
-lemma triv_rot (ax: S2): rot ax 0 = 1 := by
-  simp [rot]
-  let e := Basis3.toBasis
-  have :  e.toMatrix e = 1 :=  Module.Basis.toMatrix_self e
-  simp [e] at this
-  rw [←this]
-  simp [rot_mat]
-  apply congrArg
-  have isidsym: (rot_iso ax 0).symm = (fun x: R3 ↦ x) := by
-    funext w
-    apply (@Equiv.symm_apply_eq R3 R3 ((rot_iso ax 0) : R3 ≃ R3) w w).mpr
-    simp [rot_iso]
-    simp [rot_by_parts]
-    rw [triv_rot_inner]
-    simp
-    exact (el_by_parts ax w)
-
-  rw [isidsym]
-  ext x
-  simp
-
-
-
-
-
-
-
-
 lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
   ext x
   simp [f]
-
-
-
-
 
 def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
 ⋃ i, (f g)^[i] '' S
@@ -442,9 +404,19 @@ lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), ∀n: ℕ, S �
   rw [pk]
   linarith
 
-
 lemma same_bad (ax: S2) (S: Set R3) (s t : S) (n: ℕ) :
-BadAtN_rot ax S s t n = BadAtN_rot_iso ax S s t n := sorry
+BadAtN_rot ax S s t n = BadAtN_rot_iso ax S s t n := by
+  simp [BadAtN_rot, BadAtN_rot_iso]
+  ext θ
+  simp
+  rw [←Function.iterate_succ_apply]
+  rw [←Function.iterate_succ_apply]
+  rw [rot_pow_lemma]
+  rw [rot_iso_pow_lemma]
+  simp
+  simp [f]
+  set T := (↑n + 1) * θ  with Tdef
+  rw [same_thing ax S]
 
 
 def BadAt {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X) (s t : S): Set ℝ:=
