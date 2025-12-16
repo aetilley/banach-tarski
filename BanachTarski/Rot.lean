@@ -490,14 +490,14 @@ lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) : rot_mat_inner ax θ ∈ SO3 :
   exact Real.sin_sq_add_cos_sq θ
 
 
-def COB (ax: S2) (θ:ℝ) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
-noncomputable def COB_mat (ax: S2) (θ:ℝ) : MAT := Basis3.toBasis.toMatrix (COB ax θ)
+def COB (ax: S2) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
+noncomputable def COB_mat (ax: S2) : MAT := Basis3.toBasis.toMatrix (COB ax)
 
-lemma COB_mat_is_ortho (ax:S2) (θ: ℝ) : COB_mat ax θ ∈ Matrix.orthogonalGroup (Fin 3) ℝ := by
+lemma COB_mat_is_ortho (ax:S2) : COB_mat ax ∈ Matrix.orthogonalGroup (Fin 3) ℝ := by
   apply OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary
 
 noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
-  let cob := COB_mat ax θ
+  let cob := COB_mat ax
   cob⁻¹ * (rot_mat_inner ax θ) * cob
 
 
@@ -505,12 +505,12 @@ lemma rot_mat_is_special(ax: S2) (θ:ℝ) : rot_mat ax θ ∈ SO3 := by
   simp [rot_mat]
   have innerspecial := Matrix.mem_specialOrthogonalGroup_iff.mp (rot_mat_inner_is_special ax θ)
   apply Matrix.mem_specialOrthogonalGroup_iff.mpr
-  have cob_is_orth: (COB_mat ax θ) ∈ Matrix.orthogonalGroup (Fin 3) ℝ := COB_mat_is_ortho ax θ
+  have cob_is_orth: (COB_mat ax ) ∈ Matrix.orthogonalGroup (Fin 3) ℝ := COB_mat_is_ortho ax
   constructor
   apply mul_mem
   apply mul_mem
 
-  have pprop := (⟨(COB_mat ax θ), cob_is_orth⟩:Matrix.orthogonalGroup (Fin 3) ℝ )⁻¹.property
+  have pprop := (⟨(COB_mat ax), cob_is_orth⟩:Matrix.orthogonalGroup (Fin 3) ℝ )⁻¹.property
   rw [←unitary_invs_coe ] at pprop
   simpa using pprop
   ---
@@ -521,13 +521,13 @@ lemma rot_mat_is_special(ax: S2) (θ:ℝ) : rot_mat ax θ ∈ SO3 := by
   simp
   rw [mul_comm]
   rw [←mul_assoc]
-  have : Matrix.det (COB_mat ax θ) * (Matrix.det (COB_mat ax θ))⁻¹ = 1 := by
+  have : Matrix.det (COB_mat ax) * (Matrix.det (COB_mat ax))⁻¹ = 1 := by
     apply mul_inv_cancel₀
-    have:  (COB_mat ax θ).det = 1 ∨ (COB_mat ax θ).det = -1 := by
+    have:  (COB_mat ax).det = 1 ∨ (COB_mat ax).det = -1 := by
       simp only [COB_mat]
       rw [←Module.Basis.det_apply]
-      have detlem: Basis3.toBasis.det (COB ax θ)  = (1:ℝ) ∨ Basis3.toBasis.det (COB ax θ)   = (-1:ℝ) :=
-        OrthonormalBasis.det_to_matrix_orthonormalBasis_real Basis3 (COB ax θ)
+      have detlem: Basis3.toBasis.det (COB ax)  = (1:ℝ) ∨ Basis3.toBasis.det (COB ax)   = (-1:ℝ) :=
+        OrthonormalBasis.det_to_matrix_orthonormalBasis_real Basis3 (COB ax)
       exact detlem
     by_contra eqz
     rw [eqz] at this
@@ -543,12 +543,88 @@ noncomputable def rot (ax: S2) (θ:ℝ) : SO3 := ⟨rot_mat ax θ, rot_mat_is_sp
 
 
 
+lemma triv_rot (ax: S2): rot ax 0 = 1 := by
+  simp [rot]
+  simp [rot_mat]
+  have inner_eq_1: rot_mat_inner ax 0 = (1: MAT) := by
+    simp [rot_mat_inner]
+    simp [Matrix.one_fin_three]
+  simp [inner_eq_1]
+  set C:= COB_mat ax with Cdef
+  have isorth: C ∈ Matrix.orthogonalGroup (Fin 3) ℝ := COB_mat_is_ortho ax
+  let el := (⟨C, isorth⟩: Matrix.orthogonalGroup (Fin 3) ℝ)
+  have cdef: C = el.val := by rfl
+  have pr := (el⁻¹).property
+  rw [cdef]
+  rw [unitary_invs_coe]
+  simp
+
+lemma rot_mat_inner_comp_add (ax: S2) (s t : ℝ): rot_mat_inner ax s * rot_mat_inner ax t = rot_mat_inner ax (s + t) := by
+  sorry
+
+
+lemma rot_mat_comp_add (ax: S2) (s t : ℝ): rot_mat ax s * rot_mat ax t = rot_mat ax (s + t) := by
+  simp [rot_mat]
+  rw [←mul_assoc ((COB_mat ax)⁻¹ * rot_mat_inner ax s * COB_mat ax)]
+  rw [←mul_assoc ((COB_mat ax)⁻¹ * rot_mat_inner ax s * COB_mat ax)]
+  have :COB_mat ax * (COB_mat ax)⁻¹ = 1 := by
+    set el := COB_mat ax
+    have : el ∈ Matrix.orthogonalGroup (Fin 3) ℝ:= by exact COB_mat_is_ortho ax
+    let E: Matrix.orthogonalGroup (Fin 3) ℝ:= ⟨el, this⟩
+    change E.val * E.val⁻¹ = 1
+    rw [unitary_invs_coe]
+    simp
+
+  rw [mul_assoc ((COB_mat ax)⁻¹ * rot_mat_inner ax s )]
+  rw [this]
+  simp
+  rw [mul_assoc (COB_mat ax)⁻¹]
+  rw [rot_mat_inner_comp_add]
+
+
+lemma rot_comp_add (ax: S2) (s t : ℝ): f (rot ax s) ∘ f (rot ax t) = (f (rot ax (s + t)) : R3 → R3):= by
+  funext w
+  simp [f]
+  rw [smul_smul]
+  simp [rot]
+  simp [rot_mat_comp_add]
+
 
 lemma rot_pow_lemma (ax: S2) (θ: ℝ) (N: ℕ):
-((f (rot ax θ)): R3 → R3)^[N] = ((f (rot ax ((N: ℝ) * θ))): R3 → R3) := sorry
+  ((f (rot ax θ)): R3 → R3)^[N] = ((f (rot ax ((N: ℝ) * θ))): R3 → R3) := by
+  induction' N with n pn
+  simp
+  simp [triv_rot]
+  funext w
+  simp [f]
+  --
+  rw [Function.iterate_succ]
+  rw [pn]
+  rw [rot_comp_add]
+  have :↑n * θ + θ =↑(n + 1) * θ := by
+    norm_num
+    linarith
+
+  rw [this]
+
+
 
 lemma rot_iso_pow_lemma (ax: S2) (θ: ℝ) (N: ℕ):
-(rot_iso ax θ)^[N] = (rot_iso ax (N * θ)) := sorry
+(rot_iso ax θ)^[N] = (rot_iso ax (N * θ)) := by
+  induction' N with n pn
+  simp
+  rw [triv_rot_iso]
+  simp
+  --
+  rw [Function.iterate_succ]
+  rw [pn]
+  funext w
+  rw [Function.comp_apply]
+  rw [rot_iso_comp]
+  have :↑n * θ + θ =↑(n + 1) * θ := by
+    norm_num
+    linarith
+  rw [this]
 
 
 lemma same_thing(ax: S2) (S: Set R3) (s : R3) : rot ax T • s = (rot_iso ax T) s := sorry
