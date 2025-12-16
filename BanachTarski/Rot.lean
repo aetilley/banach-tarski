@@ -117,7 +117,11 @@ noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
 lemma up_mem (ax: S2) (v: orth ax) : (up ax v) ∈ orth ax := sorry
 
 noncomputable def operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
-lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
+noncomputable def operp_up_2 (ax:S2) (v : orth ax) : operp ax (↑v)  = v := sorry
+lemma spar_up (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
+lemma spar_up_2 (ax: S2) (v: orth ax) : spar ax (↑v) = 0 := sorry
+
+
 
 
 
@@ -148,7 +152,7 @@ lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ):
     simp [spar_add]
     simp [operp_up]
     simp [operp_spar]
-    simp [spar_up_rot]
+    simp [spar_up]
     simp [spar_spar]
     rw [rips_add]
 
@@ -385,81 +389,52 @@ lemma rot_mat_block_prop (ax: S2) (θ:ℝ): rot_mat_block_1 ax θ = rot_mat_bloc
   exact LinearMap.toMatrix_directSum_collectedBasis_eq_blockDiagonal'
     (internal_pr ax) (internal_pr ax) (sm_bases ax) (sm_bases ax) (hf ax)
 
+lemma b1_lem (ax: S2) :
+  LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0) ((rot_iso ax θ).restrict (hf ax 0)) =
+  !![θ.cos, -θ.sin; θ.sin, θ.cos]  := by
 
-def S := (Fin 2) ⊕ (Fin 1)
-instance deq_S: DecidableEq S := instDecidableEqSum
-instance ft_S: Fintype S := sorry
+  have restr_lem: (rot_iso ax θ).restrict (hf ax 0) =
+    (rot_iso_plane_to_st ax θ).toLinearMap := by
 
+    apply LinearMap.ext
+    intro x
+    simp [submods] at x
+    simp [rot_iso_plane_to_st]
+    simp [rot_iso_plane_equiv]
+    simp [rot_iso]
+    rw [LinearMap.restrict_apply]
+    simp
+    simp [rot_by_parts]
+    apply Subtype.ext
+    simp [spar_up_2]
+    simp [rot_iso_plane_to_st]
+    simp [rot_iso_plane_equiv]
+    simp [up]
+    simp [operp_up_2]
+    rfl
 
-def SUM_BLOCKS := Matrix S S ℝ
-
-def S_equiv_Fin3 : S ≃ Fin 3 := by sorry
-
-
-noncomputable def rot_mat_inner_pre (ax: S2) (θ:ℝ) : SUM_BLOCKS :=
-  --def fromBlocks (A : Matrix n l α) (B : Matrix n m α) (C : Matrix o l α) (D : Matrix o m α) :
-  let blocks := fun i ↦ LinearMap.toMatrix (sm_bases ax i) (sm_bases ax i) ((rot_iso ax θ).restrict (hf ax i))
-
-  let B00 := blocks 0
-  let B01 := Matrix.of !![(0:ℝ); 0;]
-  let B10 := Matrix.of !![(0:ℝ), 0;]
-  let B11 := blocks 1
-
-
-lemma rot_mat_inner_pre_det (ax : S2) (θ: ℝ): (rot_mat_inner_pre ax θ).det = 1 := by
-  simp [rot_mat_inner_pre]
-
-
-  set A:= ((LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 0))) with adef
-  set B:= Matrix.of !![(0:ℝ);0] with bdef
-  set D:= ((LinearMap.toMatrix (sm_bases ax 1) (sm_bases ax 1)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 1))) with ddef
-  #check Matrix.det_fromBlocks₁₁
-  sorry
-  --rw [Matrix.det_fromBlocks_zero₂₁ A B D]
-
-  --rw [aeq, deq]
+  rw [restr_lem]
+  simp [sm_bases]
+  simp [rot_iso_plane_to_st]
+  simp [rot_iso_plane_equiv]
 
 
 
-noncomputable def rot_mat_inner (ax: S2) (θ:ℝ) : MAT :=
-  let M: SUM_BLOCKS := rot_mat_inner_pre ax θ
-  Matrix.reindex S_equiv_Fin3 S_equiv_Fin3 M
-
-
-lemma rot_mat_inner_is_special (ax : S2) (θ: ℝ): rot_mat_inner ax θ ∈ SO3 := by
-    rw [Matrix.mem_specialOrthogonalGroup_iff]
-    constructor
-    rw [Matrix.mem_orthogonalGroup_iff]
-    dsimp [rot_mat_inner]
-    rw [Matrix.transpose_submatrix]
-
-    dsimp [rot_mat_inner_pre]
 
 
 
-    sorry
-    --
-    dsimp [rot_mat_inner]
+  let x: (orth ax) := sorry
+  have hx: x≠ 0 := sorry
 
+  have inter:  ((plane_o ax).rotation θ).toLinearIsometry.toLinearMap =
+    Matrix.toLin
+      ((plane_o ax).basisRightAngleRotation x hx)
+      ((plane_o ax).basisRightAngleRotation x hx)
+      !![θ.cos, -θ.sin; θ.sin, θ.cos] := (plane_o ax).rotation_eq_matrix_toLin θ hx
 
-    rw [Matrix.det_submatrix_equiv_self S_equiv_Fin3.symm]
-
-
-    let A:= ((LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 0)))
-    let B:= 0
-    let D:= ((LinearMap.toMatrix (sm_bases ax 1) (sm_bases ax 1)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 1)))
-
-    rw [Matrix.det_fromBlocks_zero₂₁ A B D]
-
-
-    sorry
-
-
-noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT := sorry
-
-lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by sorry
-
-
-
-noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
-  ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
+  have sameorth: (orth_B ax).toBasis = ((plane_o ax).basisRightAngleRotation x hx ) := sorry
+  rw [sameorth]
+  rw [inter]
+  set B:= ((plane_o ax).basisRightAngleRotation x hx) with Bdef
+  set R:= !![Real.cos θ, -Real.sin θ; Real.sin θ, Real.cos θ]
+  exact LinearMap.toMatrix_toLin B B R
