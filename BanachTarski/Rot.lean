@@ -98,16 +98,54 @@ lemma triv_rot_inner (ax: S2): (rot_iso_plane_to_st ax 0) = 1 := by
 noncomputable def operp (ax: S2) (v: R3):= (orth ax).orthogonalProjection v
 noncomputable def spar (ax: S2) (v: R3) := (ℝ ∙ ax.val).starProjection v
 
-lemma operp_add (ax: S2) : operp ax (u + v) = (operp ax u) + (operp ax v) := sorry
-lemma spar_add (ax: S2) : spar ax (u + v) = (spar ax u) + (spar ax v) := sorry
+lemma operp_add (ax: S2) : operp ax (u + v) = (operp ax u) + (operp ax v) := by
+  simp [operp]
 
-lemma operp_spar (ax: S2) : operp ax (spar ax v) = 0 := sorry
-lemma spar_operp (ax: S2) : (spar ax (operp ax v)) = 0 := sorry
+lemma spar_add (ax: S2) : spar ax (u + v) = (spar ax u) + (spar ax v) := by
+  simp [spar]
+
+
+lemma operp_spar (ax: S2) : operp ax (spar ax v) = 0 := by
+  simp [operp, spar]
+  simp [orth]
+
 lemma spar_spar (ax: S2) : (spar ax (spar ax v)) = spar ax v := sorry
 
-lemma spar_of_orth (ax: S2) (x: R3) : x ∈ orth ax → spar ax x = 0 := sorry
-lemma spar_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → spar ax x = x := sorry
-lemma operp_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → operp ax x = 0 := sorry
+lemma spar_operp (ax: S2) : (spar ax (operp ax v)) = 0 := by
+  simp [operp]
+  simp [orth]
+  simp [spar]
+  set V := (Submodule.span ℝ {ax.val}).starProjection v with vdef
+  have : (Submodule.span ℝ {ax.val}).starProjection V = V :=by
+    apply Submodule.starProjection_eq_self_iff.mpr
+    rw [vdef]
+    simp
+  simp [this]
+
+
+lemma spar_of_orth (ax: S2) (x: R3) : x ∈ orth ax → spar ax x = 0 := by
+  intro lhs
+  simp [orth] at lhs
+  simp [spar]
+  sorry
+
+lemma spar_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → spar ax x = x := by
+  simp [ax_space, spar]
+  intro lhs
+  have := Submodule.mem_span_singleton.mp lhs
+  obtain ⟨a, pa⟩ := this
+  rw [←pa]
+  simp
+  apply congrArg
+  apply Submodule.starProjection_eq_self_iff.mpr
+  simp
+
+
+lemma operp_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → operp ax x = 0 := by
+  simp [ax_space, operp]
+  intro lhs
+  simp [orth]
+  exact lhs
 
 lemma rips_add (ax: S2) (v: orth ax):
   (rot_iso_plane_to_st ax S (rot_iso_plane_to_st ax T v)) =
@@ -116,10 +154,18 @@ lemma rips_add (ax: S2) (v: orth ax):
 
 
 noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
-lemma up_mem (ax: S2) (v: orth ax) : (up ax v) ∈ orth ax := sorry
+lemma up_mem (ax: S2) (v: orth ax) : (up ax v) ∈ orth ax := by
+  simp [up]
 
-noncomputable def operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
-lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
+lemma operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := by
+  simp [up, operp]
+
+lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := by
+  simp only [up]
+  have vinorth : (((orth ax).subtypeₗᵢ) v) ∈ (orth ax) := by
+    simp
+  have := spar_of_orth ax ((orth ax).subtypeₗᵢ v) vinorth
+  exact this
 
 
 lemma el_by_parts (ax: S2) (x: R3):  x = ↑((operp ax x)) + spar ax x := by
