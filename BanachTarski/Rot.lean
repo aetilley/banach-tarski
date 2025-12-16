@@ -107,7 +107,14 @@ lemma operp_spar (ax: S2) : operp ax (spar ax v) = 0 := by
   simp [operp, spar]
   simp [orth]
 
-lemma spar_spar (ax: S2) : (spar ax (spar ax v)) = spar ax v := sorry
+lemma spar_spar (ax: S2) : (spar ax (spar ax v)) = spar ax v := by
+  simp [spar]
+  set V := (Submodule.span ℝ {ax.val}).starProjection v with vdef
+  have : (Submodule.span ℝ {ax.val}).starProjection V = V :=by
+    apply Submodule.starProjection_eq_self_iff.mpr
+    rw [vdef]
+    simp
+  exact this
 
 lemma spar_operp (ax: S2) : (spar ax (operp ax v)) = 0 := by
   simp [operp]
@@ -125,7 +132,10 @@ lemma spar_of_orth (ax: S2) (x: R3) : x ∈ orth ax → spar ax x = 0 := by
   intro lhs
   simp [orth] at lhs
   simp [spar]
-  sorry
+  apply (Submodule.starProjection_apply_eq_zero_iff (Submodule.span ℝ {ax.val})).mpr
+  exact lhs
+
+
 
 lemma spar_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → spar ax x = x := by
   simp [ax_space, spar]
@@ -447,7 +457,12 @@ noncomputable def rot_mat_inner_trans (ax: S2) (θ:ℝ) : MAT :=
     ]
 
 lemma rmi_trans_equiv (ax: S2) (θ: ℝ) :
-(rot_mat_inner ax θ).transpose = (rot_mat_inner_trans ax θ) := sorry
+(rot_mat_inner ax θ).transpose = (rot_mat_inner_trans ax θ) := by
+  simp [rot_mat_inner, rot_mat_inner_trans]
+  ext i j
+  fin_cases i, j
+  <;> simp
+
 
 
 lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) : rot_mat_inner ax θ ∈ SO3 := by
