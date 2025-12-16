@@ -194,24 +194,6 @@ lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
 
 ------------------
 
-
-lemma triv_rot (ax: S2): rot ax 0 = 1 := by
-  simp [rot]
-  simp [rot_mat]
-  have inner_eq_1: rot_mat_inner ax 0 = (1: MAT) := by
-    simp [rot_mat_inner]
-    simp [Matrix.one_fin_three]
-  simp [inner_eq_1]
-  set C:= COB_mat ax 0 with Cdef
-  have isorth: C ∈ Matrix.orthogonalGroup (Fin 3) ℝ := COB_mat_is_ortho ax 0
-  let el := (⟨C, isorth⟩: Matrix.orthogonalGroup (Fin 3) ℝ)
-  have cdef: C = el.val := by rfl
-  have pr := (el⁻¹).property
-  rw [cdef]
-  rw [unitary_invs_coe]
-  simp
-
-
 lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
   ext x
   simp [f]
