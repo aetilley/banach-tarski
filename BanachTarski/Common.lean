@@ -38,6 +38,12 @@ lemma so3_invs_coe : ∀g:SO3, (g.val)⁻¹ = g⁻¹.val := by
   rw [←MulMemClass.coe_mul]
   simp
 
+lemma unitary_invs_coe : ∀g: Matrix.orthogonalGroup (Fin 3) ℝ , (g.val)⁻¹ = g⁻¹.val := by
+  intro g
+  apply Matrix.inv_eq_left_inv
+  rw [←MulMemClass.coe_mul]
+  simp
+
 instance so3_has_inv (g: SO3) : Invertible (g:MAT) := by
   have g_special := g.property
   simp only [SO3] at g_special

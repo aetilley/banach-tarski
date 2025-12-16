@@ -385,81 +385,63 @@ lemma rot_mat_block_prop (ax: S2) (θ:ℝ): rot_mat_block_1 ax θ = rot_mat_bloc
   exact LinearMap.toMatrix_directSum_collectedBasis_eq_blockDiagonal'
     (internal_pr ax) (internal_pr ax) (sm_bases ax) (sm_bases ax) (hf ax)
 
-
-def S := (Fin 2) ⊕ (Fin 1)
-instance deq_S: DecidableEq S := instDecidableEqSum
-instance ft_S: Fintype S := sorry
-
-
-def SUM_BLOCKS := Matrix S S ℝ
-
-def S_equiv_Fin3 : S ≃ Fin 3 := by sorry
-
-
-noncomputable def rot_mat_inner_pre (ax: S2) (θ:ℝ) : SUM_BLOCKS :=
-  --def fromBlocks (A : Matrix n l α) (B : Matrix n m α) (C : Matrix o l α) (D : Matrix o m α) :
-  let blocks := fun i ↦ LinearMap.toMatrix (sm_bases ax i) (sm_bases ax i) ((rot_iso ax θ).restrict (hf ax i))
-
-  let B00 := blocks 0
-  let B01 := Matrix.of !![(0:ℝ); 0;]
-  let B10 := Matrix.of !![(0:ℝ), 0;]
-  let B11 := blocks 1
-
-
-lemma rot_mat_inner_pre_det (ax : S2) (θ: ℝ): (rot_mat_inner_pre ax θ).det = 1 := by
-  simp [rot_mat_inner_pre]
-
-
-  set A:= ((LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 0))) with adef
-  set B:= Matrix.of !![(0:ℝ);0] with bdef
-  set D:= ((LinearMap.toMatrix (sm_bases ax 1) (sm_bases ax 1)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 1))) with ddef
-  #check Matrix.det_fromBlocks₁₁
-  sorry
-  --rw [Matrix.det_fromBlocks_zero₂₁ A B D]
-
-  --rw [aeq, deq]
-
-
-
 noncomputable def rot_mat_inner (ax: S2) (θ:ℝ) : MAT :=
-  let M: SUM_BLOCKS := rot_mat_inner_pre ax θ
-  Matrix.reindex S_equiv_Fin3 S_equiv_Fin3 M
+    !![
+      θ.cos, -θ.sin, 0;
+      θ.sin, θ.cos, 0;
+      0, 0, 1;
+    ]
+
+lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) :
+  rot_mat_inner ax θ ∈ SO3 := sorry
+
+def COB (ax: S2) (θ:ℝ) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
+noncomputable def COB_mat (ax: S2) (θ:ℝ) : MAT := Basis3.toBasis.toMatrix (COB ax θ)
+
+lemma COB_mat_is_ortho (ax:S2) (θ: ℝ) : COB_mat ax θ ∈ Matrix.orthogonalGroup (Fin 3) ℝ := by
+  apply OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary
+
+noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT :=
+  let cob := COB_mat ax θ
+  cob⁻¹ * (rot_mat_inner ax θ) * cob
 
 
-lemma rot_mat_inner_is_special (ax : S2) (θ: ℝ): rot_mat_inner ax θ ∈ SO3 := by
-    rw [Matrix.mem_specialOrthogonalGroup_iff]
-    constructor
-    rw [Matrix.mem_orthogonalGroup_iff]
-    dsimp [rot_mat_inner]
-    rw [Matrix.transpose_submatrix]
+lemma rot_mat_is_special(ax: S2) (θ:ℝ) : rot_mat ax θ ∈ SO3 := by
+  simp [rot_mat]
+  have innerspecial := Matrix.mem_specialOrthogonalGroup_iff.mp (rot_mat_inner_is_special ax θ)
+  apply Matrix.mem_specialOrthogonalGroup_iff.mpr
+  have cob_is_orth: (COB_mat ax θ) ∈ Matrix.orthogonalGroup (Fin 3) ℝ := COB_mat_is_ortho ax θ
+  constructor
+  apply mul_mem
+  apply mul_mem
 
-    dsimp [rot_mat_inner_pre]
+  have pprop := (⟨(COB_mat ax θ), cob_is_orth⟩:Matrix.orthogonalGroup (Fin 3) ℝ )⁻¹.property
+  rw [←unitary_invs_coe ] at pprop
+  simpa using pprop
+  ---
+  exact innerspecial.left
+  --
+  exact cob_is_orth
+  --
+  simp
+  rw [mul_comm]
+  rw [←mul_assoc]
+  have : Matrix.det (COB_mat ax θ) * (Matrix.det (COB_mat ax θ))⁻¹ = 1 := by
+    apply mul_inv_cancel₀
+    have:  (COB_mat ax θ).det = 1 ∨ (COB_mat ax θ).det = -1 := by
+      simp only [COB_mat]
+      rw [←Module.Basis.det_apply]
+      have detlem: Basis3.toBasis.det (COB ax θ)  = (1:ℝ) ∨ Basis3.toBasis.det (COB ax θ)   = (-1:ℝ) :=
+        OrthonormalBasis.det_to_matrix_orthonormalBasis_real Basis3 (COB ax θ)
+      exact detlem
+    by_contra eqz
+    rw [eqz] at this
+    simp at this
+
+  rw [this]
+  simp
+  exact innerspecial.right
 
 
 
-    sorry
-    --
-    dsimp [rot_mat_inner]
-
-
-    rw [Matrix.det_submatrix_equiv_self S_equiv_Fin3.symm]
-
-
-    let A:= ((LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 0)))
-    let B:= 0
-    let D:= ((LinearMap.toMatrix (sm_bases ax 1) (sm_bases ax 1)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 1)))
-
-    rw [Matrix.det_fromBlocks_zero₂₁ A B D]
-
-
-    sorry
-
-
-noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT := sorry
-
-lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by sorry
-
-
-
-noncomputable def rot (ax: S2) (θ:ℝ) : SO3 :=
-  ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
+noncomputable def rot (ax: S2) (θ:ℝ) : SO3 := ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
