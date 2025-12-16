@@ -195,46 +195,26 @@ lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
 ------------------
 
 
-
-
-
-
-
 lemma triv_rot (ax: S2): rot ax 0 = 1 := by
   simp [rot]
-  let e := Basis3.toBasis
-  have :  e.toMatrix e = 1 :=  Module.Basis.toMatrix_self e
-  simp [e] at this
-  rw [←this]
   simp [rot_mat]
-  apply congrArg
-  have isidsym: (rot_iso ax 0).symm = (fun x: R3 ↦ x) := by
-    funext w
-    apply (@Equiv.symm_apply_eq R3 R3 ((rot_iso ax 0) : R3 ≃ R3) w w).mpr
-    simp [rot_iso]
-    simp [rot_by_parts]
-    rw [triv_rot_inner]
-    simp
-    exact (el_by_parts ax w)
-
-  rw [isidsym]
-  ext x
+  have inner_eq_1: rot_mat_inner ax 0 = (1: MAT) := by
+    simp [rot_mat_inner]
+    simp [Matrix.one_fin_three]
+  simp [inner_eq_1]
+  set C:= COB_mat ax 0 with Cdef
+  have isorth: C ∈ Matrix.orthogonalGroup (Fin 3) ℝ := COB_mat_is_ortho ax 0
+  let el := (⟨C, isorth⟩: Matrix.orthogonalGroup (Fin 3) ℝ)
+  have cdef: C = el.val := by rfl
+  have pr := (el⁻¹).property
+  rw [cdef]
+  rw [unitary_invs_coe]
   simp
-
-
-
-
-
-
 
 
 lemma triv_so3: (f (1:SO3)) = (fun x:R3 ↦ x) := by
   ext x
   simp [f]
-
-
-
-
 
 def orbit {X : Type*} {G: Type*} [Group G] [MulAction G X] (g: G) (S: Set X): Set X :=
 ⋃ i, (f g)^[i] '' S
