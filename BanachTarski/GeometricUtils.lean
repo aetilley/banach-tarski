@@ -422,9 +422,19 @@ lemma BadAtN_rot_iso_equiv (axis: S2): ∀S: Set R3, ∀(s t: S), ∀n: ℕ, S �
   rw [pk]
   linarith
 
-
 lemma same_bad (ax: S2) (S: Set R3) (s t : S) (n: ℕ) :
-BadAtN_rot ax S s t n = BadAtN_rot_iso ax S s t n := sorry
+BadAtN_rot ax S s t n = BadAtN_rot_iso ax S s t n := by
+  simp [BadAtN_rot, BadAtN_rot_iso]
+  ext θ
+  simp
+  rw [←Function.iterate_succ_apply]
+  rw [←Function.iterate_succ_apply]
+  rw [rot_pow_lemma]
+  rw [rot_iso_pow_lemma]
+  simp
+  simp [f]
+  set T := (↑n + 1) * θ  with Tdef
+  rw [same_thing ax S]
 
 
 def BadAt {X : Type*} {G: Type*} [Group G] [MulAction G X] (F: ℝ → G) (S: Set X) (s t : S): Set ℝ:=

@@ -490,9 +490,6 @@ lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) : rot_mat_inner ax θ ∈ SO3 :
   exact Real.sin_sq_add_cos_sq θ
 
 
-
-
-
 def COB (ax: S2) (θ:ℝ) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
 noncomputable def COB_mat (ax: S2) (θ:ℝ) : MAT := Basis3.toBasis.toMatrix (COB ax θ)
 
@@ -543,3 +540,15 @@ lemma rot_mat_is_special(ax: S2) (θ:ℝ) : rot_mat ax θ ∈ SO3 := by
 
 
 noncomputable def rot (ax: S2) (θ:ℝ) : SO3 := ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
+
+
+
+
+lemma rot_pow_lemma (ax: S2) (θ: ℝ) (N: ℕ):
+((f (rot ax θ)): R3 → R3)^[N] = ((f (rot ax ((N: ℝ) * θ))): R3 → R3) := sorry
+
+lemma rot_iso_pow_lemma (ax: S2) (θ: ℝ) (N: ℕ):
+(rot_iso ax θ)^[N] = (rot_iso ax (N * θ)) := sorry
+
+
+lemma same_thing(ax: S2) (S: Set R3) (s : R3) : rot ax T • s = (rot_iso ax T) s := sorry
