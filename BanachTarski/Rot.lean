@@ -109,8 +109,10 @@ lemma spar_of_orth (ax: S2) (x: R3) : x ∈ orth ax → spar ax x = 0 := sorry
 lemma spar_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → spar ax x = x := sorry
 lemma operp_of_ax_space (ax: S2) (x: R3) : x ∈ ax_space ax → operp ax x = 0 := sorry
 
-lemma rips_add (ax: S2) (v: orth ax): (rot_iso_plane_to_st ax S (rot_iso_plane_to_st ax T v)) =
-  (rot_iso_plane_to_st ax (S + T) v) := sorry
+lemma rips_add (ax: S2) (v: orth ax):
+  (rot_iso_plane_to_st ax S (rot_iso_plane_to_st ax T v)) =
+  (rot_iso_plane_to_st ax (S + T) v) := by
+  simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
 
 
 noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
@@ -118,7 +120,6 @@ lemma up_mem (ax: S2) (v: orth ax) : (up ax v) ∈ orth ax := sorry
 
 noncomputable def operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := sorry
 lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := sorry
-
 
 
 lemma el_by_parts (ax: S2) (x: R3):  x = ↑((operp ax x)) + spar ax x := by
@@ -138,7 +139,6 @@ lemma triv_rot_by_parts (ax: S2): (rot_by_parts ax 0) = (id: R3 →R3) := by
   rw [triv_rot_inner]
   simp
   exact (el_by_parts ax w).symm
-
 
 
 lemma rot_by_parts_comp (ax :S2) (θ τ: ℝ):
@@ -219,7 +219,10 @@ noncomputable def rot_iso (ax: S2) (θ:ℝ) : R3 ≃ₗᵢ[ℝ] R3  := {
 }
 
 lemma rot_iso_comp (ax :S2) (θ τ: ℝ):
-  rot_iso ax θ (rot_iso ax τ x) = rot_iso ax (θ + τ) x := by sorry
+  rot_iso ax θ (rot_iso ax τ x) = rot_iso ax (θ + τ) x := by
+  simp [rot_iso]
+  simp [rot_by_parts_comp]
+
 
 
 lemma triv_rot_iso (ax: S2): rot_iso ax 0 = 1 := by
@@ -392,8 +395,44 @@ noncomputable def rot_mat_inner (ax: S2) (θ:ℝ) : MAT :=
       0, 0, 1;
     ]
 
-lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) :
-  rot_mat_inner ax θ ∈ SO3 := sorry
+noncomputable def rot_mat_inner_trans (ax: S2) (θ:ℝ) : MAT :=
+    !![
+      θ.cos, θ.sin, 0;
+      -θ.sin, θ.cos, 0;
+      0, 0, 1;
+    ]
+
+lemma rmi_trans_equiv (ax: S2) (θ: ℝ) :
+(rot_mat_inner ax θ).transpose = (rot_mat_inner_trans ax θ) := sorry
+
+
+lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) : rot_mat_inner ax θ ∈ SO3 := by
+  apply Matrix.mem_specialOrthogonalGroup_iff.mpr
+  constructor
+  rw [Matrix.mem_orthogonalGroup_iff]
+  rw [rmi_trans_equiv]
+  simp only [rot_mat_inner, rot_mat_inner_trans]
+  rw [Matrix.mul_fin_three]
+  simp
+  repeat  rw [←sq]
+  rw [Real.sin_sq_add_cos_sq θ]
+  rw [add_comm (Real.cos θ ^ 2)]
+  rw [Real.sin_sq_add_cos_sq θ]
+  rw [mul_comm]
+  simp
+  rw [Matrix.one_fin_three]
+  -----
+  --
+  simp [rot_mat_inner]
+  rw [Matrix.det_fin_three]
+  simp
+  repeat  rw [←sq]
+  rw [add_comm]
+  exact Real.sin_sq_add_cos_sq θ
+
+
+
+
 
 def COB (ax: S2) (θ:ℝ) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
 noncomputable def COB_mat (ax: S2) (θ:ℝ) : MAT := Basis3.toBasis.toMatrix (COB ax θ)
