@@ -364,56 +364,100 @@ lemma hf (ax: S2): ∀ i, Set.MapsTo (rot_iso ax θ).toLinearMap (submods ax i) 
 
 
 
+def PROD_BLOCK := Matrix ((i : Fin 2) × mod_dim i) ((i : Fin 2) × mod_dim i) ℝ
 
 
-
-
-
-def BLOCK_MAT := Matrix ((i : Fin 2) × mod_dim i) ((i : Fin 2) × mod_dim i) ℝ
-
-noncomputable def rot_mat_block (ax: S2) (θ:ℝ) : BLOCK_MAT :=
+noncomputable def rot_mat_block_1 (ax: S2) (θ:ℝ) : PROD_BLOCK :=
  (LinearMap.toMatrix
   ((internal_pr ax).collectedBasis (sm_bases ax))
   ((internal_pr ax).collectedBasis (sm_bases ax)))
   (rot_iso ax θ).toLinearEquiv
 
 
-lemma rot_mat_block_prop (ax: S2) (θ:ℝ):
-  rot_mat_block ax θ =
-  Matrix.blockDiagonal'
-  fun i ↦ LinearMap.toMatrix (sm_bases ax i) (sm_bases ax i) ((rot_iso ax θ).restrict (hf ax i)) := by
 
+noncomputable def rot_mat_block_2 (ax: S2) (θ:ℝ) : PROD_BLOCK:=
+  Matrix.blockDiagonal'
+  fun i ↦ LinearMap.toMatrix (sm_bases ax i) (sm_bases ax i) ((rot_iso ax θ).restrict (hf ax i))
+
+
+lemma rot_mat_block_prop (ax: S2) (θ:ℝ): rot_mat_block_1 ax θ = rot_mat_block_2 ax θ := by
+  simp [rot_mat_block_1, rot_mat_block_2]
   exact LinearMap.toMatrix_directSum_collectedBasis_eq_blockDiagonal'
     (internal_pr ax) (internal_pr ax) (sm_bases ax) (sm_bases ax) (hf ax)
 
 
+def S := (Fin 2) ⊕ (Fin 1)
+instance deq_S: DecidableEq S := instDecidableEqSum
+instance ft_S: Fintype S := sorry
 
 
-lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by
+def SUM_BLOCKS := Matrix S S ℝ
+
+def S_equiv_Fin3 : S ≃ Fin 3 := by sorry
+
+
+noncomputable def rot_mat_inner_pre (ax: S2) (θ:ℝ) : SUM_BLOCKS :=
+  --def fromBlocks (A : Matrix n l α) (B : Matrix n m α) (C : Matrix o l α) (D : Matrix o m α) :
+  let blocks := fun i ↦ LinearMap.toMatrix (sm_bases ax i) (sm_bases ax i) ((rot_iso ax θ).restrict (hf ax i))
+
+  let B00 := blocks 0
+  let B01 := Matrix.of !![(0:ℝ); 0;]
+  let B10 := Matrix.of !![(0:ℝ), 0;]
+  let B11 := blocks 1
+
+
+lemma rot_mat_inner_pre_det (ax : S2) (θ: ℝ): (rot_mat_inner_pre ax θ).det = 1 := by
+  simp [rot_mat_inner_pre]
+
+
+  set A:= ((LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 0))) with adef
+  set B:= Matrix.of !![(0:ℝ);0] with bdef
+  set D:= ((LinearMap.toMatrix (sm_bases ax 1) (sm_bases ax 1)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 1))) with ddef
+  #check Matrix.det_fromBlocks₁₁
+  sorry
+  --rw [Matrix.det_fromBlocks_zero₂₁ A B D]
+
+  --rw [aeq, deq]
+
+
+
+noncomputable def rot_mat_inner (ax: S2) (θ:ℝ) : MAT :=
+  let M: SUM_BLOCKS := rot_mat_inner_pre ax θ
+  Matrix.reindex S_equiv_Fin3 S_equiv_Fin3 M
+
+
+lemma rot_mat_inner_is_special (ax : S2) (θ: ℝ): rot_mat_inner ax θ ∈ SO3 := by
     rw [Matrix.mem_specialOrthogonalGroup_iff]
     constructor
-    simp only [rot_mat]
-    exact OrthonormalBasis.toMatrix_orthonormalBasis_mem_unitary
-      (Basis3.map (rot_iso ax θ)) Basis3
-    ---
+    rw [Matrix.mem_orthogonalGroup_iff]
+    dsimp [rot_mat_inner]
+    rw [Matrix.transpose_submatrix]
 
-    let mats (T: ℝ):= rot_mat ax T
-    set M := mats θ with M_def
-    --let maps (T:ℝ):  R3 →L[ℝ] R3  := LinearMap.toContinuousLinearMap (Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T))
-    let maps (T:ℝ) := (Matrix.toLin Basis3.toBasis Basis3.toBasis (mats T))
+    dsimp [rot_mat_inner_pre]
 
 
-    have samedet: ∀ T:ℝ, (maps T).det = (mats T).det := by
-      simp [mats, maps]
-    rw [←samedet]
 
-    have unitdet_lm  (T: ℝ) : (maps T).det = 1 ∨ (maps T).det = -1 := by
-      rw [samedet]
-      simp [mats]
-      exact unitdet ax T
+    sorry
+    --
+    dsimp [rot_mat_inner]
+
+
+    rw [Matrix.det_submatrix_equiv_self S_equiv_Fin3.symm]
+
+
+    let A:= ((LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 0)))
+    let B:= 0
+    let D:= ((LinearMap.toMatrix (sm_bases ax 1) (sm_bases ax 1)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 1)))
+
+    rw [Matrix.det_fromBlocks_zero₂₁ A B D]
+
 
     sorry
 
+
+noncomputable def rot_mat (ax: S2) (θ:ℝ) : MAT := sorry
+
+lemma rot_mat_is_special (ax : S2) (θ: ℝ): rot_mat ax θ ∈ SO3 := by sorry
 
 
 
