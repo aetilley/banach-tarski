@@ -560,7 +560,20 @@ lemma triv_rot (ax: S2): rot ax 0 = 1 := by
   simp
 
 lemma rot_mat_inner_comp_add (ax: S2) (s t : ℝ): rot_mat_inner ax s * rot_mat_inner ax t = rot_mat_inner ax (s + t) := by
-  sorry
+  simp [rot_mat_inner]
+  constructor
+  constructor
+  rw [Real.cos_add]
+  ring
+  --
+  rw [Real.sin_add]
+  ring
+  --
+  constructor
+  rw [Real.sin_add]
+  --
+  rw [Real.cos_add]
+  ring
 
 
 lemma rot_mat_comp_add (ax: S2) (s t : ℝ): rot_mat ax s * rot_mat ax t = rot_mat ax (s + t) := by
