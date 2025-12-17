@@ -656,7 +656,6 @@ theorem orth_toMatrix_mulVec_repr (B C : OrthonormalBasis (Fin 3) ℝ R3 ) (f : 
 lemma inner_as_to_matrix (ax: S2): rot_mat_inner ax T =
   LinearMap.toMatrix (COB ax).toBasis (COB ax).toBasis (rot_iso ax T).toLinearMap := sorry
 
-abbrev btype:= Module.Basis (Fin 3) ℝ R3
 lemma same_thing(ax: S2) (S: Set R3) (s : R3) : rot ax T • s = (rot_iso ax T) s := by
   simp only [HSMul.hSMul, SMul.smul]
   simp [rot]
