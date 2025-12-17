@@ -30,57 +30,107 @@ lemma s2_nonzero (ax: S2) : ax ≠ (0:R3) := by
   rw [isz] at ax_prop
   simp at ax_prop
 
-
 noncomputable def ax_space (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)
 noncomputable def orth (ax: S2): Submodule ℝ R3 := (ℝ ∙ ax.val)ᗮ
-
-noncomputable def orth_B (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) := sorry
-  --OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
-
-noncomputable def ax_B (ax : S2): OrthonormalBasis (Fin 1) ℝ (ax_space ax) := sorry
-  -- (There's gotta be a better way.)
-  ----theorem mem_span_of_mem {s : Set M} {x : M} (hx : x ∈ s) : x ∈ span R s := subset_span hx
-  --have ismem: ax.val ∈ ax_space ax := by
-  --  apply Submodule.mem_span_of_mem
-  --  simp
-  --let gen: ax_space ax := ⟨ax, ismem⟩
-  --let v: Fin 1 → (ax_space ax) := ![gen]
-  --let hon: Orthonormal ℝ v := by
-  --  simp [Orthonormal]
-  --  simp [v]
-  --  simp [gen]
-
-  --let hsp: ⊤ ≤ Submodule.span ℝ (Set.range v) := by
-  --  simp [v]
-  --  simp [gen]
-  --  rw [←Submodule.span_setOf_mem_eq_top]
-  --  simp
-  --  apply congrArg
-  --  ext x
-  --  constructor
-  --  --
-  --  intro lhs
-  --  simp at lhs
-  --  rw [lhs]
-  --  rfl
-  --  --
-  --  intro lhs
-  --  change (↑x) = (ax.val) at lhs
-  --  simp
-  --  exact Subtype.ext lhs
-
-
-  --OrthonormalBasis.mk hon hsp
-
-noncomputable def plane_o (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (orth_B ax).toBasis.orientation
-
 instance  orth_dim_2 (ax: S2): Fact (Module.finrank ℝ (orth ax) = 2) := by
   apply fact_iff.mpr
   simp [orth]
   apply Submodule.finrank_orthogonal_span_singleton
   exact s2_nonzero ax
 
+def choice_set (ax :S2): Set (orth ax) := {x: (orth ax) | x ≠ 0}
 
+lemma orth_nonempty (ax: S2): ∃ y, y∈ (choice_set ax) := by
+  by_contra bad
+  simp at bad
+  simp [choice_set] at bad
+  have isbot_orth: (orth ax) = ⊥ := by exact (Submodule.eq_bot_iff (orth ax)).mpr bad
+  have istop_ax : (ax_space ax) = ⊤ := by
+    exact Submodule.orthogonal_eq_bot_iff.mp isbot_orth
+  simp [ax_space] at istop_ax
+  apply congrArg (fun S: (Submodule ℝ R3) ↦ Module.finrank ℝ S) at istop_ax
+  simp at istop_ax
+  set gen : Set R3 := {ax.val}
+  have : (Module.finrank ℝ  (Submodule.span ℝ gen)) ≤ gen.toFinset.card  := finrank_span_le_card gen
+  rw [istop_ax] at this
+  simp [gen] at this
+
+
+
+noncomputable def x_B_c (ax : S2): choice_set ax :=
+  ⟨Classical.choose (orth_nonempty ax), Classical.choose_spec (orth_nonempty ax)⟩
+
+noncomputable def x_B (ax : S2): (orth ax) :=
+  let nr:= 1/ ‖(x_B_c ax).val‖
+  nr • ((x_B_c ax).val)
+
+lemma x_B_nz (ax: S2) : (x_B ax) ≠ 0 := by
+  let nr:= 1/ ‖(x_B_c ax).val‖
+  change nr • (x_B_c ax).val ≠ 0
+  let prop := (x_B_c ax).property
+  simp only [choice_set] at prop
+  by_contra bad
+  simp at bad
+  rcases bad with c1 | c2
+  --
+  simp [nr] at c1
+  rw [c1] at prop
+  simp at prop
+
+  rw [c2] at prop
+  simp at prop
+
+
+
+-- Not sure if this is optimal, to get our rightAnglerotation basis below, we need
+-- an orientation, and to get an orientation we seem to need a basis.
+noncomputable def tmp_basis (ax : S2): OrthonormalBasis (Fin 2) ℝ (orth ax) :=
+  OrthonormalBasis.fromOrthogonalSpanSingleton 2 (by exact s2_nonzero ax)
+
+noncomputable def plane_o (ax: S2): Orientation ℝ (orth ax) (Fin 2) := (tmp_basis ax).toBasis.orientation
+
+
+noncomputable def orth_B (ax : S2): Module.Basis (Fin 2) ℝ (orth ax) :=
+  (plane_o ax).basisRightAngleRotation (x_B ax) (x_B_nz ax)
+
+noncomputable def ax_B (ax : S2): Module.Basis (Fin 1) ℝ (ax_space ax) :=
+  have ismem: ax.val ∈ ax_space ax := by
+    apply Submodule.mem_span_of_mem
+    simp
+  let gen: ax_space ax := ⟨ax, ismem⟩
+  let v: Fin 1 → (ax_space ax) := ![gen]
+  let hon: LinearIndependent ℝ v := by
+    simp
+    have :_:= ax.property
+    simp only [S2] at this
+    simp only [Metric.sphere] at this
+    simp [v]
+    simp [gen]
+    by_contra bad
+    rw [bad] at this
+    simp at this
+
+  let hsp: ⊤ ≤ Submodule.span ℝ (Set.range v) := by
+    simp [v]
+    simp [gen]
+    rw [←Submodule.span_setOf_mem_eq_top]
+    simp
+    apply congrArg
+    ext x
+    constructor
+    --
+    intro lhs
+    simp at lhs
+    rw [lhs]
+    rfl
+    --
+    intro lhs
+    change (↑x) = (ax.val) at lhs
+    simp
+    exact Subtype.ext lhs
+
+
+  Module.Basis.mk hon hsp
 
 noncomputable def rot_iso_plane_equiv (ax: S2) (θ:ℝ) : (orth ax) ≃ₗᵢ[ℝ] (orth ax)  := (plane_o ax).rotation θ
 noncomputable def rot_iso_plane_to_st (ax: S2) (θ:ℝ) : (orth ax) →ₗᵢ[ℝ] (orth ax)  :=
@@ -165,8 +215,18 @@ noncomputable def up (ax:S2) := (Submodule.subtypeₗᵢ (orth ax))
 lemma up_mem (ax: S2) (v: orth ax) : (up ax v) ∈ orth ax := by
   simp [up]
 
+
 lemma operp_up (ax:S2) (v : orth ax) : operp ax ((up ax) v)  = v := by
   simp [up, operp]
+
+
+lemma operp_up_2 (ax:S2) (v : orth ax) : operp ax (↑v)  = v := by
+  simp [operp]
+
+lemma spar_up_2 (ax: S2) (v: orth ax) : spar ax (↑v) = 0 := by
+  have : ↑v ∈ orth ax := by simp
+  exact spar_of_orth ax v this
+
 
 lemma spar_up_rot (ax: S2) (v: orth ax) : spar ax ((up ax) v) = 0 := by
   simp only [up]
@@ -299,6 +359,10 @@ instance  orth_dim_3 : Fact (Module.finrank ℝ R3 = 3) := by
 
 noncomputable def Basis3: OrthonormalBasis (Fin 3) ℝ R3 := EuclideanSpace.basisFun (Fin 3) ℝ
 
+----------------
+-- The following blockDiagonal results are unused.  I was hopeful that I could use this
+-- to show that my rot_mat below was correct but I'm having a hell of a time unpacking
+-- these the resulting block matrices.
 
 /-- If a linear map `f : M₁ → M₂` respects direct sum decompositions of `M₁` and `M₂`, then it has a
 block diagonal matrix with respect to bases compatible with the direct sum decompositions. -/
@@ -386,8 +450,8 @@ lemma internal_pr (ax: S2): DirectSum.IsInternal (submods ax):= by
 
 
 noncomputable def sm_bases (ax: S2) : (i : Fin 2) → (Module.Basis (mod_dim i) ℝ (submods ax i))
-| ⟨0, _⟩ => (orth_B ax).toBasis
-| ⟨1, _⟩ => (ax_B ax).toBasis
+| ⟨0, _⟩ => (orth_B ax)
+| ⟨1, _⟩ => (ax_B ax)
 
 
 lemma hf (ax: S2): ∀ i, Set.MapsTo (rot_iso ax θ).toLinearMap (submods ax i) (submods ax i) := by
@@ -440,6 +504,115 @@ lemma rot_mat_block_prop (ax: S2) (θ:ℝ): rot_mat_block_1 ax θ = rot_mat_bloc
   exact LinearMap.toMatrix_directSum_collectedBasis_eq_blockDiagonal'
     (internal_pr ax) (internal_pr ax) (sm_bases ax) (sm_bases ax) (hf ax)
 
+
+
+lemma block_1_lem (ax: S2) :
+  LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0) ((rot_iso ax θ).restrict (hf ax 0)) =
+  !![θ.cos, -θ.sin; θ.sin, θ.cos]  := by
+
+  have restr_lem: (rot_iso ax θ).restrict (hf ax 0) =
+    (rot_iso_plane_to_st ax θ).toLinearMap := by
+
+    apply LinearMap.ext
+    intro x
+    simp [submods] at x
+    simp [rot_iso_plane_to_st]
+    simp [rot_iso_plane_equiv]
+    simp [rot_iso]
+    rw [LinearMap.restrict_apply]
+    simp
+    simp [rot_by_parts]
+    simp [spar_up_2]
+    simp [rot_iso_plane_to_st]
+    simp [rot_iso_plane_equiv]
+    simp [up]
+    simp [operp_up_2]
+    rfl
+
+  rw [restr_lem]
+  simp [sm_bases]
+  simp [rot_iso_plane_to_st]
+  simp [rot_iso_plane_equiv]
+
+  let x: (orth ax) := x_B ax
+  have hx: x≠ 0 := x_B_nz ax
+
+  have inter:  ((plane_o ax).rotation θ).toLinearIsometry.toLinearMap =
+    Matrix.toLin
+      ((plane_o ax).basisRightAngleRotation x hx)
+      ((plane_o ax).basisRightAngleRotation x hx)
+      !![θ.cos, -θ.sin; θ.sin, θ.cos] := (plane_o ax).rotation_eq_matrix_toLin θ hx
+
+  have sameorth: (orth_B ax) = ((plane_o ax).basisRightAngleRotation x hx ) := by
+    simp [orth_B]
+    simp [x]
+
+  rw [sameorth]
+  rw [inter]
+  set B:= ((plane_o ax).basisRightAngleRotation x hx) with Bdef
+  set R:= !![Real.cos θ, -Real.sin θ; Real.sin θ, Real.cos θ]
+  exact LinearMap.toMatrix_toLin B B R
+
+lemma block_2_lem (ax: S2) :
+  LinearMap.toMatrix (sm_bases ax 1) (sm_bases ax 1) ((rot_iso ax θ).restrict (hf ax 1)) = !![1;] := by
+
+  have restr_lem: (rot_iso ax θ).restrict (hf ax 1) = 1 := by
+    apply LinearMap.ext
+    simp [submods]
+    intro x
+    intro px
+    rw [LinearMap.restrict_apply]
+    simp [rot_iso]
+    simp [rot_by_parts]
+    simp [up]
+    rw [spar_of_ax_space ax x px]
+    rw [operp_of_ax_space ax x px]
+    simp
+
+
+  rw [restr_lem]
+  simp [sm_bases]
+  ext i j
+  fin_cases i, j
+  simp
+
+------------
+
+lemma block_repr (ax: S2) (θ : ℝ) :
+   (LinearMap.toMatrix
+  ((internal_pr ax).collectedBasis (sm_bases ax))
+  ((internal_pr ax).collectedBasis (sm_bases ax)))
+  (rot_iso ax θ).toLinearMap
+  =
+  Matrix.blockDiagonal' (fun i ↦
+  match i with
+  | ⟨0, _⟩ =>  !![θ.cos, -θ.sin; θ.sin, θ.cos]
+  | ⟨1, _⟩ =>  !![1;]
+  ) := by
+  have :_:=rot_mat_block_prop (ax: S2) (θ:ℝ)
+  simp [rot_mat_block_1] at this
+  simp [rot_mat_block_2] at this
+  have eq_funs: (fun i ↦ (LinearMap.toMatrix (sm_bases ax i) (sm_bases ax i)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax i)))
+    = (fun i ↦ match i with
+      | ⟨0, _⟩ => (LinearMap.toMatrix (sm_bases ax 0) (sm_bases ax 0)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 0))
+      | ⟨1, _⟩ => (LinearMap.toMatrix (sm_bases ax 1) (sm_bases ax 1)) (((rot_iso ax θ).toLinearEquiv).restrict (hf ax 1))
+    ) := by
+    funext w
+    fin_cases w
+    simp
+    simp
+
+  rw [eq_funs] at this
+
+  rw [block_1_lem] at this
+  rw [block_2_lem] at this
+
+  exact this
+
+
+
+---------
+
 noncomputable def rot_mat_inner (ax: S2) (θ:ℝ) : MAT :=
     !![
       θ.cos, -θ.sin, 0;
@@ -489,6 +662,7 @@ lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) : rot_mat_inner ax θ ∈ SO3 :
 
 
 def COB (ax: S2) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
+
 noncomputable def COB_mat (ax: S2) : MAT := LinearMap.toMatrix Basis3.toBasis (COB ax).toBasis 1
 
 lemma cob_mat_other_repr (ax: S2): COB_mat ax = (COB ax).toBasis.toMatrix Basis3 := by
@@ -654,9 +828,15 @@ theorem orth_toMatrix_mulVec_repr (B C : OrthonormalBasis (Fin 3) ℝ R3 ) (f : 
 
 
 lemma inner_as_to_matrix (ax: S2): rot_mat_inner ax T =
-  LinearMap.toMatrix (COB ax).toBasis (COB ax).toBasis (rot_iso ax T).toLinearMap := sorry
+  LinearMap.toMatrix (COB ax).toBasis (COB ax).toBasis (rot_iso ax T).toLinearMap := by
+  apply Matrix.ext_of_mulVec_single
+  intro i
+  simp
+  sorry
+  --theorem LinearMap.toMatrix_apply (f : M₁ →ₗ[R] M₂) (i : m) (j : n) :
+  --  LinearMap.toMatrix v₁ v₂ f i j = v₂.repr (f (v₁ j)) i := by
 
-abbrev btype:= Module.Basis (Fin 3) ℝ R3
+
 lemma same_thing(ax: S2) (S: Set R3) (s : R3) : rot ax T • s = (rot_iso ax T) s := by
   simp only [HSMul.hSMul, SMul.smul]
   simp [rot]
