@@ -84,6 +84,10 @@ instance SO3_action_on_MAT: MulAction SO3 R3_raw where
 
 instance SO3_action_on_R3: MulAction SO3 R3 := inferInstance
 
+lemma SO3_smul_def (g : SO3) (v : R3) :
+  g • v = Matrix.mulVec (g : MAT) v := rfl
+
+
 
 def R3_mat_vec_mul (m: MAT) (v: R3) : R3 := WithLp.toLp 2 (Matrix.mulVec m v)
 def to_R3 (v: R3_raw) := WithLp.toLp 2 v
