@@ -489,9 +489,9 @@ lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) : rot_mat_inner ax θ ∈ SO3 :
 
 
 def COB (ax: S2) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
-noncomputable def COB_mat (ax: S2) : MAT := LinearMap.toMatrix Basis3.toBasis (COB ax).toBasis (1)
+noncomputable def COB_mat (ax: S2) : MAT := LinearMap.toMatrix Basis3.toBasis (COB ax).toBasis 1
 
-lemma cob_mat_other_repr (ax: S2): COB_mat ax = (COB ax).toBasis.toMatrix Basis3.toBasis := by
+lemma cob_mat_other_repr (ax: S2): COB_mat ax = (COB ax).toBasis.toMatrix Basis3 := by
   simp [COB_mat]
   exact LinearMap.toMatrix_id_eq_basis_toMatrix Basis3.toBasis (COB ax).toBasis
 
@@ -530,8 +530,8 @@ lemma rot_mat_is_special(ax: S2) (θ:ℝ) : rot_mat ax θ ∈ SO3 := by
     have:  (COB_mat ax).det = 1 ∨ (COB_mat ax).det = -1 := by
       rw [cob_mat_other_repr]
       rw [←Module.Basis.det_apply]
-      have detlem: Basis3.toBasis.det (COB ax)  = (1:ℝ) ∨ Basis3.toBasis.det (COB ax)   = (-1:ℝ) :=
-        OrthonormalBasis.det_to_matrix_orthonormalBasis_real Basis3 (COB ax)
+      have detlem: (COB ax).toBasis.det Basis3.toBasis  = (1:ℝ) ∨ (COB ax).toBasis.det Basis3.toBasis   = (-1:ℝ) :=
+        OrthonormalBasis.det_to_matrix_orthonormalBasis_real (COB ax) Basis3
       exact detlem
     by_contra eqz
     rw [eqz] at this
@@ -651,23 +651,19 @@ theorem orth_toMatrix_mulVec_repr (B C : OrthonormalBasis (Fin 3) ℝ R3 ) (f : 
 lemma inner_as_to_matrix (ax: S2): rot_mat_inner ax T =
   LinearMap.toMatrix (COB ax).toBasis (COB ax).toBasis (rot_iso ax T).toLinearMap := sorry
 
+abbrev btype:= Module.Basis (Fin 3) ℝ R3
 lemma same_thing(ax: S2) (S: Set R3) (s : R3) : rot ax T • s = (rot_iso ax T) s := by
   simp only [HSMul.hSMul, SMul.smul]
   simp [rot]
-  --set ss := s.ofLp with ssdef
-  --have : s = to_R3 ss := by
-  --  simp [to_R3]
-  --  rw [ssdef]
-  --rw [this]
+
   simp [rot_mat]
   rw [←Matrix.mulVec_mulVec]
   rw [←Matrix.mulVec_mulVec]
 
-  set srs := Basis3.repr.symm s  with srs_def
   simp [COB_mat]
-  have sreprof: s = Basis3.repr srs := by
-    rw [srs_def]
-    simp
+  have sreprof: s = Basis3.repr s := by
+    simp [Basis3]
+    rfl
 
   rw [sreprof]
   rw [←mul_assoc ((LinearMap.toMatrix Basis3.toBasis (COB ax).toBasis) 1)⁻¹]
@@ -682,12 +678,31 @@ lemma same_thing(ax: S2) (S: Set R3) (s : R3) : rot ax T • s = (rot_iso ax T) 
   rw [orth_toMatrix_mulVec_repr  (COB ax) (COB ax)  (rot_iso ax T).toLinearMap ]
   simp
 
+
   have : ((LinearMap.toMatrix Basis3.toBasis (COB ax).toBasis) 1)⁻¹ =
   (LinearMap.toMatrix (COB ax).toBasis Basis3.toBasis 1) := by
+
+    have :  (LinearMap.id: (R3 →ₗ[ℝ] R3)) = 1 := rfl
+    rw [←this]
+    rw [LinearMap.toMatrix_id_eq_basis_toMatrix Basis3.toBasis (COB ax).toBasis]
+    rw [LinearMap.toMatrix_id_eq_basis_toMatrix (COB ax).toBasis Basis3.toBasis]
+
+    have := Module.Basis.invertibleToMatrix (COB ax).toBasis Basis3.toBasis
     symm
+    set M12 := (Basis3.toBasis.toMatrix (COB ax).toBasis )  with M12def
+    set M21 := ((COB ax).toBasis.toMatrix Basis3.toBasis)  with M21def
 
-
-
+    rw [←mul_one M12]
+    have idd: 1 = M21 * M21⁻¹  := by
+      simp
+    rw [idd]
+    rw [←mul_assoc]
+    nth_rewrite 2 [←one_mul M21⁻¹]
+    apply congrArg (fun x ↦ x * M21⁻¹)
+    rw [M12def, M21def]
+    set B1 := Basis3.toBasis
+    set B2 := (COB ax).toBasis
+    rw [Module.Basis.toMatrix_mul_toMatrix_flip]
 
   rw [this]
 
