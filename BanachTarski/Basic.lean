@@ -10,6 +10,7 @@ import Mathlib.SetTheory.Cardinal.Basic
 
 import BanachTarski.Common
 import BanachTarski.Sato
+import BanachTarski.FixedPointLemma
 import BanachTarski.GeometricUtils
 
 
@@ -2157,9 +2158,10 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
       by_contra imnotinD
       exact bad ⟨im_in_s2, imnotinD⟩
     have dfining:  ∃h∈SATO_sub_1, h • im = im := by
-      simp [D] at im_in_D
-      obtain ⟨a, ainso3, pair_in_ss1 , pa⟩ := im_in_D.right
-      use ⟨a, ainso3 ⟩
+      simp only [D, Set.mem_iUnion] at im_in_D
+      obtain ⟨h, h_in_sub, h_fixes⟩ := im_in_D
+      use h, h_in_sub
+      exact h_fixes.right
 
 
     --have imdeffull := im = g • x
@@ -2202,9 +2204,9 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
       constructor
       exact xinS2mD.left
       use h'
+      constructor
       use h'.val.prop
       simp
-      constructor
       simp [SATO_sub_1]
       exact hpno
       exact also
@@ -2235,14 +2237,14 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
       constructor
       · exact gp.left.left
       · use g
-        use by simp
         constructor
+        have :_:=g.val.prop
+        use this
         simp
         constructor
         exact g_prop
         simp [gnotone]
         exact gp.right.right
-
 
     exact gp.left.right fp_in_D
 

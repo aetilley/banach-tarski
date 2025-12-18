@@ -69,8 +69,7 @@ lemma s2_uncountable: Uncountable (S2) := by
 lemma lb_card_s2 : Cardinal.aleph0 < Cardinal.mk S2 := Cardinal.aleph0_lt_mk_iff.mpr s2_uncountable
 
 ----
-lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
---------
+
 
 
 abbrev MAT1 := Matrix (Fin 3) (Fin 1) ℝ
@@ -177,19 +176,6 @@ lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := by
   simp [f]
   rw [so3_fixes_norm g]
   exact lhs1
-
-
-noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
-lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
-  intro nonz
-  simp [normed, S2]
-  rw [norm_smul]
-  simp
-  have _ :Invertible ‖v‖ := by
-    apply invertibleOfNonzero
-    exact mt norm_eq_zero.mp nonz
-  apply inv_mul_cancel_of_invertible
-
 
 
 ------------------
