@@ -17,7 +17,13 @@ set_option warningAsError false
 set_option linter.all false
 
 set_option maxHeartbeats 2000000
-
+#check Module.End.hasEigenvalue_iff
+#check Module.End.mem_eigenspace_iff
+-- Need 1 ) Det is product of eigenvalues
+-- 2) All eigenvalues are norm 1 (easy)
+-- 3) 1 only appears w/ mult 1
+-- 4) dim of eigenspace is mult of eigenvalue
+--
 instance  R3_dim_3: Fact (Module.finrank ℝ R3 = 2 + 1) := by
   simp
   trivial

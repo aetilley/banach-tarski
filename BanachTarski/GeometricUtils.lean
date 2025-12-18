@@ -69,6 +69,18 @@ lemma s2_uncountable: Uncountable (S2) := by
 lemma lb_card_s2 : Cardinal.aleph0 < Cardinal.mk S2 := Cardinal.aleph0_lt_mk_iff.mpr s2_uncountable
 
 ----
+
+#check Module.End.hasEigenvalue_iff
+#check Module.End.mem_eigenspace_iff
+-- Need 1 ) Det is product of eigenvalues
+-- 2) All eigenvalues are norm 1 (easy)
+-- 3) 1 only appears w/ mult 1
+-- 4) dim of eigenspace is mult of eigenvalue
+
+lemma det_as_prod (g: SO3): g.det = (Matrix.charpoly g).roots.prod  := by
+  apply Matrix.det_eq_prod_roots_charpoly_of_splits
+
+
 lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
 --------
 
