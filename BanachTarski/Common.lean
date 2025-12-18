@@ -108,3 +108,14 @@ lemma wopts: ∀ w : (Fin 2 × Bool), (w= (0, true) ∨ w = (0, false) ∨ w = (
   right
   right
   simp
+
+noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
+lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
+  intro nonz
+  simp [normed, S2]
+  rw [norm_smul]
+  simp
+  have _ :Invertible ‖v‖ := by
+    apply invertibleOfNonzero
+    exact mt norm_eq_zero.mp nonz
+  apply inv_mul_cancel_of_invertible
