@@ -10,6 +10,7 @@ import Mathlib.SetTheory.Cardinal.Basic
 
 import BanachTarski.Common
 import BanachTarski.Sato
+import BanachTarski.FixedPointLemma
 import BanachTarski.GeometricUtils
 
 
