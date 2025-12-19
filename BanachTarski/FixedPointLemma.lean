@@ -1,19 +1,16 @@
 import Mathlib
+import Mathlib.LinearAlgebra.Complex.Module
+
 import BanachTarski.Common
 
 
 set_option linter.all false
 
-#check Module.End.hasEigenvalue_iff
-#check Module.End.mem_eigenspace_iff
--- Need 1 ) Det is product of eigenvalues
--- 2) All eigenvalues are norm 1 (easy)
--- 3) 1 only appears w/ mult 1
--- 4) dim of eigenspace is mult of eigenvalue
-#check Matrix.mem_spectrum_of_isRoot_charpoly
-#check Matrix.charpoly_degree_eq_dim
 
 noncomputable def as_complex (M: MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMap ℝ ℂ).mapMatrix M
+
+noncomputable def cpoly (g: SO3) := Matrix.charpoly (as_complex g.val)
+
 
 lemma det_as_prod (g: SO3): (Matrix.charpoly (as_complex g.val)).roots.prod = 1 := by
   have l1:(as_complex (g.val)).det = (Matrix.charpoly (as_complex g.val)).roots.prod  := by
@@ -28,10 +25,47 @@ lemma det_as_prod (g: SO3): (Matrix.charpoly (as_complex g.val)).roots.prod = 1 
 
   exact Eq.trans l1.symm l4
 
-lemma charpoly_deg_3 (g: SO3): (Matrix.charpoly (as_complex g.val)).degree = 3 := by
-  rw [Matrix.charpoly_degree_eq_dim]
-  simp
+lemma charpoly_deg_3 (g: SO3): (cpoly g).degree = 3 := by
+  simp [cpoly]
 
+
+lemma charpoly_natdeg_3 (g: SO3): (cpoly g).natDegree = 3 := by
+  simp [cpoly]
+
+
+#check Matrix.mem_spectrum_of_isRoot_charpoly
+lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := sorry
+
+
+open ComplexConjugate
+def CONJ : ℂ →+* ℂ := conj
+lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
+  have l0: cpoly g = (cpoly g).map CONJ := sorry
+  have l1: (cpoly g).roots = ((cpoly g).map CONJ).roots := by nth_rewrite 1 [l0]; rfl
+  have l2: (cpoly g).roots.map CONJ = ((cpoly g).map CONJ).roots  := by
+    have deglem :_:= charpoly_natdeg_3 g
+    apply Polynomial.roots_map_of_map_ne_zero_of_card_eq_natDegree
+    --
+    simp
+    by_contra bad
+    rw [bad] at deglem
+    simp at deglem
+    --
+    rw [deglem]
+    sorry
+
+
+
+
+
+
+
+
+
+
+
+
+---------
 def kermap_raw (g: SO3) : R3_raw →ₗ[ℝ] R3_raw := Matrix.toLin' (g.val - 1)
 
 noncomputable def ofLp_linear : R3 →ₗ[ℝ] R3_raw := (WithLp.linearEquiv 2 ℝ R3_raw).toLinearMap
@@ -119,11 +153,11 @@ lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 :
     rw [prop]
     rfl
 
-  have conj:  el_normed ∈ S2 ∧ g • el_normed = el_normed := ⟨el_normed_in_s2, el_normed_fixed⟩
-  have conj_neg:  el_normed_neg ∈ S2 ∧ g • el_normed_neg = el_normed_neg :=
+  have cconj:  el_normed ∈ S2 ∧ g • el_normed = el_normed := ⟨el_normed_in_s2, el_normed_fixed⟩
+  have cconj_neg:  el_normed_neg ∈ S2 ∧ g • el_normed_neg = el_normed_neg :=
     ⟨el_normed_neg_in_s2, el_normed_neg_fixed⟩
-  let F: {x | x ∈ S2 ∧ g • x = x} := ⟨el_normed, conj⟩
-  let Fneg: {x | x ∈ S2 ∧ g • x = x} := ⟨el_normed_neg, conj_neg⟩
+  let F: {x | x ∈ S2 ∧ g • x = x} := ⟨el_normed, cconj⟩
+  let Fneg: {x | x ∈ S2 ∧ g • x = x} := ⟨el_normed_neg, cconj_neg⟩
   use F, Fneg
   constructor
   ---
