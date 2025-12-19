@@ -51,8 +51,8 @@ lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
     rw [bad] at deglem
     simp at deglem
     --
-    rw [deglem]
-    sorry
+    apply IsAlgClosed.card_roots_eq_natDegree
+
   exact Eq.trans l1 l2.symm
 
 
