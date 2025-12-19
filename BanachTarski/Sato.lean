@@ -1277,3 +1277,13 @@ theorem to_sato_is_bijective: Function.Bijective to_sato := ⟨to_sato_is_inject
 noncomputable def iso_forward_equiv := Equiv.ofBijective to_sato to_sato_is_bijective
 
 noncomputable def sato_fg3_iso: FG2 ≃* SATO := MulEquiv.mk' iso_forward_equiv to_sato.map_mul'
+
+-- First, define the SMul instance for SATO
+instance SATO_smul_R3 : SMul SATO R3 where
+  smul g x := (g : SO3) • x
+
+
+instance SATO_action_on_R3: MulAction SATO R3 := inferInstance
+
+lemma SATO_smul_def (g : SATO) (v : R3) :
+  g • v = to_R3 (Matrix.mulVec (g.val : MAT) v.ofLp) := rfl

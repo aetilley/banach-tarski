@@ -70,19 +70,6 @@ lemma lb_card_s2 : Cardinal.aleph0 < Cardinal.mk S2 := Cardinal.aleph0_lt_mk_iff
 
 ----
 
-#check Module.End.hasEigenvalue_iff
-#check Module.End.mem_eigenspace_iff
--- Need 1 ) Det is product of eigenvalues
--- 2) All eigenvalues are norm 1 (easy)
--- 3) 1 only appears w/ mult 1
--- 4) dim of eigenspace is mult of eigenvalue
-
-lemma det_as_prod (g: SO3): g.det = (Matrix.charpoly g).roots.prod  := by
-  apply Matrix.det_eq_prod_roots_charpoly_of_splits
-
-
-lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := sorry
---------
 
 
 abbrev MAT1 := Matrix (Fin 3) (Fin 1) ℝ
@@ -189,19 +176,6 @@ lemma so3_fixes_s2: ∀g : SO3, (f g) '' S2 ⊆ S2 := by
   simp [f]
   rw [so3_fixes_norm g]
   exact lhs1
-
-
-noncomputable def normed:  R3 → R3 := fun x ↦ (1 / ‖x‖) • x
-lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
-  intro nonz
-  simp [normed, S2]
-  rw [norm_smul]
-  simp
-  have _ :Invertible ‖v‖ := by
-    apply invertibleOfNonzero
-    exact mt norm_eq_zero.mp nonz
-  apply inv_mul_cancel_of_invertible
-
 
 
 ------------------
