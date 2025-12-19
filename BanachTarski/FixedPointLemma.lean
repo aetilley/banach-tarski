@@ -53,14 +53,7 @@ lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
     --
     rw [deglem]
     sorry
-
-
-
-
-
-
-
-
+  exact Eq.trans l1 l2.symm
 
 
 
