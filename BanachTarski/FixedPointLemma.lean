@@ -33,14 +33,26 @@ lemma charpoly_natdeg_3 (g: SO3): (cpoly g).natDegree = 3 := by
   simp [cpoly]
 
 
+lemma num_roots_eq_deg (g: SO3): (cpoly g).roots.card = (cpoly g).natDegree := by
+  apply IsAlgClosed.card_roots_eq_natDegree
+
+lemma num_roots_eq_3 (g: SO3): (cpoly g).roots.card = 3 := by
+  rw [num_roots_eq_deg]
+  exact charpoly_natdeg_3 g
+
+
 #check Matrix.mem_spectrum_of_isRoot_charpoly
 lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := sorry
 
-
 open ComplexConjugate
 def CONJ : ℂ →+* ℂ := conj
+
 lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
-  have l0: cpoly g = (cpoly g).map CONJ := sorry
+  have l0: cpoly g = (cpoly g).map CONJ := by
+    ext i
+    simp
+    sorry
+
   have l1: (cpoly g).roots = ((cpoly g).map CONJ).roots := by nth_rewrite 1 [l0]; rfl
   have l2: (cpoly g).roots.map CONJ = ((cpoly g).map CONJ).roots  := by
     have deglem :_:= charpoly_natdeg_3 g
@@ -51,9 +63,80 @@ lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
     rw [bad] at deglem
     simp at deglem
     --
-    apply IsAlgClosed.card_roots_eq_natDegree
+    exact num_roots_eq_deg g
 
   exact Eq.trans l1 l2.symm
+
+lemma conj_roots_2 (g: SO3) (z : ℂ): z ∈ (cpoly g).roots → conj z ∈ (cpoly g).roots := sorry
+
+lemma idlem (g: SO3): Multiset.count 1 (cpoly g).roots = 3 → g = 1 := sorry
+
+-- noncomputable def x_B_c (ax : S2): choice_set ax :=
+--   ⟨Classical.choose (orth_nonempty ax), Classical.choose_spec (orth_nonempty ax)⟩
+
+lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
+  intro gnotone
+  let count := (cpoly g).roots.count 1
+  have count_le_card : count ≤ 3 := by
+    rw [←num_roots_eq_3]
+    apply Multiset.count_le_card
+
+  by_contra bad
+  rcases (em (count = 3)) with (eq3 | neq3)
+  · exact gnotone ((idlem g) eq3)
+  rcases em (-1 ∈ (cpoly g).roots) with has_m1 | no_m1
+  sorry
+
+
+  let cset := {x:ℂ | x ∈ (cpoly g).roots  ∧ x ≠ 1 }
+  have ne : ∃ z, z ∈ cset := sorry
+  set c := Classical.choose ne
+  have cspec := Classical.choose_spec ne
+  change c ∈ cset at cspec
+  simp only [cset] at cspec
+  have :_:= conj_roots_2 g c (cspec.left)
+
+
+
+
+
+  --have l1 : count ≠ 1 := by exact bad
+  --have l3 : count ≠ 3 := by
+  --  by_contra eq3
+
+  --have l0 : count ≠ 0 := by
+  --  by_contra bad
+  --  --def choice_set (ax :S2): Set (orth ax) := {x: (orth ax) | x ≠ 0}
+
+
+
+
+
+
+
+  --have l2 : count ≠ 2 := sorry
+  --omega
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma spec_lem_2 (g: SO3) : g ≠1 → ∃z:ℂ, z ≠ 1 ∧ (cpoly g).roots = {1, z, conj z} := sorry
+
+
+
 
 
 
