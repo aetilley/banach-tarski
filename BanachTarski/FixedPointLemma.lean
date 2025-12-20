@@ -53,6 +53,11 @@ lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := sorr
 open ComplexConjugate
 def CONJ : ℂ →+* ℂ := conj
 
+lemma flem (g: SO3): z ∈ (cpoly g).roots  → z = CONJ z → (z = 1 ∨ z = -1) := sorry
+lemma flem2 (g: SO3): z ∈ (cpoly g).roots  → (z ≠ 1 ∧ z ≠ -1) → (z ≠ CONJ z) := sorry
+
+
+
 lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
   have l0: cpoly g = (cpoly g).map CONJ := by
     ext i
@@ -86,10 +91,18 @@ lemma conj_roots_3 (g: SO3) (z : ℂ):
   (cpoly g).roots.count z = (cpoly g).roots.count (CONJ z) := by
   sorry
 
-lemma idlem (g: SO3): Multiset.count 1 (cpoly g).roots = 3 → g = 1 := sorry
+lemma conj_mul_roots (g: SO3) : z ∈ (cpoly g).roots → z * CONJ z = 1 := sorry
 
+lemma idlem (g: SO3):  (cpoly g).roots.count 1= 3 → g = 1 := sorry
+
+lemma tight_space_lemma (g: SO3) :
+  ((cpoly g).roots.count 1 ) + ((cpoly g).roots.count (-1))  ≥ 2
+  →
+  ∀w ∈ (cpoly g).roots, w = 1 ∨ w = -1 := sorry
 
 lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
+
+
   intro gnotone
   let count := (cpoly g).roots.count 1
   have count_le_card : count ≤ 3 := by
@@ -144,14 +157,48 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
   have mnottwo: mcount ≠ 2 := by
     by_contra mistwo
     have contrabad: ((cpoly g).roots.count 1) = 1 := by
+      have : ∀w ∈ (cpoly g).roots, w = 1 ∨ w = -1 := by
+        apply tight_space_lemma g
+        simp only [mcount] at mistwo
+        rw [mistwo]
+        simp
+      by_contra notone
       sorry
-
     exact bad contrabad
     --
   have mnotone: mcount ≠ 1 := by
     by_contra misone
-    have negdet: (cpoly g).roots.prod = -1 := sorry
-    rw [det_as_prod g] at negdet
+    have negdet: (cpoly g).roots.prod = -1 := by
+      rcases (em ((cpoly g).roots.count 1 ≥ 1)) with d1 | d2
+      have : ∀w ∈ (cpoly g).roots, w = 1 ∨ w = -1 := by
+        apply tight_space_lemma g
+        simp only [mcount] at misone
+        rw [misone]
+        simp
+        simp at d1
+        exact d1
+      have form : (cpoly g).roots = Multiset.ofList [-1, 1, 1] := sorry
+      rw [form]
+      simp
+      --
+      have this: Multiset.count 1 (cpoly g).roots  = 0:= by
+        linarith
+      let cset := {x:ℂ | x ∈ (cpoly g).roots  ∧ (x ≠ 1  ∧ x ≠ -1)}
+      have ne : ∃ z, z ∈ cset := sorry
+      set c := Classical.choose ne
+      have cspec := Classical.choose_spec ne
+      change c ∈ cset at cspec
+      simp only [cset] at cspec
+      have :_:= flem2 g cspec.left cspec.right
+      have form : (cpoly g).roots = Multiset.ofList [-1, c, CONJ c] := sorry
+      rw [form]
+      simp
+      apply conj_mul_roots
+      exact cspec.left
+
+
+
+
     norm_num at negdet
   have no_min_one: mcount = 0 := by
     omega
