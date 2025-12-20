@@ -195,11 +195,9 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
       simp
       apply conj_mul_roots
       exact cspec.left
-
-
-
-
+    rw [det_as_prod g] at negdet
     norm_num at negdet
+
   have no_min_one: mcount = 0 := by
     omega
 
