@@ -44,6 +44,8 @@ lemma num_roots_eq_3 (g: SO3): (cpoly g).roots.card = 3 := by
   exact charpoly_natdeg_3 g
 
 
+
+
 #check Matrix.mem_spectrum_of_isRoot_charpoly
 lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := sorry
 #check Complex.mul_conj
@@ -106,13 +108,44 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
     rw [←num_roots_eq_3]
     apply Multiset.count_le_card
   rcases (em (mcount = 3)) with (meq3 | mneq3)
-  have : (cpoly g).roots.prod = -1 := sorry
+  have : (cpoly g).roots.prod = -1 := by
+    have const: (cpoly g).roots = Multiset.ofList [-1,-1,-1] := by
+      have that:mcount = (cpoly g).roots.card := by
+        rwa [num_roots_eq_3]
+      have :_:=  Multiset.count_eq_card.mp that
+      apply Multiset.ext.mpr
+      intro a
+      rcases (em (a ∈ (cpoly g).roots)) with isroot | notroot
+      have is_m1 :_ := this a isroot
+      rw [←is_m1]
+      simp [mcount] at meq3
+      simp
+      exact meq3
+      have : Multiset.count a (cpoly g).roots = 0 := Multiset.count_eq_zero.mpr notroot
+      rw [this]
+      simp
+      symm
+      apply List.count_eq_zero.mpr
+      by_contra inconst
+      simp at inconst
+      rw [inconst] at notroot
+      have :_ :=Multiset.count_eq_zero.mpr notroot
+      simp only [mcount] at meq3
+      rw [this] at meq3
+      norm_num at meq3
+
+
+    rw [const]
+    simp
+
   rw [det_as_prod g] at this
   norm_num at this
   --
   have mnottwo: mcount ≠ 2 := by
     by_contra mistwo
-    have contrabad: ((cpoly g).roots.count 1) = 1 := sorry
+    have contrabad: ((cpoly g).roots.count 1) = 1 := by
+      sorry
+
     exact bad contrabad
     --
   have mnotone: mcount ≠ 1 := by
@@ -132,6 +165,9 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
   have conjtoo:_:= conj_roots_2 g c (cspec.left)
   have conjdiff_c : CONJ c ≠ c := sorry
   have conjdiff_one : CONJ c ≠ 1 := sorry
+  have mult_conj : (cpoly g).roots.count c = 1 := sorry
+  have mult_conj : (cpoly g).roots.count (CONJ c) = 1 := sorry
+
 
   have countnot2: count ≠ 2 := by
     by_contra countistwo
@@ -147,7 +183,44 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
     exact conjdiff_c c2
 
   have countnot0: count ≠ 0 := by
-    sorry
+    by_contra countiszero
+    let cset2 := {x:ℂ | x ∈ (cpoly g).roots  ∧ x ≠ 1  ∧ x ≠ -1 ∧ x ≠ c}
+    have ne2 : ∃ z, z ∈ cset2 := sorry
+    set c2 := Classical.choose ne2
+    have cspec2 := Classical.choose_spec ne2
+    change c2 ∈ cset2 at cspec2
+    simp only [cset2] at cspec2
+    have conjtoo:_:= conj_roots_2 g c2 (cspec2.left)
+    let big:= Multiset.ofList [c, CONJ c, c2, CONJ c2]
+    have bigsub : big ≤ (cpoly g).roots := by
+      sorry
+    have card_bound: big.card ≤ (cpoly g).roots.card  := by
+      apply Multiset.card_le_card
+      simp [bigsub]
+    have : 4 ≤ (cpoly g).roots.card  := by
+      simp [big] at card_bound
+      exact card_bound
+    linarith [this, (num_roots_eq_3 g)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -156,28 +229,6 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
 
   omega
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  sorry
-
-
-  sorry
 
 
 
