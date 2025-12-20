@@ -11,9 +11,12 @@ noncomputable def as_complex (M: MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMa
 
 noncomputable def cpoly (g: SO3) := Matrix.charpoly (as_complex g.val)
 
+lemma cpoly_coef_real (g: SO3) : ∀i: ℕ, ∃x: ℝ, x = (cpoly g).coeff i := by sorry
 
-lemma det_as_prod (g: SO3): (Matrix.charpoly (as_complex g.val)).roots.prod = 1 := by
-  have l1:(as_complex (g.val)).det = (Matrix.charpoly (as_complex g.val)).roots.prod  := by
+
+
+lemma det_as_prod (g: SO3): (cpoly g).roots.prod = 1 := by
+  have l1:(as_complex (g.val)).det = (cpoly g).roots.prod  := by
     apply Matrix.det_eq_prod_roots_charpoly
   have l3: (g.val).det = 1 := by
     exact (Matrix.mem_specialOrthogonalGroup_iff.mp g.property).right
@@ -43,6 +46,7 @@ lemma num_roots_eq_3 (g: SO3): (cpoly g).roots.card = 3 := by
 
 #check Matrix.mem_spectrum_of_isRoot_charpoly
 lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := sorry
+#check Complex.mul_conj
 
 open ComplexConjugate
 def CONJ : ℂ →+* ℂ := conj
@@ -51,7 +55,9 @@ lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
   have l0: cpoly g = (cpoly g).map CONJ := by
     ext i
     simp
-    sorry
+    obtain ⟨x, px⟩ := cpoly_coef_real g i
+    rw [←px]
+    simp [CONJ]
 
   have l1: (cpoly g).roots = ((cpoly g).map CONJ).roots := by nth_rewrite 1 [l0]; rfl
   have l2: (cpoly g).roots.map CONJ = ((cpoly g).map CONJ).roots  := by
@@ -67,12 +73,19 @@ lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
 
   exact Eq.trans l1 l2.symm
 
-lemma conj_roots_2 (g: SO3) (z : ℂ): z ∈ (cpoly g).roots → conj z ∈ (cpoly g).roots := sorry
+lemma conj_roots_2 (g: SO3) (z : ℂ): z ∈ (cpoly g).roots → CONJ z ∈ (cpoly g).roots := by
+  intro lhs
+  have so :CONJ z ∈(cpoly g).roots.map CONJ := by
+    apply Multiset.mem_map.mpr
+    use z
+  rwa [conj_roots]
+
+lemma conj_roots_3 (g: SO3) (z : ℂ):
+  (cpoly g).roots.count z = (cpoly g).roots.count (CONJ z) := by
+  sorry
 
 lemma idlem (g: SO3): Multiset.count 1 (cpoly g).roots = 3 → g = 1 := sorry
 
--- noncomputable def x_B_c (ax : S2): choice_set ax :=
---   ⟨Classical.choose (orth_nonempty ax), Classical.choose_spec (orth_nonempty ax)⟩
 
 lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
   intro gnotone
@@ -84,9 +97,31 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
   by_contra bad
   rcases (em (count = 3)) with (eq3 | neq3)
   · exact gnotone ((idlem g) eq3)
-  rcases em (-1 ∈ (cpoly g).roots) with has_m1 | no_m1
-  sorry
-
+  have count_ne1: count ≠ 1 := by
+    by_contra countone
+    simp only [count] at countone
+    exact bad countone
+  let mcount := (cpoly g).roots.count (-1)
+  have mcount_le_card : (mcount ≤ 3) := by
+    rw [←num_roots_eq_3]
+    apply Multiset.count_le_card
+  rcases (em (mcount = 3)) with (meq3 | mneq3)
+  have : (cpoly g).roots.prod = -1 := sorry
+  rw [det_as_prod g] at this
+  norm_num at this
+  --
+  have mnottwo: mcount ≠ 2 := by
+    by_contra mistwo
+    have contrabad: ((cpoly g).roots.count 1) = 1 := sorry
+    exact bad contrabad
+    --
+  have mnotone: mcount ≠ 1 := by
+    by_contra misone
+    have negdet: (cpoly g).roots.prod = -1 := sorry
+    rw [det_as_prod g] at negdet
+    norm_num at negdet
+  have no_min_one: mcount = 0 := by
+    omega
 
   let cset := {x:ℂ | x ∈ (cpoly g).roots  ∧ x ≠ 1 }
   have ne : ∃ z, z ∈ cset := sorry
@@ -94,38 +129,32 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
   have cspec := Classical.choose_spec ne
   change c ∈ cset at cspec
   simp only [cset] at cspec
-  have :_:= conj_roots_2 g c (cspec.left)
+  have conjtoo:_:= conj_roots_2 g c (cspec.left)
+  have conjdiff_c : CONJ c ≠ c := sorry
+  have conjdiff_one : CONJ c ≠ 1 := sorry
 
+  have countnot2: count ≠ 2 := by
+    by_contra countistwo
+    have ids: (cpoly g).roots = Multiset.ofList [1, 1, c] := sorry
+    have another: CONJ c ∈ (cpoly g).roots := by
+      apply conj_roots_2
+      rw [ids]
+      simp
+    rw [ids] at another
+    simp at another
+    rcases  another with c1 | c2
+    exact conjdiff_one c1
+    exact conjdiff_c c2
 
-
-
-
-  --have l1 : count ≠ 1 := by exact bad
-  --have l3 : count ≠ 3 := by
-  --  by_contra eq3
-
-  --have l0 : count ≠ 0 := by
-  --  by_contra bad
-  --  --def choice_set (ax :S2): Set (orth ax) := {x: (orth ax) | x ≠ 0}
-
-
-
-
-
-
-
-  --have l2 : count ≠ 2 := sorry
-  --omega
-
-
-
+  have countnot0: count ≠ 0 := by
+    sorry
 
 
 
 
 
 
-
+  omega
 
 
 
@@ -133,8 +162,22 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
 
 
 
-lemma spec_lem_2 (g: SO3) : g ≠1 → ∃z:ℂ, z ≠ 1 ∧ (cpoly g).roots = {1, z, conj z} := sorry
 
+
+
+
+
+
+
+
+
+
+
+
+  sorry
+
+
+  sorry
 
 
 
