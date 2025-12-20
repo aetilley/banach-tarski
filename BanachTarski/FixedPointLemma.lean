@@ -201,31 +201,51 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
   have no_min_one: mcount = 0 := by
     omega
 
-  let cset := {x:ℂ | x ∈ (cpoly g).roots  ∧ x ≠ 1 }
+  let cset := {x:ℂ | x ∈ (cpoly g).roots  ∧ x ≠ 1 ∧ x ≠ -1}
   have ne : ∃ z, z ∈ cset := sorry
   set c := Classical.choose ne
   have cspec := Classical.choose_spec ne
   change c ∈ cset at cspec
   simp only [cset] at cspec
   have conjtoo:_:= conj_roots_2 g c (cspec.left)
-  have conjdiff_c : CONJ c ≠ c := sorry
-  have conjdiff_one : CONJ c ≠ 1 := sorry
-  have mult_conj : (cpoly g).roots.count c = 1 := sorry
-  have mult_conj : (cpoly g).roots.count (CONJ c) = 1 := sorry
+  have conjdiff_c : CONJ c ≠ c := (flem2 g cspec.left cspec.right).symm
+  -- have mult_conj : (cpoly g).roots.count c < 2 := by
+  --  by_contra too_many
+  --  have bsub : [c, c, CONJ c, CONJ c]  ≤ (cpoly g).roots := by
+  --    apply Multiset.le_iff_count.mpr
+  --    intro a
+  --    sorry
+
 
 
   have countnot2: count ≠ 2 := by
     by_contra countistwo
-    have ids: (cpoly g).roots = Multiset.ofList [1, 1, c] := sorry
-    have another: CONJ c ∈ (cpoly g).roots := by
-      apply conj_roots_2
-      rw [ids]
+    simp only [count] at countistwo
+    have horns:∀ w ∈ (cpoly g).roots, w = 1 ∨ w = -1 := by
+      apply tight_space_lemma g
+      rw [countistwo]
       simp
-    rw [ids] at another
-    simp at another
-    rcases  another with c1 | c2
-    exact conjdiff_one c1
-    exact conjdiff_c c2
+    have havemin: -1 ∈ (cpoly g).roots := by
+      let cset := {x:ℂ | x ∈ (cpoly g).roots  ∧ x ≠ 1}
+      have ne : ∃ z, z ∈ cset := sorry
+      set c := Classical.choose ne
+      have cspec := Classical.choose_spec ne
+      change c ∈ cset at cspec
+      simp only [cset] at cspec
+      have :_:=horns c cspec.left
+      rcases  this with e1 | e2
+      exfalso
+      rw [e1] at cspec
+      simp at cspec
+      rw [e2] at cspec
+      exact cspec.left
+    simp only [mcount] at no_min_one
+
+    have bbad:_:= Multiset.count_ne_zero.mpr havemin
+    rw [no_min_one] at bbad
+    norm_num at bbad
+
+
 
   have countnot0: count ≠ 0 := by
     by_contra countiszero
