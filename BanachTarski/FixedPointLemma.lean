@@ -1,10 +1,12 @@
 import Mathlib
 import Mathlib.LinearAlgebra.Complex.Module
+import Mathlib.LinearAlgebra.Charpoly.Basic
 
 import BanachTarski.Common
 
 
 set_option linter.all false
+set_option maxHeartbeats 1000000
 
 
 noncomputable def as_complex (M: MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMap ℝ ℂ).mapMatrix M
@@ -12,6 +14,7 @@ noncomputable def as_complex (M: MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMa
 noncomputable def cpoly (g: SO3) := Matrix.charpoly (as_complex g.val)
 
 lemma cpoly_coef_real (g: SO3) : ∀i: ℕ, ∃x: ℝ, x = (cpoly g).coeff i := by sorry
+
 
 
 
@@ -366,17 +369,50 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
 
 
 ---------
-def kermap_raw (g: SO3) : R3_raw →ₗ[ℝ] R3_raw := Matrix.toLin' (g.val - 1)
+
+--/-- The geometric multiplicity of an eigenvalue is at most the algebraic multiplicity. -/
+--lemma finrank_eigenspace_le (φ : Module.End K M) (μ : K) :
+--    finrank K (φ.eigenspace μ) ≤ φ.charpoly.rootMultiplicity μ :=
+--  finrank_genEigenspace_le ..
+
 
 noncomputable def ofLp_linear : R3 →ₗ[ℝ] R3_raw := (WithLp.linearEquiv 2 ℝ R3_raw).toLinearMap
 
 noncomputable def to_R3_linear : R3_raw →ₗ[ℝ] R3 := (WithLp.linearEquiv 2 ℝ R3_raw).symm.toLinearMap
 
+
+noncomputable def g_end_raw (g: SO3): Module.End ℝ R3_raw := Matrix.toLin' g.val
+noncomputable def g_end (g: SO3) : Module.End ℝ R3 := to_R3_linear.comp ((g_end_raw g).comp ofLp_linear)
+
+def kermap_raw (g: SO3) : R3_raw →ₗ[ℝ] R3_raw := Matrix.toLin' (g.val - 1)
 noncomputable def kermap (g: SO3) : R3 →ₗ[ℝ] R3 := to_R3_linear.comp ((kermap_raw g).comp ofLp_linear)
 
 noncomputable def K (g: SO3): Submodule ℝ R3 := LinearMap.ker (kermap g)
+
+
+open Polynomial
+lemma same_char (g: SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ ℂ) = cpoly g := sorry
+lemma same_mult (g: SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
+  rootMultiplicity 1 (map (algebraMap ℝ ℂ) (LinearMap.charpoly (g_end g))) := sorry
+
+
+
+lemma K_id (g: SO3): K g = ((g_end g).eigenspace 1) := sorry
+
 #check LinearMap.finrank_range_add_finrank_ker
-lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) = 1 := sorry
+lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) ≤ 1 := by
+  intro gnotone
+  have bnd: Module.finrank ℝ (K g)  ≤ (g_end g).charpoly.rootMultiplicity 1 := by
+    rw [K_id]
+    exact LinearMap.finrank_eigenspace_le (g_end g) 1
+  have :_:= spec_lem g gnotone
+  simp at this
+  rw [←same_char g] at this
+  rw [←same_mult g] at this
+  rw [this] at bnd
+  exact bnd
+
+
 
 def nz (g: SO3): K g := sorry
 lemma is_nz (g: SO3): (nz g) ≠ 0 := sorry
