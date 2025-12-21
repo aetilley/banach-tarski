@@ -412,18 +412,26 @@ lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) ≤ 1 := by
   rw [this] at bnd
   exact bnd
 
-
-
-def nz (g: SO3): K g := sorry
-lemma is_nz (g: SO3): (nz g) ≠ 0 := sorry
-
-lemma isspan (g: SO3): g≠1 → Submodule.span ℝ {nz g} = (⊤: Submodule ℝ (K g)) := by
+lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) ≤ 2 := by
   intro notone
-  exact (finrank_eq_one_iff_of_nonzero (nz g) (is_nz g)).mp (dim_ker g notone)
+  have bnd: _:= dim_ker g notone
+  rcases (Nat.le_one_iff_eq_zero_or_eq_one.mp bnd) with dim0 | dim1
 
-lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 := by
-  intro notone
+  sorry
+
+
+  --
+  apply le_of_eq
   apply Nat.card_eq_two_iff.mpr
+
+
+  let nz (g: SO3): K g := sorry
+
+  have is_nz (g: SO3): (nz g) ≠ 0 := sorry
+
+  have isspan :
+    (Submodule.span ℝ {nz g} = (⊤: Submodule ℝ (K g))) := by
+    exact (finrank_eq_one_iff_of_nonzero (nz g) (is_nz g)).mp (dim1)
 
   let el: R3 := (nz g).val
   let el_neg: R3 := -el
@@ -530,7 +538,7 @@ lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) = 2 :
 
 
   have ininsp: ⟨k, inker⟩ ∈  Submodule.span ℝ {nz g} := by
-    rw [isspan g notone]
+    rw [isspan]
     simp
 
   have :_:= Submodule.mem_span_singleton.mp ininsp
