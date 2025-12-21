@@ -370,12 +370,6 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
 
 ---------
 
---/-- The geometric multiplicity of an eigenvalue is at most the algebraic multiplicity. -/
---lemma finrank_eigenspace_le (φ : Module.End K M) (μ : K) :
---    finrank K (φ.eigenspace μ) ≤ φ.charpoly.rootMultiplicity μ :=
---  finrank_genEigenspace_le ..
-
-
 noncomputable def ofLp_linear : R3 →ₗ[ℝ] R3_raw := (WithLp.linearEquiv 2 ℝ R3_raw).toLinearMap
 
 noncomputable def to_R3_linear : R3_raw →ₗ[ℝ] R3 := (WithLp.linearEquiv 2 ℝ R3_raw).symm.toLinearMap
@@ -391,13 +385,43 @@ noncomputable def K (g: SO3): Submodule ℝ R3 := LinearMap.ker (kermap g)
 
 
 open Polynomial
-lemma same_char (g: SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ ℂ) = cpoly g := sorry
+lemma same_char (g: SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ ℂ) = cpoly g := by
+  simp [cpoly]
+  simp only [as_complex]
+  sorry
+
+
 lemma same_mult (g: SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
-  rootMultiplicity 1 (map (algebraMap ℝ ℂ) (LinearMap.charpoly (g_end g))) := sorry
+  rootMultiplicity 1 (map (algebraMap ℝ ℂ) (LinearMap.charpoly (g_end g))) := by
+    simp
+    sorry
 
 
 
-lemma K_id (g: SO3): K g = ((g_end g).eigenspace 1) := sorry
+lemma K_id (g: SO3): K g = ((g_end g).eigenspace 1) := by
+  ext w
+  simp [K, Module.End.eigenspace]
+  simp [kermap, g_end]
+  simp [to_R3_linear, ofLp_linear]
+  constructor
+  ----
+  intro lhs
+  simp [kermap_raw] at lhs
+  simp [g_end_raw]
+  rw [sub_eq_iff_eq_add] at lhs
+  simp at lhs
+  rw [lhs]
+  ----
+  intro lhs
+  simp [kermap_raw]
+  rw [sub_eq_iff_eq_add]
+  simp
+  simp [g_end_raw] at lhs
+  apply congrArg WithLp.ofLp at lhs
+  simp at lhs
+  exact lhs
+
+
 
 #check LinearMap.finrank_range_add_finrank_ker
 lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) ≤ 1 := by
@@ -411,7 +435,9 @@ lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) ≤ 1 := by
   rw [←same_mult g] at this
   rw [this] at bnd
   exact bnd
-#check Set.empty_def
+
+
+
 lemma fixed_lemma (g: SO3) : g≠1 → ({x ∈ S2 | g • x = x} = ∅ ∨ Nat.card ({x ∈ S2 | g • x = x}) = 2) := by
   intro notone
   have bnd: _:= dim_ker g notone
@@ -446,9 +472,6 @@ lemma fixed_lemma (g: SO3) : g≠1 → ({x ∈ S2 | g • x = x} = ∅ ∨ Nat.c
   simp at isz
   rw [isz] at xins
   simp [S2] at xins
-
-
-
 
   --
 
