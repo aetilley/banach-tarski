@@ -416,28 +416,85 @@ lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) ≤ 2
   intro notone
   have bnd: _:= dim_ker g notone
   rcases (Nat.le_one_iff_eq_zero_or_eq_one.mp bnd) with dim0 | dim1
+  have zerocons:_:= Module.finrank_eq_zero_iff.mp dim0
+  have isz: (Nat.card ↑{x | x ∈ S2 ∧ g • x = x}) = 0 := by
+    apply Nat.card_eq_zero.mpr
+    left
+    by_contra bad_el
+    simp at bad_el
+    obtain ⟨x, px⟩ := bad_el
+    have inK: x ∈ K g := by
+      simp [K]
+      simp [kermap]
+      simp [to_R3_linear, ofLp_linear]
+      simp [kermap_raw]
+      rw [sub_eq_iff_eq_add]
+      simp
+      rw [SO3_smul_def g x] at px
+      have pxr := px.right
+      have : (to_R3 ((g.val).mulVec x.ofLp)).ofLp = x.ofLp := by
+        apply congrArg WithLp.ofLp at pxr
+        exact pxr
+      simp [to_R3] at this
+      exact this
 
-  sorry
 
 
+
+
+    set X: K g:= ⟨x, inK⟩ with Xdef
+    have apped: _:=zerocons X
+    obtain ⟨a, pa⟩ := apped
+    have isz :_:= (smul_eq_zero_iff_right pa.left).mp pa.right
+    simp at isz
+    apply congrArg (fun x ↦ x.val) at isz
+    rw [Xdef] at isz
+    simp at isz
+    rw [isz] at px
+    simp [S2] at px
+
+  rw [isz]
+  simp
   --
+
   apply le_of_eq
   apply Nat.card_eq_two_iff.mpr
 
 
-  let nz (g: SO3): K g := sorry
+  let cset := {x | x ∈ K g  ∧ x ≠ 0}
+  have ne  : ∃ z, z ∈ cset  := by
+    haveI : NoZeroSMulDivisors ℝ (K g) := inferInstance
+    have pos : 0 < Module.finrank ℝ (K g) := by
+      rw [dim1]
+      norm_num
+    have : ∃x : K g, x ≠ 0 := by
+      apply (Module.finrank_pos_iff_exists_ne_zero (R := ℝ) (M := K g)).mp
+      exact pos
+    obtain ⟨x, hx⟩ := this
+    use x.val
+    simp [cset]
+    exact hx
 
-  have is_nz (g: SO3): (nz g) ≠ 0 := sorry
+
+  let nz : K g :=
+    let c := Classical.choose ne
+    have cspec := Classical.choose_spec ne
+    ⟨c, cspec.left⟩
+
+
+  have is_nz : nz  ≠ 0 := by
+    simp [nz]
+    exact (Classical.choose_spec ne).right
 
   have isspan :
-    (Submodule.span ℝ {nz g} = (⊤: Submodule ℝ (K g))) := by
-    exact (finrank_eq_one_iff_of_nonzero (nz g) (is_nz g)).mp (dim1)
+    (Submodule.span ℝ {nz} = (⊤: Submodule ℝ (K g))) := by
+    exact (finrank_eq_one_iff_of_nonzero nz is_nz).mp (dim1)
 
-  let el: R3 := (nz g).val
+  let el: R3 := nz.val
   let el_neg: R3 := -el
   have el_nz : el ≠ 0 := by
     simp [el]
-    exact is_nz g
+    exact is_nz
   have el_neg_nz : el_neg ≠ 0 := by
     simp [el_neg]
     exact el_nz
@@ -460,7 +517,7 @@ lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) ≤ 2
     simp
 
   have prop: (g.val).mulVec el.ofLp - el.ofLp = 0 := by
-    have prop :_:=  (nz g).property
+    have prop :_:=  nz.property
     simp only [K] at prop
     simp only [kermap] at prop
     rw [LinearMap.mem_ker] at prop
@@ -537,7 +594,7 @@ lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) ≤ 2
     simp
 
 
-  have ininsp: ⟨k, inker⟩ ∈  Submodule.span ℝ {nz g} := by
+  have ininsp: ⟨k, inker⟩ ∈  Submodule.span ℝ {nz} := by
     rw [isspan]
     simp
 
