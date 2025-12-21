@@ -8,7 +8,6 @@ import BanachTarski.Common
 set_option linter.all false
 set_option maxHeartbeats 1000000
 
-
 noncomputable def as_complex (M: MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMap ℝ ℂ).mapMatrix M
 
 noncomputable def cpoly (g: SO3) := Matrix.charpoly (as_complex g.val)
@@ -383,19 +382,54 @@ noncomputable def kermap (g: SO3) : R3 →ₗ[ℝ] R3 := to_R3_linear.comp ((ker
 
 noncomputable def K (g: SO3): Submodule ℝ R3 := LinearMap.ker (kermap g)
 
+lemma same_char_0 (g: SO3): LinearMap.charpoly (g_end g) = (g.val).charpoly := by
+  -- g_end g is the conjugation of g_end_raw g by the linear equivalence
+  let e := (WithLp.linearEquiv 2 ℝ R3_raw).symm
+  have h_conj : g_end g = e.conj (g_end_raw g) := by
+    simp [g_end, g_end_raw, LinearEquiv.conj_apply, e, to_R3_linear, ofLp_linear]
+    rfl
+  rw [h_conj]
+  -- Use LinearEquiv.charpoly_conj to relate the characteristic polynomials
+  rw [LinearEquiv.charpoly_conj e (g_end_raw g)]
+  -- Now use Matrix.charpoly_toLin' to relate g_end_raw g to g.val
+  -- g_end_raw g = Matrix.toLin' g.val, so (g_end_raw g).charpoly = g.val.charpoly
+  rw [← Matrix.charpoly_toLin' g.val]
+  simp [g_end_raw]
 
-open Polynomial
+
+
+lemma mapMatrix_is_map  (g: SO3): Matrix.charpoly ((algebraMap ℝ ℂ).mapMatrix g.val) =
+  Matrix.charpoly (g.val.map (algebraMap ℝ ℂ)) := by
+  rfl
+
 lemma same_char (g: SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ ℂ) = cpoly g := by
   simp [cpoly]
+
   simp only [as_complex]
-  sorry
+  rw [mapMatrix_is_map]
+  rw [Matrix.charpoly_map]
+  apply congrArg
+  exact same_char_0 g
 
 
+lemma cast_root_mult1 (g: SO3): Polynomial.rootMultiplicity (1: ℝ) (g.val).charpoly =
+  Polynomial.rootMultiplicity (1:ℂ) (Polynomial.map (algebraMap ℝ ℂ) (g.val).charpoly) := by
+  have inmap: Function.Injective (algebraMap ℝ ℂ) := by
+    exact RCLike.ofReal_injective
+  rw  [Polynomial.eq_rootMultiplicity_map inmap (1:ℝ)]
+  simp
+
+
+open Polynomial
 lemma same_mult (g: SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
   rootMultiplicity 1 (map (algebraMap ℝ ℂ) (LinearMap.charpoly (g_end g))) := by
-    simp
-    sorry
-
+  rw [same_char]
+  simp [cpoly]
+  simp only [as_complex]
+  rw [mapMatrix_is_map]
+  rw [Matrix.charpoly_map]
+  rw [same_char_0]
+  exact cast_root_mult1 g
 
 
 lemma K_id (g: SO3): K g = ((g_end g).eigenspace 1) := by
