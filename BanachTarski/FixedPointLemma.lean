@@ -53,9 +53,40 @@ lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := sorr
 open ComplexConjugate
 def CONJ : ℂ →+* ℂ := conj
 
-lemma flem (g: SO3): z ∈ (cpoly g).roots  → z = CONJ z → (z = 1 ∨ z = -1) := sorry
-lemma flem2 (g: SO3): z ∈ (cpoly g).roots  → (z ≠ 1 ∧ z ≠ -1) → (z ≠ CONJ z) := sorry
 
+lemma flem (g: SO3): z ∈ (cpoly g).roots  → z = CONJ z → (z = 1 ∨ z = -1) := by
+  intro lhs
+  intro lhs2
+  simp [CONJ] at lhs2
+  symm at lhs2
+  have :_:= Complex.conj_eq_iff_real.mp lhs2
+  obtain ⟨r, pr⟩ :=  this
+  have normone: ‖z‖ = 1    := eig_norms g z lhs
+  rw [pr] at normone
+  simp at normone
+  rw [pr]
+  rcases abs_cases r with c1 | c2
+  left
+  rw [←c1.left]
+  simp [normone]
+  --
+  right
+  rw [←neg_eq_iff_eq_neg]
+  rw [c2.left] at normone
+  apply Complex.ext
+  simp
+  exact normone
+  --
+  simp
+
+
+
+lemma flem2 (g: SO3): z ∈ (cpoly g).roots  → (z ≠ 1 ∧ z ≠ -1) → (z ≠ CONJ z) := by
+  intro lhs
+  intro lhs2
+  by_contra are_eq
+  have :_:= flem g lhs are_eq
+  tauto
 
 
 lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
@@ -91,9 +122,17 @@ lemma conj_roots_3 (g: SO3) (z : ℂ):
   (cpoly g).roots.count z = (cpoly g).roots.count (CONJ z) := by
   sorry
 
-lemma conj_mul_roots (g: SO3) : z ∈ (cpoly g).roots → z * CONJ z = 1 := sorry
 
-lemma idlem (g: SO3):  (cpoly g).roots.count 1= 3 → g = 1 := sorry
+#check Complex.mul_conj
+lemma conj_mul_roots (g: SO3) : z ∈ (cpoly g).roots → z * CONJ z = 1 := by
+  intro lhs
+  simp [CONJ]
+  rw [Complex.mul_conj]
+  rw [Complex.normSq_eq_norm_sq]
+  simp
+  left
+  exact eig_norms g z lhs
+lemma idlem (g: SO3):  (cpoly g).roots.count 1 = 3 → g = 1 := sorry
 
 lemma tight_space_lemma (g: SO3) :
   ((cpoly g).roots.count 1 ) + ((cpoly g).roots.count (-1))  ≥ 2
@@ -209,14 +248,6 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
   simp only [cset] at cspec
   have conjtoo:_:= conj_roots_2 g c (cspec.left)
   have conjdiff_c : CONJ c ≠ c := (flem2 g cspec.left cspec.right).symm
-  -- have mult_conj : (cpoly g).roots.count c < 2 := by
-  --  by_contra too_many
-  --  have bsub : [c, c, CONJ c, CONJ c]  ≤ (cpoly g).roots := by
-  --    apply Multiset.le_iff_count.mpr
-  --    intro a
-  --    sorry
-
-
 
   have countnot2: count ≠ 2 := by
     by_contra countistwo
@@ -244,8 +275,6 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
     have bbad:_:= Multiset.count_ne_zero.mpr havemin
     rw [no_min_one] at bbad
     norm_num at bbad
-
-
 
   have countnot0: count ≠ 0 := by
     by_contra countiszero
@@ -322,36 +351,7 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
     linarith [this, (num_roots_eq_3 g)]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   omega
-
-
-
-
-
 
 
 ---------
@@ -364,7 +364,7 @@ noncomputable def to_R3_linear : R3_raw →ₗ[ℝ] R3 := (WithLp.linearEquiv 2 
 noncomputable def kermap (g: SO3) : R3 →ₗ[ℝ] R3 := to_R3_linear.comp ((kermap_raw g).comp ofLp_linear)
 
 noncomputable def K (g: SO3): Submodule ℝ R3 := LinearMap.ker (kermap g)
-
+#check LinearMap.finrank_range_add_finrank_ker
 lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) = 1 := sorry
 
 def nz (g: SO3): K g := sorry
