@@ -118,9 +118,20 @@ lemma conj_roots_2 (g: SO3) (z : ℂ): z ∈ (cpoly g).roots → CONJ z ∈ (cpo
     use z
   rwa [conj_roots]
 
+--theorem count_map_eq_count' [DecidableEq β] (f : α → β) (s : Multiset α) (hf : Function.Injective f)
+--    (x : α) : (s.map f).count (f x) = s.count x := by
+
 lemma conj_roots_3 (g: SO3) (z : ℂ):
   (cpoly g).roots.count z = (cpoly g).roots.count (CONJ z) := by
-  sorry
+    set R:= (cpoly g).roots with R_def
+    have tmp: (R.map CONJ).count (CONJ z) = R.count z := by
+      apply Multiset.count_map_eq_count'
+      simp [CONJ]
+      exact RingHom.injective (starRingEnd ℂ)
+    rw [←tmp]
+    apply congrArg
+    exact Eq.symm (conj_roots g)
+
 
 
 #check Complex.mul_conj
