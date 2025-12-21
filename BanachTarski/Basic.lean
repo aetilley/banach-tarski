@@ -2104,9 +2104,13 @@ theorem hausdorff_paradox: ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradox
       exact g_in_embed.right
 
     let case := {x | x ∈ S2 ∧ g • x = x}
-    have num_fixed : Nat.card case = 2 := fixed_lemma (g:SO3) gnotone
+    have num_fixed : Nat.card case ≤ 2 := fixed_lemma (g:SO3) gnotone
+    rcases em (Nat.card case = 0) with eqz | nez
+    sorry
+    --
+
     have is_finite: Finite case := by
-      exact (Nat.card_ne_zero.mp (by simp [num_fixed])).right
+      exact (Nat.card_ne_zero.mp (nez)).right
     exact Finite.to_countable
 
   -- The set of non-trivial fixed points

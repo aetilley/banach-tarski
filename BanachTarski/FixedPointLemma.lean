@@ -411,53 +411,48 @@ lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) ≤ 1 := by
   rw [←same_mult g] at this
   rw [this] at bnd
   exact bnd
-
-lemma fixed_lemma (g: SO3) : g≠1 → Nat.card ({x ∈ S2 | g • x = x}) ≤ 2 := by
+#check Set.empty_def
+lemma fixed_lemma (g: SO3) : g≠1 → ({x ∈ S2 | g • x = x} = ∅ ∨ Nat.card ({x ∈ S2 | g • x = x}) = 2) := by
   intro notone
   have bnd: _:= dim_ker g notone
   rcases (Nat.le_one_iff_eq_zero_or_eq_one.mp bnd) with dim0 | dim1
+  left
   have zerocons:_:= Module.finrank_eq_zero_iff.mp dim0
-  have isz: (Nat.card ↑{x | x ∈ S2 ∧ g • x = x}) = 0 := by
-    apply Nat.card_eq_zero.mpr
-    left
-    by_contra bad_el
-    simp at bad_el
-    obtain ⟨x, px⟩ := bad_el
-    have inK: x ∈ K g := by
-      simp [K]
-      simp [kermap]
-      simp [to_R3_linear, ofLp_linear]
-      simp [kermap_raw]
-      rw [sub_eq_iff_eq_add]
-      simp
-      rw [SO3_smul_def g x] at px
-      have pxr := px.right
-      have : (to_R3 ((g.val).mulVec x.ofLp)).ofLp = x.ofLp := by
-        apply congrArg WithLp.ofLp at pxr
-        exact pxr
-      simp [to_R3] at this
-      exact this
+  apply Set.eq_empty_iff_forall_notMem.mpr
+  intro x
+  by_contra xins
+  have xinsr := xins.right
+  have inK: x ∈ K g := by
+    simp [K]
+    simp [kermap]
+    simp [to_R3_linear, ofLp_linear]
+    simp [kermap_raw]
+    rw [sub_eq_iff_eq_add]
+    simp
+    rw [SO3_smul_def g x] at xinsr
+    have : (to_R3 ((g.val).mulVec x.ofLp)).ofLp = x.ofLp := by
+      apply congrArg WithLp.ofLp at xinsr
+      exact xinsr
+    simp [to_R3] at this
+    exact this
+
+  set X: K g:= ⟨x, inK⟩ with Xdef
+  have apped: _:=zerocons X
+  obtain ⟨a, pa⟩ := apped
+  have isz :_:= (smul_eq_zero_iff_right pa.left).mp pa.right
+  simp at isz
+  apply congrArg (fun x ↦ x.val) at isz
+  rw [Xdef] at isz
+  simp at isz
+  rw [isz] at xins
+  simp [S2] at xins
 
 
 
 
-
-    set X: K g:= ⟨x, inK⟩ with Xdef
-    have apped: _:=zerocons X
-    obtain ⟨a, pa⟩ := apped
-    have isz :_:= (smul_eq_zero_iff_right pa.left).mp pa.right
-    simp at isz
-    apply congrArg (fun x ↦ x.val) at isz
-    rw [Xdef] at isz
-    simp at isz
-    rw [isz] at px
-    simp [S2] at px
-
-  rw [isz]
-  simp
   --
 
-  apply le_of_eq
+  right
   apply Nat.card_eq_two_iff.mpr
 
 
