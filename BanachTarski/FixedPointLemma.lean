@@ -255,10 +255,64 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
     have cspec2 := Classical.choose_spec ne2
     change c2 ∈ cset2 at cspec2
     simp only [cset2] at cspec2
-    have conjtoo:_:= conj_roots_2 g c2 (cspec2.left)
+    have conjtoo2:_:= conj_roots_2 g c2 (cspec2.left)
     let big:= Multiset.ofList [c, CONJ c, c2, CONJ c2]
+    have nodup: [c, CONJ c, c2, CONJ c2].Nodup := sorry
     have bigsub : big ≤ (cpoly g).roots := by
-      sorry
+      simp [big]
+      apply Multiset.le_iff_count.mpr
+      intro w
+      rw [Multiset.coe_count]
+      rcases (em (w = c ∨ w = c2 ∨ w = CONJ c ∨ w = CONJ c2) ) with r1 | r2
+      rcases r1 with r11 | r12 | r13 | r14
+      rw [r11]
+      have :List.count c ↑[c, CONJ c, c2, CONJ c2] = 1 := by
+        apply List.count_eq_one_of_mem
+        exact nodup
+        --
+        simp
+      rw [this]
+      apply Multiset.one_le_count_iff_mem.mpr
+      exact cspec.left
+      --
+      rw [r12]
+      have :List.count c2 ↑[c, CONJ c, c2, CONJ c2] = 1 := by
+        apply List.count_eq_one_of_mem
+        exact nodup
+        --
+        simp
+      rw [this]
+      apply Multiset.one_le_count_iff_mem.mpr
+      exact cspec2.left
+      --
+      rw [r13]
+      have :List.count (CONJ c) ↑[c, CONJ c, c2, CONJ c2] = 1 := by
+        apply List.count_eq_one_of_mem
+        exact nodup
+        --
+        simp
+      rw [this]
+      apply Multiset.one_le_count_iff_mem.mpr
+      exact conjtoo
+      --
+      rw [r14]
+      have :List.count (CONJ c2) ↑[c, CONJ c, c2, CONJ c2] = 1 := by
+        apply List.count_eq_one_of_mem
+        exact nodup
+        --
+        simp
+      rw [this]
+      apply Multiset.one_le_count_iff_mem.mpr
+      exact conjtoo2
+      ---
+      have : List.count w [c, CONJ c, c2, CONJ c2] = 0 := by
+        apply List.count_eq_zero.mpr
+        simp
+        tauto
+
+      rw [this]
+      simp
+
     have card_bound: big.card ≤ (cpoly g).roots.card  := by
       apply Multiset.card_le_card
       simp [bigsub]
