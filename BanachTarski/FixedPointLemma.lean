@@ -305,7 +305,88 @@ lemma conj_mul_roots (g: SO3) : z ∈ (cpoly g).roots → z * CONJ z = 1 := by
   left
   exact eig_norms g z lhs
 
-lemma idlem (g: SO3):  (cpoly g).roots.count 1 = 3 → g = 1 := sorry
+
+lemma cast_root_mult1 (g: SO3): Polynomial.rootMultiplicity (1: ℝ) (g.val).charpoly =
+  Polynomial.rootMultiplicity (1:ℂ) (Polynomial.map (algebraMap ℝ ℂ) (g.val).charpoly) := by
+  have inmap: Function.Injective (algebraMap ℝ ℂ) := by
+    exact RCLike.ofReal_injective
+  rw  [Polynomial.eq_rootMultiplicity_map inmap (1:ℝ)]
+  simp
+
+
+open Polynomial
+lemma same_mult (g: SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
+  rootMultiplicity 1 (map (algebraMap ℝ ℂ) (LinearMap.charpoly (g_end g))) := by
+  rw [same_char]
+  simp [cpoly]
+  simp only [as_complex]
+  rw [mapMatrix_is_map]
+  rw [Matrix.charpoly_map]
+  rw [same_char_0]
+  exact cast_root_mult1 g
+
+lemma idlem (g: SO3):  (cpoly g).roots.count 1 = 3 → g = 1 := by
+  intro hcount
+  simp at hcount
+  -- LinearMap.finrank_eigenspace_le (g_end g) 1
+  let T:= g_end g
+  have mgelem: Module.finrank ℝ (T.maxGenEigenspace 1) = 3 := by
+    rw [LinearMap.finrank_maxGenEigenspace_eq T 1]
+    simp [T]
+    rw [same_mult g]
+    rw [same_char g]
+    exact hcount
+
+  have that: T.maxGenEigenspace 1 = ⊤  := by
+    apply Submodule.eq_top_of_finrank_eq
+    rw [mgelem]
+    simp
+
+  have: T.maxGenEigenspace 1 = T.eigenspace 1 := by
+    apply Module.End.IsFinitelySemisimple.maxGenEigenspace_eq_eigenspace
+    simp
+    have : T.IsSemisimple := by sorry
+    --Module.End.isSemisimple_of_squarefree_aeval_eq_zero squarefree aeval_zero
+    exact this
+
+  have : T.eigenspace 1 = ⊤ := Eq.trans this.symm that
+
+  have T_eq_one : T = 1 := by
+    have eig_eq_ker : T.eigenspace 1 = LinearMap.ker (T - 1) := by
+      rw [Module.End.eigenspace]
+      rw [Module.End.genEigenspace_one]
+      simp
+
+    rw [eig_eq_ker] at this
+    have : T - 1 = 0 := LinearMap.ker_eq_top.mp this
+    have : T = 1 := by
+      have : T - 1 + 1 = 0 + 1 := congrArg (· + 1) this
+      simp at this
+      exact this
+    exact this
+
+  have ids: (1:Module.End ℝ R3 ) = LinearMap.id := by rfl
+
+  rw [ids] at T_eq_one
+  simp [T] at T_eq_one
+  simp [g_end] at T_eq_one
+  apply congrArg (fun S ↦ ofLp_linear ∘ₗ S) at T_eq_one
+  have rv: ofLp_linear ∘ₗ to_R3_linear = LinearMap.id := by
+    simp [ofLp_linear, to_R3_linear]
+  rw [←LinearMap.comp_assoc] at T_eq_one
+  rw [rv] at T_eq_one
+  simp at T_eq_one
+  apply congrArg (fun S ↦ S ∘ₗ to_R3_linear) at T_eq_one
+  rw [LinearMap.comp_assoc] at T_eq_one
+  have rv2:  ofLp_linear ∘ₗ to_R3_linear = LinearMap.id := by
+    simp [ofLp_linear, to_R3_linear]
+  rw [rv2] at T_eq_one
+  simp at T_eq_one
+  rw [g_end_raw] at T_eq_one
+  apply congrArg LinearMap.toMatrix' at T_eq_one
+  simp at T_eq_one
+  exact T_eq_one
+
 
 lemma tight_space_lemma (g: SO3) :
   ((cpoly g).roots.count 1 ) + ((cpoly g).roots.count (-1))  ≥ 2
@@ -1011,24 +1092,7 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
 
 
 
-lemma cast_root_mult1 (g: SO3): Polynomial.rootMultiplicity (1: ℝ) (g.val).charpoly =
-  Polynomial.rootMultiplicity (1:ℂ) (Polynomial.map (algebraMap ℝ ℂ) (g.val).charpoly) := by
-  have inmap: Function.Injective (algebraMap ℝ ℂ) := by
-    exact RCLike.ofReal_injective
-  rw  [Polynomial.eq_rootMultiplicity_map inmap (1:ℝ)]
-  simp
 
-
-open Polynomial
-lemma same_mult (g: SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
-  rootMultiplicity 1 (map (algebraMap ℝ ℂ) (LinearMap.charpoly (g_end g))) := by
-  rw [same_char]
-  simp [cpoly]
-  simp only [as_complex]
-  rw [mapMatrix_is_map]
-  rw [Matrix.charpoly_map]
-  rw [same_char_0]
-  exact cast_root_mult1 g
 
 
 lemma K_id (g: SO3): K g = ((g_end g).eigenspace 1) := by
