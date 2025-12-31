@@ -1,16 +1,17 @@
 import Mathlib
 import Mathlib.LinearAlgebra.Complex.Module
 import Mathlib.LinearAlgebra.Charpoly.Basic
+import Mathlib.Analysis.CStarAlgebra.Spectrum
+import Mathlib.Analysis.CStarAlgebra.Matrix
+import Mathlib.LinearAlgebra.UnitaryGroup
 
 import BanachTarski.Common
+
+open scoped Matrix.Norms.L2Operator
 
 
 set_option linter.all false
 set_option maxHeartbeats 1000000
-
-noncomputable def as_complex (M: MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMap ℝ ℂ).mapMatrix M
-
-noncomputable def cpoly (g: SO3) := Matrix.charpoly (as_complex g.val)
 
 noncomputable def ofLp_linear : R3 →ₗ[ℝ] R3_raw := (WithLp.linearEquiv 2 ℝ R3_raw).toLinearMap
 
@@ -35,10 +36,13 @@ lemma same_char_0 (g: SO3): LinearMap.charpoly (g_end g) = (g.val).charpoly := b
   rw [← Matrix.charpoly_toLin' g.val]
   simp [g_end_raw]
 
-
 lemma mapMatrix_is_map  (g: SO3): Matrix.charpoly ((algebraMap ℝ ℂ).mapMatrix g.val) =
   Matrix.charpoly (g.val.map (algebraMap ℝ ℂ)) := by
   rfl
+
+noncomputable def as_complex (M: MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMap ℝ ℂ).mapMatrix M
+
+noncomputable def cpoly (g: SO3) := Matrix.charpoly (as_complex g.val)
 
 lemma same_char (g: SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ ℂ) = cpoly g := by
   simp [cpoly]
@@ -85,10 +89,61 @@ lemma num_roots_eq_3 (g: SO3): (cpoly g).roots.card = 3 := by
   rw [num_roots_eq_deg]
   exact charpoly_natdeg_3 g
 
+abbrev C3 := Matrix (Fin 3) (Fin 3) ℂ
+
+lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := by
+  intro lhs
+  have isrt: Polynomial.IsRoot (cpoly g) z := by
+    apply Polynomial.isRoot_of_mem_roots
+    exact lhs
+
+  have this1: z ∈ spectrum ℂ (as_complex g.val) := Matrix.mem_spectrum_of_isRoot_charpoly isrt
+  have gunitary: (as_complex g.val) ∈ unitary C3 := by
+    apply Unitary.mem_iff.mpr
+    have gprop := g.prop
+    simp only [SO3] at gprop
+    have other := Matrix.mem_specialOrthogonalGroup_iff.mp gprop
+    have orth_mem1 := other.left
+    have orth_mem2 := other.left
+    rw [Matrix.mem_orthogonalGroup_iff] at orth_mem1
+    rw [Matrix.mem_orthogonalGroup_iff'] at orth_mem2
+    have conjTranspose_eq_transpose : (as_complex g.val).conjTranspose = Matrix.transpose (as_complex g.val) := by
+      simp only [as_complex, Matrix.conjTranspose, RingHom.mapMatrix_apply]
+      ext i j
+      simp [Matrix.transpose]
+    have mapMatrix_transpose : Matrix.transpose ((algebraMap ℝ ℂ).mapMatrix g.val) =
+        (algebraMap ℝ ℂ).mapMatrix (g.val.transpose) := by
+        ext i j
+        simp [RingHom.mapMatrix_apply, Matrix.transpose]
+    constructor
+    · rw [Matrix.star_eq_conjTranspose]
+      rw [conjTranspose_eq_transpose]
+      simp only [as_complex]
+      rw [mapMatrix_transpose]
+      simp only [RingHom.mapMatrix_apply]
+      rw [←Matrix.map_mul]
+      have : (1 : MAT).map (algebraMap ℝ ℂ) = (1:C3) := by
+        ext i j
+        simp [Matrix.one_apply]
+        split_ifs <;> simp
+      rw [←this, orth_mem2]
+    · rw [Matrix.star_eq_conjTranspose]
+      rw [conjTranspose_eq_transpose]
+      simp only [as_complex]
+      rw [mapMatrix_transpose]
+      simp only [RingHom.mapMatrix_apply]
+      rw [←Matrix.map_mul]
+      have : (1 : MAT).map (algebraMap ℝ ℂ) = (1:C3) := by
+        ext i j
+        simp [Matrix.one_apply]
+        split_ifs <;> simp
+      rw [←this, orth_mem1]
 
 
+  have : z ∈ Metric.sphere (0:ℂ) 1 := spectrum.subset_circle_of_unitary gunitary this1
+  simp [Metric.sphere] at this
+  exact this
 
-lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := sorry
 
 open ComplexConjugate
 def CONJ : ℂ →+* ℂ := conj
