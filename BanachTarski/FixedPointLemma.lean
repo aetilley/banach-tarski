@@ -6,12 +6,13 @@ import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.LinearAlgebra.UnitaryGroup
 
 import BanachTarski.Common
+import BanachTarski.IdlemAristotle
 
 open scoped Matrix.Norms.L2Operator
 
 
 set_option linter.all false
-set_option maxHeartbeats 1000000
+set_option maxHeartbeats 3000000
 
 noncomputable def ofLp_linear : R3 →ₗ[ℝ] R3_raw := (WithLp.linearEquiv 2 ℝ R3_raw).toLinearMap
 
@@ -39,10 +40,6 @@ lemma same_char_0 (g: SO3): LinearMap.charpoly (g_end g) = (g.val).charpoly := b
 lemma mapMatrix_is_map  (g: SO3): Matrix.charpoly ((algebraMap ℝ ℂ).mapMatrix g.val) =
   Matrix.charpoly (g.val.map (algebraMap ℝ ℂ)) := by
   rfl
-
-noncomputable def as_complex (M: MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMap ℝ ℂ).mapMatrix M
-
-noncomputable def cpoly (g: SO3) := Matrix.charpoly (as_complex g.val)
 
 lemma same_char (g: SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ ℂ) = cpoly g := by
   simp [cpoly]
@@ -325,68 +322,11 @@ lemma same_mult (g: SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
   rw [same_char_0]
   exact cast_root_mult1 g
 
+
+
+
 lemma idlem (g: SO3):  (cpoly g).roots.count 1 = 3 → g = 1 := by
-  intro hcount
-  simp at hcount
-  -- LinearMap.finrank_eigenspace_le (g_end g) 1
-  let T:= g_end g
-  have mgelem: Module.finrank ℝ (T.maxGenEigenspace 1) = 3 := by
-    rw [LinearMap.finrank_maxGenEigenspace_eq T 1]
-    simp [T]
-    rw [same_mult g]
-    rw [same_char g]
-    exact hcount
-
-  have that: T.maxGenEigenspace 1 = ⊤  := by
-    apply Submodule.eq_top_of_finrank_eq
-    rw [mgelem]
-    simp
-
-  have: T.maxGenEigenspace 1 = T.eigenspace 1 := by
-    apply Module.End.IsFinitelySemisimple.maxGenEigenspace_eq_eigenspace
-    simp
-    have : T.IsSemisimple := by sorry
-    --Module.End.isSemisimple_of_squarefree_aeval_eq_zero squarefree aeval_zero
-    exact this
-
-  have : T.eigenspace 1 = ⊤ := Eq.trans this.symm that
-
-  have T_eq_one : T = 1 := by
-    have eig_eq_ker : T.eigenspace 1 = LinearMap.ker (T - 1) := by
-      rw [Module.End.eigenspace]
-      rw [Module.End.genEigenspace_one]
-      simp
-
-    rw [eig_eq_ker] at this
-    have : T - 1 = 0 := LinearMap.ker_eq_top.mp this
-    have : T = 1 := by
-      have : T - 1 + 1 = 0 + 1 := congrArg (· + 1) this
-      simp at this
-      exact this
-    exact this
-
-  have ids: (1:Module.End ℝ R3 ) = LinearMap.id := by rfl
-
-  rw [ids] at T_eq_one
-  simp [T] at T_eq_one
-  simp [g_end] at T_eq_one
-  apply congrArg (fun S ↦ ofLp_linear ∘ₗ S) at T_eq_one
-  have rv: ofLp_linear ∘ₗ to_R3_linear = LinearMap.id := by
-    simp [ofLp_linear, to_R3_linear]
-  rw [←LinearMap.comp_assoc] at T_eq_one
-  rw [rv] at T_eq_one
-  simp at T_eq_one
-  apply congrArg (fun S ↦ S ∘ₗ to_R3_linear) at T_eq_one
-  rw [LinearMap.comp_assoc] at T_eq_one
-  have rv2:  ofLp_linear ∘ₗ to_R3_linear = LinearMap.id := by
-    simp [ofLp_linear, to_R3_linear]
-  rw [rv2] at T_eq_one
-  simp at T_eq_one
-  rw [g_end_raw] at T_eq_one
-  apply congrArg LinearMap.toMatrix' at T_eq_one
-  simp at T_eq_one
-  exact T_eq_one
-
+  exact idlemAristotle g
 
 lemma tight_space_lemma (g: SO3) :
   ((cpoly g).roots.count 1 ) + ((cpoly g).roots.count (-1))  ≥ 2
@@ -584,16 +524,6 @@ lemma tight_space_lemma_2 (g: SO3) :
   rw [num_roots_eq_3] at this
   symm
   exact this
-
-
-
-
-
-
-
-
-
-
 
 lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
 
