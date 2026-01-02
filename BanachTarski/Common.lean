@@ -118,7 +118,3 @@ lemma normed_in_S2:v ≠ 0 → normed v ∈ S2 := by
     apply invertibleOfNonzero
     exact mt norm_eq_zero.mp nonz
   apply inv_mul_cancel_of_invertible
-
-noncomputable def as_complex (M : MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraMap ℝ ℂ).mapMatrix M
-
-noncomputable def cpoly (g : SO3) := Matrix.charpoly (as_complex g.val)

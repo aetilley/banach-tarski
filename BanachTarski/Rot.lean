@@ -360,22 +360,6 @@ instance  orth_dim_3 : Fact (Module.finrank ℝ R3 = 3) := by
 noncomputable def Basis3: OrthonormalBasis (Fin 3) ℝ R3 := EuclideanSpace.basisFun (Fin 3) ℝ
 
 ----------------
--- The following blockDiagonal results are unused.  I was hopeful that I could use this
--- to show that my rot_mat below was correct but I'm having a hell of a time unpacking
--- these the resulting block matrices.
-
-/-- If a linear map `f : M₁ → M₂` respects direct sum decompositions of `M₁` and `M₂`, then it has a
-block diagonal matrix with respect to bases compatible with the direct sum decompositions. -/
---lemma toMatrix_directSum_collectedBasis_eq_blockDiagonal' {R M₁ M₂ : Type*} [CommSemiring R]
---    [AddCommMonoid M₁] [Module R M₁] {N₁ : ι → Submodule R M₁} (h₁ : IsInternal N₁)
---    [AddCommMonoid M₂] [Module R M₂] {N₂ : ι → Submodule R M₂} (h₂ : IsInternal N₂)
---    {κ₁ κ₂ : ι → Type*} [∀ i, Fintype (κ₁ i)] [∀ i, Finite (κ₂ i)] [∀ i, DecidableEq (κ₁ i)]
---    [Fintype ι] (b₁ : (i : ι) → Basis (κ₁ i) R (N₁ i)) (b₂ : (i : ι) → Basis (κ₂ i) R (N₂ i))
---    {f : M₁ →ₗ[R] M₂} (hf : ∀ i, MapsTo f (N₁ i) (N₂ i)) :
---    toMatrix (h₁.collectedBasis b₁) (h₂.collectedBasis b₂) f =
---    Matrix.blockDiagonal' fun i ↦ toMatrix (b₁ i) (b₂ i) (f.restrict (hf i)) := by
---
-
 
 def mod_dim: (Fin 2) → Type
   | ⟨0,_⟩ => Fin 2
@@ -578,6 +562,8 @@ lemma block_2_lem (ax: S2) :
 
 ------------
 
+
+
 lemma block_repr (ax: S2) (θ : ℝ) :
    (LinearMap.toMatrix
   ((internal_pr ax).collectedBasis (sm_bases ax))
@@ -660,8 +646,177 @@ lemma rot_mat_inner_is_special (ax:S2) (θ: ℝ) : rot_mat_inner ax θ ∈ SO3 :
   rw [add_comm]
   exact Real.sin_sq_add_cos_sq θ
 
+def fTS_fun: Fin 3 →  ((i : Fin 2) × mod_dim i) :=
+    (fun k => match k with
+      | ⟨0, _⟩ => ⟨⟨0, by norm_num⟩, ⟨0, by norm_num⟩⟩
+      | ⟨1, _⟩ => ⟨⟨0, by norm_num⟩, ⟨1, by norm_num⟩⟩
+      | ⟨2, _⟩ => ⟨⟨1, by norm_num⟩, ⟨0, by norm_num⟩⟩
+    )
 
-def COB (ax: S2) : OrthonormalBasis (Fin 3) ℝ R3 := sorry
+lemma fTS_fun_bij : Function.Bijective fTS_fun := by
+  simp [Function.Bijective]
+  constructor
+  simp [Function.Injective]
+  intro a b eqims
+  simp [fTS_fun] at eqims
+  fin_cases a, b
+  <;> simp
+  <;> simp at eqims
+  <;> rw [Fin.ext_iff] at eqims
+  <;> norm_num at eqims
+  --
+  simp [Function.Surjective]
+  intro b
+  fin_cases b
+  <;> simp
+  use 0; rfl
+  use 1; rfl
+  use 2; rfl
+
+
+-- Define an equivalence between Fin 3 and the sigma type
+noncomputable def finToSigma : Fin 3 ≃ ((i : Fin 2) × mod_dim i) :=
+  Equiv.ofBijective fTS_fun fTS_fun_bij
+
+-- Reindex the collected basis
+noncomputable def COB_MB (ax: S2): Module.Basis (Fin 3) ℝ R3 :=
+  ((internal_pr ax).collectedBasis (sm_bases ax)).reindex finToSigma.symm
+
+lemma COB_MB_is_ortho (ax: S2): Orthonormal ℝ (COB_MB ax) := by
+  -- Use DirectSum.IsInternal.collectedBasis_orthonormal
+  -- First show that the submodules form an OrthogonalFamily
+  have orth_family : OrthogonalFamily ℝ (fun i => submods ax i) fun i => (submods ax i).subtypeₗᵢ := by
+    intro i j hij v w
+    fin_cases i <;> fin_cases j
+    · norm_num at hij
+    · simp [Submodule.coe_subtypeₗᵢ]
+      have h := (Submodule.mem_orthogonal (ax_space ax) v).mp v.property
+      have h1 := h w w.property
+      rw [real_inner_comm]
+      exact h1
+    · simp [Submodule.coe_subtypeₗᵢ]
+
+      have h := (Submodule.mem_orthogonal (ax_space ax) w).mp w.property
+      exact h v v.property
+    · norm_num at hij
+
+  have orth_B_orthonormal : Orthonormal ℝ (orth_B ax) := by
+    simp only [orth_B]
+
+    constructor
+    · intro i
+      fin_cases i
+      ·
+        simp [Orientation.coe_basisRightAngleRotation]
+
+        have x_B_def : x_B ax = (1/ ‖(x_B_c ax).val‖) • ((x_B_c ax).val) := rfl
+        simp only [x_B_def]
+        simp only [Submodule.coe_smul]
+        rw [norm_smul]
+        simp
+        have h_nz : (x_B_c ax).val ≠ 0 := by
+          intro h
+          have : x_B ax = 0 := by
+            rw [x_B_def, h, smul_zero]
+          exact x_B_nz ax this
+        have h_nz_norm : ‖(x_B_c ax).val‖ ≠ 0 := norm_ne_zero_iff.mpr h_nz
+        field_simp [h_nz_norm]
+        exact (div_eq_one_iff_eq h_nz_norm).mpr rfl
+
+
+
+      ·
+        simp [Orientation.coe_basisRightAngleRotation]
+
+        have x_B_def : x_B ax = (1/ ‖(x_B_c ax).val‖) • ((x_B_c ax).val) := rfl
+        simp only [x_B_def]
+        simp only [Submodule.coe_smul]
+        rw [norm_smul]
+        simp
+        have h_nz : (x_B_c ax).val ≠ 0 := by
+          intro h
+          have : x_B ax = 0 := by
+            rw [x_B_def, h, smul_zero]
+          exact x_B_nz ax this
+        have h_nz_norm : ‖(x_B_c ax).val‖ ≠ 0 := norm_ne_zero_iff.mpr h_nz
+        have h_coerce1 : (↑(x_B_c ax) : orth ax) = (x_B_c ax).val := rfl
+        have h_coerce2 : ‖(↑((x_B_c ax).val) : R3)‖ = ‖(x_B_c ax).val‖ := rfl
+        rw [h_coerce1] at ⊢
+        rw [h_coerce2]
+        field_simp [h_nz_norm]
+
+
+    · intro i j hij
+      fin_cases i <;> fin_cases j
+      ·
+        norm_num at hij
+      ·
+        simp [Orientation.coe_basisRightAngleRotation]
+        have h : inner ℝ ((plane_o ax).rightAngleRotation (x_B ax)) (x_B ax) = 0 :=
+          (plane_o ax).inner_rightAngleRotation_self (x_B ax)
+        rw [real_inner_comm] at h
+        exact h
+      ·
+        simp [Orientation.coe_basisRightAngleRotation]
+        exact (plane_o ax).inner_rightAngleRotation_self (x_B ax)
+      ·
+        norm_num at hij
+
+
+  have ax_B_orthonormal : Orthonormal ℝ (ax_B ax) := by
+    constructor
+    · intro i
+      fin_cases i
+      simp [ax_B]
+    · intro i j hij
+      fin_cases i <;> fin_cases j
+      norm_num at hij
+  have sm_bases_orthonormal : ∀ i, Orthonormal ℝ (sm_bases ax i) := by
+    intro i
+    fin_cases i
+    · exact orth_B_orthonormal
+    · exact ax_B_orthonormal
+  have collected_orthonormal : Orthonormal ℝ ((internal_pr ax).collectedBasis (sm_bases ax)) :=
+    (internal_pr ax).collectedBasis_orthonormal orth_family sm_bases_orthonormal
+  rw [COB_MB]
+  constructor
+  · intro i
+    simp [Module.Basis.reindex]
+    have h_coe := (internal_pr ax).collectedBasis_coe (sm_bases ax)
+    have h_eq : ((internal_pr ax).collectedBasis (sm_bases ax)) (finToSigma i) =
+        ↑((sm_bases ax) (finToSigma i).fst (finToSigma i).snd) := by
+      exact congr_fun h_coe (finToSigma i)
+    rw [← h_eq]
+    exact collected_orthonormal.1 (finToSigma i)
+  · intro i j hij
+    simp [Module.Basis.reindex]
+    have h_coe := (internal_pr ax).collectedBasis_coe (sm_bases ax)
+    have h_eq_i : ((internal_pr ax).collectedBasis (sm_bases ax)) (finToSigma i) =
+        ↑((sm_bases ax) (finToSigma i).fst (finToSigma i).snd) := by
+      exact congr_fun h_coe (finToSigma i)
+    have h_eq_j : ((internal_pr ax).collectedBasis (sm_bases ax)) (finToSigma j) =
+        ↑((sm_bases ax) (finToSigma j).fst (finToSigma j).snd) := by
+      exact congr_fun h_coe (finToSigma j)
+    rw [← h_eq_i, ← h_eq_j]
+    apply collected_orthonormal.2
+    intro h
+    apply hij
+    exact Equiv.injective finToSigma h
+
+
+
+
+
+
+
+
+
+
+noncomputable def COB (ax: S2) : OrthonormalBasis (Fin 3) ℝ R3 :=
+  Module.Basis.toOrthonormalBasis (COB_MB ax) (COB_MB_is_ortho ax)
+
+lemma COB_to_basis (ax : S2): (COB ax).toBasis = (COB_MB ax) := by
+  simp [COB]
 
 noncomputable def COB_mat (ax: S2) : MAT := LinearMap.toMatrix Basis3.toBasis (COB ax).toBasis 1
 
@@ -826,15 +981,60 @@ theorem orth_toMatrix_mulVec_repr (B C : OrthonormalBasis (Fin 3) ℝ R3 ) (f : 
     congr
     simp
 
+lemma inner_as_to_matrix_MB  (ax: S2): rot_mat_inner ax T =
+  LinearMap.toMatrix (COB_MB ax) (COB_MB ax) (rot_iso ax T).toLinearMap := by
+  -- Use block_repr to get the blockDiagonal' representation
+  -- LinearMap.toMatrix with reindexed basis equals reindexing the original matrix
+  have toMatrix_reindex : LinearMap.toMatrix (COB_MB ax) (COB_MB ax) (rot_iso ax T).toLinearMap =
+    Matrix.reindex finToSigma.symm finToSigma.symm (LinearMap.toMatrix
+      ((internal_pr ax).collectedBasis (sm_bases ax))
+      ((internal_pr ax).collectedBasis (sm_bases ax))
+      (rot_iso ax T).toLinearMap) := by
+    ext i j
+    simp [LinearMap.toMatrix_apply, COB_MB, Matrix.reindex_apply]
+  rw [toMatrix_reindex]
+
+
+  have block_eq := block_repr ax T
+  rw [block_eq]
+
+  ext i j
+  simp only [Matrix.reindex_apply, rot_mat_inner, finToSigma]
+  fin_cases i, j
+  ·
+    simp [fTS_fun, Matrix.blockDiagonal'_apply_eq]
+  ·
+    simp [fTS_fun, Matrix.blockDiagonal'_apply_eq]
+  ·
+    simp [fTS_fun]
+    rw [Matrix.blockDiagonal'_apply_ne]
+    norm_num
+  ·
+    simp [fTS_fun, Matrix.blockDiagonal'_apply_eq]
+  ·
+    simp [fTS_fun, Matrix.blockDiagonal'_apply_eq]
+  ·
+    simp [fTS_fun]
+    rw [Matrix.blockDiagonal'_apply_ne]
+    norm_num
+  ·
+    simp [fTS_fun]
+    rw [Matrix.blockDiagonal'_apply_ne]
+    norm_num
+  ·
+    simp [fTS_fun]
+    rw [Matrix.blockDiagonal'_apply_ne]
+    norm_num
+  ·
+    simp [fTS_fun, Matrix.blockDiagonal'_apply_eq]
+
+
+
 
 lemma inner_as_to_matrix (ax: S2): rot_mat_inner ax T =
   LinearMap.toMatrix (COB ax).toBasis (COB ax).toBasis (rot_iso ax T).toLinearMap := by
-  apply Matrix.ext_of_mulVec_single
-  intro i
-  simp
-  sorry
-  --theorem LinearMap.toMatrix_apply (f : M₁ →ₗ[R] M₂) (i : m) (j : n) :
-  --  LinearMap.toMatrix v₁ v₂ f i j = v₂.repr (f (v₁ j)) i := by
+  rw [COB_to_basis ax]
+  exact inner_as_to_matrix_MB ax
 
 
 lemma same_thing(ax: S2) (S: Set R3) (s : R3) : rot ax T • s = (rot_iso ax T) s := by
