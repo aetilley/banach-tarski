@@ -1,32 +1,23 @@
 import Mathlib
-import Mathlib.LinearAlgebra.Complex.Module
-import Mathlib.LinearAlgebra.Charpoly.Basic
-import Mathlib.Analysis.CStarAlgebra.Spectrum
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.UnitaryGroup
 
 import BanachTarski.Common
-
-open scoped Matrix.Norms.L2Operator
-
-
-set_option linter.all false
-set_option maxHeartbeats 3000000
 
 noncomputable def ofLp_linear : R3 →ₗ[ℝ] R3_raw := (WithLp.linearEquiv 2 ℝ R3_raw).toLinearMap
 
 noncomputable def to_R3_linear : R3_raw →ₗ[ℝ] R3 := (WithLp.linearEquiv 2 ℝ R3_raw).symm.toLinearMap
 
 
-noncomputable def g_end_raw (g: SO3): Module.End ℝ R3_raw := Matrix.toLin' g.val
-noncomputable def g_end (g: SO3) : Module.End ℝ R3 := to_R3_linear.comp ((g_end_raw g).comp ofLp_linear)
+noncomputable def g_end_raw (g : SO3) : Module.End ℝ R3_raw := Matrix.toLin' g.val
+noncomputable def g_end (g : SO3) : Module.End ℝ R3 :=
+  to_R3_linear.comp ((g_end_raw g).comp ofLp_linear)
 
-def kermap_raw (g: SO3) : R3_raw →ₗ[ℝ] R3_raw := Matrix.toLin' (g.val - 1)
-noncomputable def kermap (g: SO3) : R3 →ₗ[ℝ] R3 := to_R3_linear.comp ((kermap_raw g).comp ofLp_linear)
+def kermap_raw (g : SO3) : R3_raw →ₗ[ℝ] R3_raw := Matrix.toLin' (g.val - 1)
+noncomputable def kermap (g : SO3) : R3 →ₗ[ℝ] R3 :=
+  to_R3_linear.comp ((kermap_raw g).comp ofLp_linear)
 
-noncomputable def K (g: SO3): Submodule ℝ R3 := LinearMap.ker (kermap g)
+noncomputable def K (g : SO3) : Submodule ℝ R3 := LinearMap.ker (kermap g)
 
-lemma same_char_0 (g: SO3): LinearMap.charpoly (g_end g) = (g.val).charpoly := by
+lemma same_char_0 (g : SO3) : LinearMap.charpoly (g_end g) = (g.val).charpoly := by
   let e := (WithLp.linearEquiv 2 ℝ R3_raw).symm
   have h_conj : g_end g = e.conj (g_end_raw g) := by
     simp [g_end, g_end_raw, LinearEquiv.conj_apply, e, to_R3_linear, ofLp_linear]
@@ -36,7 +27,7 @@ lemma same_char_0 (g: SO3): LinearMap.charpoly (g_end g) = (g.val).charpoly := b
   rw [← Matrix.charpoly_toLin' g.val]
   simp [g_end_raw]
 
-lemma mapMatrix_is_map  (g: SO3): Matrix.charpoly ((algebraMap ℝ ℂ).mapMatrix g.val) =
+lemma mapMatrix_is_map (g : SO3) : Matrix.charpoly ((algebraMap ℝ ℂ).mapMatrix g.val) =
   Matrix.charpoly (g.val.map (algebraMap ℝ ℂ)) := by
   rfl
 
@@ -45,7 +36,7 @@ noncomputable def as_complex (M : MAT) : Matrix (Fin 3) (Fin 3) ℂ := (algebraM
 noncomputable def cpoly (g : SO3) := Matrix.charpoly (as_complex g.val)
 
 
-lemma same_char (g: SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ ℂ) = cpoly g := by
+lemma same_char (g : SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ ℂ) = cpoly g := by
   simp [cpoly]
 
   simp only [as_complex]
@@ -54,7 +45,7 @@ lemma same_char (g: SO3) : (LinearMap.charpoly (g_end g)).map (algebraMap ℝ �
   apply congrArg
   exact same_char_0 g
 
-lemma cpoly_coef_real (g: SO3) : ∀i: ℕ, ∃x: ℝ, x = (cpoly g).coeff i := by
+lemma cpoly_coef_real (g : SO3) : ∀i: ℕ, ∃x: ℝ, x = (cpoly g).coeff i := by
   intro i
   rw [←same_char g]
   use (LinearMap.charpoly (g_end g)).coeff i
@@ -62,7 +53,7 @@ lemma cpoly_coef_real (g: SO3) : ∀i: ℕ, ∃x: ℝ, x = (cpoly g).coeff i := 
   simp
 
 
-lemma det_as_prod (g: SO3): (cpoly g).roots.prod = 1 := by
+lemma det_as_prod (g : SO3) : (cpoly g).roots.prod = 1 := by
   have l1:(as_complex (g.val)).det = (cpoly g).roots.prod  := by
     apply Matrix.det_eq_prod_roots_charpoly
   have l3: (g.val).det = 1 := by
@@ -75,24 +66,25 @@ lemma det_as_prod (g: SO3): (cpoly g).roots.prod = 1 := by
 
   exact Eq.trans l1.symm l4
 
-lemma charpoly_deg_3 (g: SO3): (cpoly g).degree = 3 := by
+lemma charpoly_deg_3 (g : SO3) : (cpoly g).degree = 3 := by
   simp [cpoly]
 
 
-lemma charpoly_natdeg_3 (g: SO3): (cpoly g).natDegree = 3 := by
+lemma charpoly_natdeg_3 (g : SO3) : (cpoly g).natDegree = 3 := by
   simp [cpoly]
 
 
-lemma num_roots_eq_deg (g: SO3): (cpoly g).roots.card = (cpoly g).natDegree := by
+lemma num_roots_eq_deg (g : SO3) : (cpoly g).roots.card = (cpoly g).natDegree := by
   apply IsAlgClosed.card_roots_eq_natDegree
 
-lemma num_roots_eq_3 (g: SO3): (cpoly g).roots.card = 3 := by
+lemma num_roots_eq_3 (g : SO3) : (cpoly g).roots.card = 3 := by
   rw [num_roots_eq_deg]
   exact charpoly_natdeg_3 g
 
 abbrev C3 := Matrix (Fin 3) (Fin 3) ℂ
 
-lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := by
+open scoped Matrix.Norms.L2Operator
+lemma eig_norms (g : SO3) (z : ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := by
   intro lhs
   have isrt: Polynomial.IsRoot (cpoly g) z := by
     apply Polynomial.isRoot_of_mem_roots
@@ -108,7 +100,8 @@ lemma eig_norms (g: SO3) (z:ℂ) : z ∈ (cpoly g).roots → ‖z‖ = 1 := by
     have orth_mem2 := other.left
     rw [Matrix.mem_orthogonalGroup_iff] at orth_mem1
     rw [Matrix.mem_orthogonalGroup_iff'] at orth_mem2
-    have conjTranspose_eq_transpose : (as_complex g.val).conjTranspose = Matrix.transpose (as_complex g.val) := by
+    have conjTranspose_eq_transpose :
+      (as_complex g.val).conjTranspose = Matrix.transpose (as_complex g.val) := by
       simp only [as_complex, Matrix.conjTranspose, RingHom.mapMatrix_apply]
       ext i j
       simp [Matrix.transpose]
@@ -150,9 +143,8 @@ open ComplexConjugate
 def CONJ : ℂ →+* ℂ := conj
 
 
-lemma flem (g: SO3): z ∈ (cpoly g).roots  → z = CONJ z → (z = 1 ∨ z = -1) := by
-  intro lhs
-  intro lhs2
+lemma flem (g : SO3) : z ∈ (cpoly g).roots → z = CONJ z → (z = 1 ∨ z = -1) := by
+  intro lhs lhs2
   simp [CONJ] at lhs2
   symm at lhs2
   have :_:= Complex.conj_eq_iff_real.mp lhs2
@@ -162,30 +154,26 @@ lemma flem (g: SO3): z ∈ (cpoly g).roots  → z = CONJ z → (z = 1 ∨ z = -1
   simp at normone
   rw [pr]
   rcases abs_cases r with c1 | c2
-  left
-  rw [←c1.left]
-  simp [normone]
-  --
-  right
-  rw [←neg_eq_iff_eq_neg]
-  rw [c2.left] at normone
-  apply Complex.ext
-  simp
-  exact normone
-  --
-  simp
+  · left
+    rw [←c1.left]
+    simp [normone]
+  · right
+    rw [←neg_eq_iff_eq_neg]
+    rw [c2.left] at normone
+    apply Complex.ext
+    · simp [normone]
+    · simp
 
 
 
-lemma flem2 (g: SO3): z ∈ (cpoly g).roots  → (z ≠ 1 ∧ z ≠ -1) → (z ≠ CONJ z) := by
-  intro lhs
-  intro lhs2
+lemma flem2 (g : SO3) : z ∈ (cpoly g).roots → (z ≠ 1 ∧ z ≠ -1) → (z ≠ CONJ z) := by
+  intro lhs lhs2
   by_contra are_eq
   have :_:= flem g lhs are_eq
   tauto
 
 
-lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
+lemma conj_roots (g : SO3) : (cpoly g).roots = (cpoly g).roots.map CONJ := by
   have l0: cpoly g = (cpoly g).map CONJ := by
     ext i
     simp
@@ -197,27 +185,25 @@ lemma conj_roots (g: SO3): (cpoly g).roots = (cpoly g).roots.map CONJ := by
   have l2: (cpoly g).roots.map CONJ = ((cpoly g).map CONJ).roots  := by
     have deglem :_:= charpoly_natdeg_3 g
     apply Polynomial.roots_map_of_map_ne_zero_of_card_eq_natDegree
-    --
-    simp
-    by_contra bad
-    rw [bad] at deglem
-    simp at deglem
-    --
-    exact num_roots_eq_deg g
+    · simp
+      by_contra bad
+      rw [bad] at deglem
+      simp at deglem
+    · exact num_roots_eq_deg g
 
   exact Eq.trans l1 l2.symm
 
-lemma conj_roots_2 (g: SO3) (z : ℂ): z ∈ (cpoly g).roots → CONJ z ∈ (cpoly g).roots := by
+lemma conj_roots_2 (g : SO3) (z : ℂ) : z ∈ (cpoly g).roots → CONJ z ∈ (cpoly g).roots := by
   intro lhs
   have so :CONJ z ∈(cpoly g).roots.map CONJ := by
     apply Multiset.mem_map.mpr
     use z
   rwa [conj_roots]
 
---theorem count_map_eq_count' [DecidableEq β] (f : α → β) (s : Multiset α) (hf : Function.Injective f)
---    (x : α) : (s.map f).count (f x) = s.count x := by
+--theorem count_map_eq_count' [DecidableEq β] (f : α → β) (s : Multiset α)
+--    (hf : Function.Injective f) (x : α) : (s.map f).count (f x) = s.count x := by
 
-lemma conj_roots_3 (g: SO3) (z : ℂ):
+lemma conj_roots_3 (g : SO3) (z : ℂ) :
   (cpoly g).roots.count z = (cpoly g).roots.count (CONJ z) := by
     set R:= (cpoly g).roots with R_def
     have tmp: (R.map CONJ).count (CONJ z) = R.count z := by
@@ -229,10 +215,11 @@ lemma conj_roots_3 (g: SO3) (z : ℂ):
     exact Eq.symm (conj_roots g)
 
 
-lemma conj_roots_4 (g: SO3): z ∈ (cpoly g).roots  → (z ≠ 1 ∧ z ≠ -1) → ((cpoly g).roots.count z = 1) := by
+lemma conj_roots_4 (g : SO3) : z ∈ (cpoly g).roots → (z ≠ 1 ∧ z ≠ -1) →
+  ((cpoly g).roots.count z = 1) := by
 
 
-  let P := fun w ↦ w = (z:ℂ) ∨ w = CONJ z
+  let P := fun w ↦ w = (z : ℂ) ∨ w = CONJ z
   set S:= (cpoly g).roots with Sdef
 
   intro zin notones
@@ -254,7 +241,7 @@ lemma conj_roots_4 (g: SO3): z ∈ (cpoly g).roots  → (z ≠ 1 ∧ z ≠ -1) �
     apply Multiset.card_le_card
     simp
 
-  let Pconj := fun w ↦ w = (z:ℂ) ∧ w = CONJ z
+  let Pconj := fun w ↦ w = (z : ℂ) ∧ w = CONJ z
   have a6:  Multiset.filter (· = z) S + Multiset.filter (· = CONJ z) S =
     Multiset.filter P S + Multiset.filter Pconj S := by
     simp [P, Pconj]
@@ -265,9 +252,7 @@ lemma conj_roots_4 (g: SO3): z ∈ (cpoly g).roots  → (z ≠ 1 ∧ z ≠ -1) �
       simp [Pconj]
       intro a lhs1 lhs2
       rw [lhs2]
-      apply flem2 g
-      exact zin
-      exact notones
+      apply flem2 g zin notones
     rw [a71] at a6
     simp at a6
     symm at a6
@@ -297,7 +282,7 @@ lemma conj_roots_4 (g: SO3): z ∈ (cpoly g).roots  → (z ≠ 1 ∧ z ≠ -1) �
 
 
 
-lemma conj_mul_roots (g: SO3) : z ∈ (cpoly g).roots → z * CONJ z = 1 := by
+lemma conj_mul_roots (g : SO3) : z ∈ (cpoly g).roots → z * CONJ z = 1 := by
   intro lhs
   simp [CONJ]
   rw [Complex.mul_conj]
@@ -307,8 +292,8 @@ lemma conj_mul_roots (g: SO3) : z ∈ (cpoly g).roots → z * CONJ z = 1 := by
   exact eig_norms g z lhs
 
 
-lemma cast_root_mult1 (g: SO3): Polynomial.rootMultiplicity (1: ℝ) (g.val).charpoly =
-  Polynomial.rootMultiplicity (1:ℂ) (Polynomial.map (algebraMap ℝ ℂ) (g.val).charpoly) := by
+lemma cast_root_mult1 (g : SO3) : Polynomial.rootMultiplicity (1 : ℝ) (g.val).charpoly =
+  Polynomial.rootMultiplicity (1 : ℂ) (Polynomial.map (algebraMap ℝ ℂ) (g.val).charpoly) := by
   have inmap: Function.Injective (algebraMap ℝ ℂ) := by
     exact RCLike.ofReal_injective
   rw  [Polynomial.eq_rootMultiplicity_map inmap (1:ℝ)]
@@ -316,7 +301,7 @@ lemma cast_root_mult1 (g: SO3): Polynomial.rootMultiplicity (1: ℝ) (g.val).cha
 
 
 open Polynomial
-lemma same_mult (g: SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
+lemma same_mult (g : SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
   rootMultiplicity 1 (map (algebraMap ℝ ℂ) (LinearMap.charpoly (g_end g))) := by
   rw [same_char]
   simp [cpoly]
@@ -328,31 +313,41 @@ lemma same_mult (g: SO3) : rootMultiplicity 1 (LinearMap.charpoly (g_end g)) =
 
 
 
-
-lemma idlem (g: SO3):  (cpoly g).roots.count 1 = 3 → g = 1 := by
+set_option linter.style.refine false in
+set_option maxHeartbeats 1000000 in
+-- Lemma is slow
+lemma idlem (g : SO3) : (cpoly g).roots.count 1 = 3 → g = 1 := by
 -- Thanks to Li Xuanji for plugging this into Aristotle.
 
--- Note:  a more transparent approach would be to use the approach started in commit 105f952164c26d7b4c79cd1c1bd5b629f9e593ce where we try to show that
+-- Note:  a more transparent approach would be to use the approach started in
+-- commit 105f952164c26d7b4c79cd1c1bd5b629f9e593ce where we try to show that
 -- the eigenspace of 1 is top.  It will relies on a theorem like
 
---lemma star_normal_maxGenEigenspace_eq_eigenspace  {A: Type*} [NormedAddCommGroup A] [InnerProductSpace ℂ A] [FiniteDimensional ℂ A] {f: Module.End ℂ A} (hf: IsStarNormal f) {k: ℂ}:
+--lemma star_normal_maxGenEigenspace_eq_eigenspace
+-- {A: Type*} [NormedAddCommGroup A] [InnerProductSpace ℂ A] [FiniteDimensional ℂ A]
+-- {f: Module.End ℂ A} (hf: IsStarNormal f) {k: ℂ}:
 --    f.maxGenEigenspace k = f.eigenspace k
--- which you can find at https://github.com/Aaron1011/mathlib4/blob/1a06f50ee097ae52bafb8cf4d0c683b0a64b8078/Mathlib/Analysis/Matrix/StarNormalEigen.lean#L140
+-- which you can find at
+-- https://github.com/Aaron1011/mathlib4/blob/1a06f50ee097ae52bafb8cf4d0c683b0a64b8078/Mathlib/Analysis/Matrix/StarNormalEigen.lean#L140
 
--- Unfortunately I could not get a invocation of this lemma to terminate (I tried up to 3million heartbeats)
+-- Unfortunately I could not get a invocation of this lemma to terminate
+-- (I tried up to 3million heartbeats)
 -- Also I was having trouble distrbibuting star
 -- over the composition that is g_end (:= to_R3_linear.comp ((g_end_raw g).comp ofLp_linear))
 -- (since two of these factors are not endomorphisms).
 -- I'm sure this is ignorance on my part and I may return to it one day.
 
 
-  -- Since the only real roots of $P_g$ are $\pm 1$, and $P_g$ has three roots, they must all be $1$. Hence, $g$ is the identity matrix.
+  -- Since the only real roots of $P_g$ are $\pm 1$, and $P_g$ has three roots,
+  -- they must all be $1$. Hence, $g$ is the identity matrix.
   have h_roots : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} → g = 1 := by
-    have h_roots : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} → Matrix.charpoly (as_complex g.val) = (Polynomial.X - Polynomial.C 1) ^ 3 := by
+    have h_roots : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} →
+      Matrix.charpoly (as_complex g.val) = (Polynomial.X - Polynomial.C 1) ^ 3 := by
       intro h_roots
       have h_poly : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} := by
         exact h_roots;
-      rw [ ← Polynomial.prod_multiset_X_sub_C_of_monic_of_roots_card_eq ( show Polynomial.Monic ( Matrix.charpoly ( as_complex g.val ) ) from ?_ ) ];
+      rw [← Polynomial.prod_multiset_X_sub_C_of_monic_of_roots_card_eq
+        (show Polynomial.Monic (Matrix.charpoly (as_complex g.val)) from ?_)];
       · norm_num [ h_poly ];
         ring;
       · aesop;
@@ -360,48 +355,97 @@ lemma idlem (g: SO3):  (cpoly g).roots.count 1 = 3 → g = 1 := by
     intro h; specialize h_roots h; simp_all +decide [ Matrix.charpoly, Matrix.det_fin_three ] ;
     -- By comparing coefficients, we can see that $g$ must be the identity matrix.
     have h_coeff : ∀ i j, (g.val i j : ℂ) = if i = j then 1 else 0 := by
-      -- By comparing coefficients of $X^2$ on both sides of the equation, we can derive that the sum of the diagonal elements of $g$ must be 3.
+      -- By comparing coefficients of $X^2$ on both sides of the equation,
+      -- we can derive that the sum of the diagonal elements of $g$ must be 3.
       have h_diag_sum : (g.val 0 0 : ℂ) + (g.val 1 1 : ℂ) + (g.val 2 2 : ℂ) = 3 := by
-        have h₁ := congr_arg ( Polynomial.eval 0 ) h_roots; have h₂ := congr_arg ( Polynomial.eval 1 ) h_roots; have h₃ := congr_arg ( Polynomial.eval ( -1 ) ) h_roots; norm_num [ Complex.ext_iff ] at *; linarith!;
+        have h₁ := congr_arg (Polynomial.eval 0) h_roots
+        have h₂ := congr_arg (Polynomial.eval 1) h_roots
+        have h₃ := congr_arg (Polynomial.eval (-1)) h_roots
+        norm_num [Complex.ext_iff] at *
+        linarith!
       -- Since $g$ is orthogonal, we have $g^T g = I$.
       have h_orthogonal : (g.val.transpose * g.val : Matrix (Fin 3) (Fin 3) ℝ) = 1 := by
         have := g.2.1; simp_all +decide [ Matrix.mul_eq_one_comm ] ;
         exact this.2;
-      -- Since $g$ is orthogonal, we have $g^T g = I$. Therefore, the sum of the squares of the entries in each row is 1.
+      -- Since $g$ is orthogonal, we have $g^T g = I$.
+      -- Therefore, the sum of the squares of the entries in each row is 1.
       have h_row_squares : ∀ i, (g.val i 0 : ℝ)^2 + (g.val i 1 : ℝ)^2 + (g.val i 2 : ℝ)^2 = 1 := by
-        intro i; have := congr_fun ( congr_fun h_orthogonal i ) i; simp_all +decide [ Matrix.mul_apply, Fin.sum_univ_three ] ;
-        have := congr_fun ( congr_fun ( show ( g.val * g.val.transpose : Matrix ( Fin 3 ) ( Fin 3 ) ℝ ) = 1 from by simpa [ Matrix.mul_eq_one_comm ] using h_orthogonal ) i ) i; simp_all +decide [ Matrix.mul_apply, Fin.sum_univ_three ] ; ring_nf at *; aesop;
-      -- Since the sum of the squares of the entries in each row is 1 and the sum of the diagonal elements is 3, each diagonal element must be 1.
+        intro i
+        have := congr_fun (congr_fun h_orthogonal i) i
+        simp_all +decide [Matrix.mul_apply, Fin.sum_univ_three]
+        have := congr_fun (congr_fun
+          (show (g.val * g.val.transpose : Matrix (Fin 3) (Fin 3) ℝ) = 1 from
+            by simpa [Matrix.mul_eq_one_comm] using h_orthogonal) i) i
+        simp_all +decide [Matrix.mul_apply, Fin.sum_univ_three]
+        ring_nf at *
+        aesop
+      -- Since the sum of the squares of the entries in each row is 1
+      -- and the sum of the diagonal elements is 3, each diagonal element must be 1.
+      -- Porting note: `refine'` needed here instead of `refine` due to placeholder synthesis
       have h_diag_one : ∀ i, (g.val i i : ℝ) = 1 := by
         norm_cast at *; simp_all +decide [ Fin.forall_fin_succ ] ;
-        refine' ⟨ _, _, _ ⟩ <;> nlinarith only [ h_diag_sum, h_row_squares, sq_nonneg ( ( g.val 0 0 : ℝ ) - 1 ), sq_nonneg ( ( g.val 1 1 : ℝ ) - 1 ), sq_nonneg ( ( g.val 2 2 : ℝ ) - 1 ) ];
+        refine' ⟨_, _, _⟩
+        <;> nlinarith only [h_diag_sum, h_row_squares,
+          sq_nonneg ((g.val 0 0 : ℝ) - 1), sq_nonneg ((g.val 1 1 : ℝ) - 1),
+          sq_nonneg ((g.val 2 2 : ℝ) - 1)]
       simp_all +decide [ Fin.forall_fin_succ ];
-      exact ⟨ ⟨ by nlinarith only [ h_row_squares.1 ], by nlinarith only [ h_row_squares.1 ] ⟩, ⟨ by nlinarith only [ h_row_squares.2.1 ], by nlinarith only [ h_row_squares.2.1 ] ⟩, by nlinarith only [ h_row_squares.2.2 ], by nlinarith only [ h_row_squares.2.2 ] ⟩;
+      exact ⟨⟨by nlinarith only [h_row_squares.1],
+        by nlinarith only [h_row_squares.1]⟩,
+        ⟨by nlinarith only [h_row_squares.2.1],
+        by nlinarith only [h_row_squares.2.1]⟩,
+        by nlinarith only [h_row_squares.2.2],
+        by nlinarith only [h_row_squares.2.2]⟩
     ext i j; specialize h_coeff i j; aesop;
-  -- Since the polynomial is of degree 3, if 1 is a root with multiplicity 3, then the polynomial must be $(x-1)^3$.
-  have h_poly_form : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} ↔ Multiset.count 1 (Matrix.charpoly (as_complex g.val)).roots = 3 := by
+  -- Since the polynomial is of degree 3, if 1 is a root with multiplicity 3,
+  -- then the polynomial must be $(x-1)^3$.
+  have h_poly_form : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} ↔
+    Multiset.count 1 (Matrix.charpoly (as_complex g.val)).roots = 3 := by
     have h_poly_form : (Matrix.charpoly (as_complex g.val)).degree = 3 := by
       simp +decide [ Matrix.charpoly_degree_eq_dim ];
-    -- Since the polynomial is of degree 3, if 1 is a root with multiplicity 3, then the polynomial must be $(x-1)^3$. Hence, the roots must be exactly {1, 1, 1}.
-    have h_poly_form : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} ↔ Multiset.count 1 (Matrix.charpoly (as_complex g.val)).roots = 3 := by
-      have h_poly_form : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} → Multiset.count 1 (Matrix.charpoly (as_complex g.val)).roots = 3 := by
+    -- Since the polynomial is of degree 3, if 1 is a root with multiplicity 3,
+    -- then the polynomial must be $(x-1)^3$. Hence, the roots must be exactly {1, 1, 1}.
+    have h_poly_form : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} ↔
+      Multiset.count 1 (Matrix.charpoly (as_complex g.val)).roots = 3 := by
+      have h_poly_form : (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} →
+        Multiset.count 1 (Matrix.charpoly (as_complex g.val)).roots = 3 := by
         aesop
-      have h_poly_form' : Multiset.count 1 (Matrix.charpoly (as_complex g.val)).roots = 3 → (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} := by
+      have h_poly_form' : Multiset.count 1 (Matrix.charpoly (as_complex g.val)).roots = 3 →
+        (Matrix.charpoly (as_complex g.val)).roots = {1, 1, 1} := by
         intro h_count
         have h_poly_form' : Multiset.card (Matrix.charpoly (as_complex g.val)).roots = 3 := by
           have h_poly_form' : Multiset.card (Matrix.charpoly (as_complex g.val)).roots ≤ 3 := by
-            exact le_trans ( Polynomial.card_roots' _ ) ( Polynomial.natDegree_le_of_degree_le <| le_of_eq ‹_› );
-          exact le_antisymm h_poly_form' ( by linarith [ Multiset.count_le_card 1 ( Matrix.charpoly ( as_complex g.val ) |> Polynomial.roots ) ] );
+            exact le_trans ( Polynomial.card_roots' _ )
+              ( Polynomial.natDegree_le_of_degree_le <| le_of_eq ‹_› );
+          exact le_antisymm h_poly_form' (
+            by linarith [ Multiset.count_le_card 1 (
+                Matrix.charpoly ( as_complex g.val ) |> Polynomial.roots
+              ) ]
+            );
         have h_poly_form' : ∀ x ∈ (Matrix.charpoly (as_complex g.val)).roots, x = 1 := by
           intro x hx; contrapose! h_count; simp_all +decide ;
-          have h_poly_form' : Polynomial.rootMultiplicity 1 (Matrix.charpoly (as_complex g.val)) + Polynomial.rootMultiplicity x (Matrix.charpoly (as_complex g.val)) ≤ 3 := by
-            have h_poly_form' : Polynomial.rootMultiplicity 1 (Matrix.charpoly (as_complex g.val)) + Polynomial.rootMultiplicity x (Matrix.charpoly (as_complex g.val)) ≤ Multiset.card (Matrix.charpoly (as_complex g.val)).roots := by
-              have h_poly_form' : Polynomial.rootMultiplicity 1 (Matrix.charpoly (as_complex g.val)) + Polynomial.rootMultiplicity x (Matrix.charpoly (as_complex g.val)) ≤ Multiset.card (Multiset.filter (fun y => y = 1) (Matrix.charpoly (as_complex g.val)).roots) + Multiset.card (Multiset.filter (fun y => y = x) (Matrix.charpoly (as_complex g.val)).roots) := by
+          have h_poly_form' :
+            Polynomial.rootMultiplicity 1 (Matrix.charpoly (as_complex g.val)) +
+            Polynomial.rootMultiplicity x (Matrix.charpoly (as_complex g.val)) ≤ 3 := by
+            have h_poly_form' :
+              Polynomial.rootMultiplicity 1 (Matrix.charpoly (as_complex g.val)) +
+              Polynomial.rootMultiplicity x (Matrix.charpoly (as_complex g.val)) ≤
+              Multiset.card (Matrix.charpoly (as_complex g.val)).roots := by
+              have h_poly_form' :
+                Polynomial.rootMultiplicity 1 (Matrix.charpoly (as_complex g.val)) +
+                Polynomial.rootMultiplicity x (Matrix.charpoly (as_complex g.val)) ≤
+                Multiset.card (Multiset.filter (fun y => y = 1)
+                  (Matrix.charpoly (as_complex g.val)).roots) +
+                Multiset.card (Multiset.filter (fun y => y = x)
+                  (Matrix.charpoly (as_complex g.val)).roots) := by
                 rw [ Multiset.filter_eq', Multiset.filter_eq' ] ; aesop;
               refine le_trans h_poly_form' ?_;
-              rw [ ← Multiset.card_add ] ; exact Multiset.card_le_card <| Multiset.le_iff_count.mpr fun y => by by_cases hy : y = 1 <;> by_cases hy' : y = x <;> aesop;
+              rw [← Multiset.card_add]
+              exact Multiset.card_le_card <| Multiset.le_iff_count.mpr fun y => by
+                by_cases hy : y = 1 <;> by_cases hy' : y = x <;> aesop
             linarith;
-          linarith [ show Polynomial.rootMultiplicity x ( Matrix.charpoly ( as_complex g.val ) ) > 0 from Nat.pos_of_ne_zero ( by aesop ) ];
+          linarith [show Polynomial.rootMultiplicity x
+            (Matrix.charpoly (as_complex g.val)) > 0 from
+            Nat.pos_of_ne_zero (by aesop)]
         exact Multiset.eq_replicate.mpr ⟨ by assumption, h_poly_form' ⟩
       exact ⟨h_poly_form, h_poly_form'⟩;
     exact h_poly_form;
@@ -409,7 +453,7 @@ lemma idlem (g: SO3):  (cpoly g).roots.count 1 = 3 → g = 1 := by
 
 
 
-lemma tight_space_lemma (g: SO3) :
+lemma tight_space_lemma (g : SO3) :
   ((cpoly g).roots.count 1 ) + ((cpoly g).roots.count (-1))  ≥ 2
   →
   ∀w ∈ (cpoly g).roots, w = 1 ∨ w = -1 := by
@@ -418,7 +462,7 @@ lemma tight_space_lemma (g: SO3) :
   rw [not_forall] at other
   obtain ⟨w, pw⟩ := other
   rw [_root_.not_imp] at pw
-  let P := fun w ↦ w = (1:ℂ) ∨ w = -1
+  let P := fun w ↦ w = ((1 : ℂ)) ∨ w = -1
   --theorem filter_add_not (s : Multiset α) : filter p s + filter (fun a => ¬p a) s = s := by
   set S:= (cpoly g).roots with Sdef
   have a1 : Multiset.filter P S + Multiset.filter (fun a ↦ ¬P a) S = S :=
@@ -431,7 +475,7 @@ lemma tight_space_lemma (g: SO3) :
     Multiset.card (Multiset.filter (fun a ↦ ¬P a) S) := by
     nth_rewrite 1 [←a1]
     exact a2
-  let Pconj := fun w ↦ w = (1:ℂ) ∧ w = -1
+  let Pconj := fun w ↦ w = ((1 : ℂ)) ∧ w = -1
   have a6:  Multiset.filter (· = 1) S + Multiset.filter (· = -1) S =
     Multiset.filter P S + Multiset.filter Pconj S := by
     simp [P, Pconj]
@@ -484,8 +528,8 @@ lemma tight_space_lemma (g: SO3) :
       have nodup: [w, CONJ w].Nodup := by
         simp
         apply flem2 g
-        exact pw.left
-        exact (not_or.mp pw.right)
+        · exact pw.left
+        · exact (not_or.mp pw.right)
 
 
       have a511: List.count w [w, CONJ w] = 1:= by
@@ -498,42 +542,40 @@ lemma tight_space_lemma (g: SO3) :
         simp
 
       rcases (em (a = w)) with aw1 | aw2
-      rw [aw1]
-      rw [a511]
-      apply Multiset.one_le_count_iff_mem.mpr
-      simp
-      constructor
-      exact pw.left
-      simp [P]
-      exact (not_or.mp pw.right)
-
-      rcases (em (a = CONJ w)) with acw1 | acw2
-      rw [acw1]
-      rw [a512]
-      apply Multiset.one_le_count_iff_mem.mpr
-      simp
-      constructor
-      exact conj_roots_2 g w pw.left
-      simp [P]
-      constructor
-      by_contra bad
-      apply congrArg CONJ at bad
-      simp [CONJ] at bad
-      exact pw.right (Or.inl bad)
-      --
-      by_contra bad
-      apply congrArg CONJ at bad
-      simp [CONJ] at bad
-      exact pw.right (Or.inr bad)
-      --
-      have bb:List.count a [w, CONJ w] = 0 := by
-        apply List.count_eq_zero.mpr
+      · rw [aw1]
+        rw [a511]
+        apply Multiset.one_le_count_iff_mem.mpr
         simp
         constructor
-        exact aw2
-        exact acw2
-      rw [bb]
-      simp
+        · exact pw.left
+        · simp [P]
+          exact (not_or.mp pw.right)
+
+      rcases (em (a = CONJ w)) with acw1 | acw2
+      · rw [acw1]
+        rw [a512]
+        apply Multiset.one_le_count_iff_mem.mpr
+        simp
+        constructor
+        · exact conj_roots_2 g w pw.left
+        · simp [P]
+          constructor
+          · by_contra bad
+            apply congrArg CONJ at bad
+            simp [CONJ] at bad
+            exact pw.right (Or.inl bad)
+          · by_contra bad
+            apply congrArg CONJ at bad
+            simp [CONJ] at bad
+            exact pw.right (Or.inr bad)
+      · have bb:List.count a [w, CONJ w] = 0 := by
+          apply List.count_eq_zero.mpr
+          simp
+          constructor
+          · exact aw2
+          · exact acw2
+        rw [bb]
+        simp
 
 
     have a52: _:= Multiset.card_le_card a51
@@ -547,12 +589,12 @@ lemma tight_space_lemma (g: SO3) :
 
 
 
-lemma tight_space_lemma_2 (g: SO3) :
+lemma tight_space_lemma_2 (g : SO3) :
   ((cpoly g).roots.count 1 ) + ((cpoly g).roots.count (-1))  ≥ 2
   →
   ((cpoly g).roots.count 1 ) + ((cpoly g).roots.count (-1))  = 3 := by
   set S:= (cpoly g).roots with Sdef
-  set P := fun w ↦ w = (1:ℂ) ∨ w = -1 with Pdef
+  set P := fun w ↦ w = ((1 : ℂ)) ∨ w = -1 with Pdef
   intro lhs
   --Multiset.filter_eq_self.{u_1} {α : Type u_1} {p : α → Prop} [DecidablePred p] {s : Multiset α} :
   --Multiset.filter p s = s ↔ ∀ a ∈ s, p a
@@ -560,7 +602,7 @@ lemma tight_space_lemma_2 (g: SO3) :
     apply Multiset.filter_eq_self.mpr
     exact tight_space_lemma g lhs
 
-  let Pconj := fun w ↦ w = (1:ℂ) ∧ w = -1
+  let Pconj := fun w ↦ w = ((1 : ℂ)) ∧ w = -1
   have a6:  Multiset.filter (· = 1) S + Multiset.filter (· = -1) S =
     Multiset.filter P S + Multiset.filter Pconj S := by
     simp [P, Pconj]
@@ -606,7 +648,7 @@ lemma tight_space_lemma_2 (g: SO3) :
   symm
   exact this
 
-lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
+lemma spec_lem (g : SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
 
   intro gnotone
   let count := (cpoly g).roots.count 1
@@ -626,38 +668,35 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
     rw [←num_roots_eq_3]
     apply Multiset.count_le_card
   rcases (em (mcount = 3)) with (meq3 | mneq3)
-  have : (cpoly g).roots.prod = -1 := by
-    have const: (cpoly g).roots = Multiset.ofList [-1,-1,-1] := by
-      have that:mcount = (cpoly g).roots.card := by
-        rwa [num_roots_eq_3]
-      have :_:=  Multiset.count_eq_card.mp that
-      apply Multiset.ext.mpr
-      intro a
-      rcases (em (a ∈ (cpoly g).roots)) with isroot | notroot
-      have is_m1 :_ := this a isroot
-      rw [←is_m1]
-      simp [mcount] at meq3
+  · have : (cpoly g).roots.prod = -1 := by
+      have const: (cpoly g).roots = Multiset.ofList [-1,-1,-1] := by
+        have that:mcount = (cpoly g).roots.card := by
+          rwa [num_roots_eq_3]
+        have :_:=  Multiset.count_eq_card.mp that
+        apply Multiset.ext.mpr
+        intro a
+        rcases (em (a ∈ (cpoly g).roots)) with isroot | notroot
+        · have is_m1 :_ := this a isroot
+          rw [←is_m1]
+          simp [mcount] at meq3
+          simp
+          exact meq3
+        · have : Multiset.count a (cpoly g).roots = 0 := Multiset.count_eq_zero.mpr notroot
+          rw [this]
+          simp
+          symm
+          apply List.count_eq_zero.mpr
+          by_contra inconst
+          simp at inconst
+          rw [inconst] at notroot
+          have :_ :=Multiset.count_eq_zero.mpr notroot
+          simp only [mcount] at meq3
+          rw [this] at meq3
+          norm_num at meq3
+      rw [const]
       simp
-      exact meq3
-      have : Multiset.count a (cpoly g).roots = 0 := Multiset.count_eq_zero.mpr notroot
-      rw [this]
-      simp
-      symm
-      apply List.count_eq_zero.mpr
-      by_contra inconst
-      simp at inconst
-      rw [inconst] at notroot
-      have :_ :=Multiset.count_eq_zero.mpr notroot
-      simp only [mcount] at meq3
-      rw [this] at meq3
-      norm_num at meq3
-
-
-    rw [const]
-    simp
-
-  rw [det_as_prod g] at this
-  norm_num at this
+    rw [det_as_prod g] at this
+    norm_num at this
   --
   have mnottwo: mcount ≠ 2 := by
     by_contra mistwo
@@ -678,47 +717,46 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
     by_contra misone
     have negdet: (cpoly g).roots.prod = -1 := by
       rcases (em ((cpoly g).roots.count 1 ≥ 1)) with d1 | d2
-      have css: ∀w ∈ (cpoly g).roots, w = 1 ∨ w = -1 := by
-        apply tight_space_lemma g
-        simp only [mcount] at misone
-        rw [misone]
-        simp
-        simp at d1
-        exact d1
-      have css2: Multiset.count 1 (cpoly g).roots + Multiset.count (-1) (cpoly g).roots = 3 := by
-        apply tight_space_lemma_2 g
-        simp only [mcount] at misone
-        rw [misone]
-        simp
-        simp at d1
-        exact d1
-      simp only [mcount] at misone
-      rw [misone] at css2
-      simp at css2
-      have form : (cpoly g).roots = Multiset.ofList [-1, 1, 1] := by
-        have form_le : (cpoly g).roots ≤ Multiset.ofList [-1, 1, 1]  := by
-          apply Multiset.le_iff_count.mpr
-          intro a
-          rcases (em (a ∈ (cpoly g).roots)) with isroot | notroot
-          rcases css a isroot with e1 | e2
-          rw [e1]
-          simp
-          rw [css2]
-          norm_num
-          --
-          rw [e2]
+      · have css: ∀w ∈ (cpoly g).roots, w = 1 ∨ w = -1 := by
+          apply tight_space_lemma g
+          simp only [mcount] at misone
           rw [misone]
-          norm_num
-          have :_ := Multiset.count_eq_zero_of_notMem notroot
-          rw [this]
-          norm_num
+          simp
+          simp at d1
+          exact d1
+        have css2: Multiset.count 1 (cpoly g).roots + Multiset.count (-1) (cpoly g).roots = 3 := by
+          apply tight_space_lemma_2 g
+          simp only [mcount] at misone
+          rw [misone]
+          simp
+          simp at d1
+          exact d1
+        simp only [mcount] at misone
+        rw [misone] at css2
+        simp at css2
+        have form : (cpoly g).roots = Multiset.ofList [-1, 1, 1] := by
+          have form_le : (cpoly g).roots ≤ Multiset.ofList [-1, 1, 1]  := by
+            apply Multiset.le_iff_count.mpr
+            intro a
+            rcases (em (a ∈ (cpoly g).roots)) with isroot | notroot
+            · rcases css a isroot with e1 | e2
+              · rw [e1]
+                simp
+                rw [css2]
+                norm_num
+              · rw [e2]
+                rw [misone]
+                norm_num
+            · have :_ := Multiset.count_eq_zero_of_notMem notroot
+              rw [this]
+              norm_num
 
-        apply Multiset.eq_of_le_of_card_le form_le
+          apply Multiset.eq_of_le_of_card_le form_le
+          simp
+          rw [num_roots_eq_3 g]
+
+        rw [form]
         simp
-        rw [num_roots_eq_3 g]
-
-      rw [form]
-      simp
       --
       have this: Multiset.count 1 (cpoly g).roots  = 0:= by
         linarith
@@ -731,20 +769,20 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
           apply Multiset.le_iff_count.mpr
           intro b
           rcases (em (b ∈ (cpoly g).roots)) with isroot | notroot
-          have that:_:= bbad b
-          have tt: ¬ (b ≠ 1 ∧ b ≠ -1) := by
-            by_contra bbb
-            exact that ⟨isroot, bbb⟩
-          simp at tt
-          rcases (em (b=1)) with f1 | f2
-          rw [f1]
-          rw [this]
-          norm_num
-          --
-          rw [tt f2]
-          simp only [mcount] at misone
-          rw [misone]
-          norm_num
+          · have that:_:= bbad b
+            have tt: ¬ (b ≠ 1 ∧ b ≠ -1) := by
+              by_contra bbb
+              exact that ⟨isroot, bbb⟩
+            simp at tt
+            rcases (em (b=1)) with f1 | f2
+            · rw [f1]
+              rw [this]
+              norm_num
+            --
+            rw [tt f2]
+            simp only [mcount] at misone
+            rw [misone]
+            norm_num
           have :_ := Multiset.count_eq_zero_of_notMem notroot
           rw [this]
           norm_num
@@ -763,78 +801,74 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
       have form : (cpoly g).roots = Multiset.ofList [-1, c, CONJ c] := by
         symm
         apply Multiset.eq_of_le_of_card_le
+        rotate_left
+        · simp
+          rw [num_roots_eq_3 g]
+
         apply Multiset.le_iff_count.mpr
         intro a
         have nodup: [-1, c, CONJ c].Nodup := by
           simp
           constructor
           constructor
-          by_contra isone
-          symm at isone
-          exact cspec.right.right isone
+          · by_contra isone
+            symm at isone
+            exact cspec.right.right isone
           --
-          by_contra bad
-          have:  -1 = CONJ (-1) := by
-            simp [CONJ]
-          rw [this] at bad
-          apply congrArg CONJ at bad
-          simp at bad
-          simp [CONJ] at bad
-          symm at bad
-          exact cspec.right.right bad
+          · by_contra bad
+            have:  -1 = CONJ (-1) := by
+              simp [CONJ]
+            rw [this] at bad
+            apply congrArg CONJ at bad
+            simp at bad
+            simp [CONJ] at bad
+            symm at bad
+            exact cspec.right.right bad
           --
           exact this
           --
 
         rcases (em (a = -1)) with imo | nimo
-        rw [imo]
-        have : List.count (-1) [-1, c, CONJ c] = 1  := by
-          apply List.count_eq_one_of_mem nodup
-          simp
-        simp [this]
-        simp [mcount] at misone
-        rw [misone]
-        --
-        rcases (em (a = c)) with imc | nimc
-        rw [imc]
-        have : List.count (c) [-1, c, CONJ c] = 1  := by
-          apply List.count_eq_one_of_mem nodup
-          simp
-        simp [this]
-        have := Multiset.count_pos.mpr cspec.left
-        rw [Polynomial.count_roots] at this
-        linarith
-        --
-        rcases (em (a = CONJ c)) with imcc | nimcc
-        rw [imcc]
-        have : List.count (CONJ c) [-1, c, CONJ c] = 1  := by
-          apply List.count_eq_one_of_mem nodup
-          simp
-        simp
-        rw [this]
-        have : CONJ c ∈  (cpoly g).roots := by
-          apply conj_roots_2 g c
-          exact cspec.left
-
-        have := Multiset.count_pos.mpr this
-        rw [Polynomial.count_roots] at this
-        linarith
-        simp
-        have :List.count a [-1, c, CONJ c]=0 := by
-          apply List.count_eq_zero.mpr
-          simp
-          constructor
-          exact nimo
-          constructor
-          exact nimc
-          exact nimcc
-        rw [this]
-        simp
-
-        --
-        simp
-        rw [num_roots_eq_3 g]
-
+        · rw [imo]
+          have : List.count (-1) [-1, c, CONJ c] = 1  := by
+            apply List.count_eq_one_of_mem nodup
+            simp
+          simp [this]
+          simp [mcount] at misone
+          rw [misone]
+        · rcases (em (a = c)) with imc | nimc
+          · rw [imc]
+            have : List.count (c) [-1, c, CONJ c] = 1  := by
+              apply List.count_eq_one_of_mem nodup
+              simp
+            simp [this]
+            have := Multiset.count_pos.mpr cspec.left
+            rw [Polynomial.count_roots] at this
+            linarith
+          · rcases (em (a = CONJ c)) with imcc | nimcc
+            · rw [imcc]
+              have : List.count (CONJ c) [-1, c, CONJ c] = 1  := by
+                apply List.count_eq_one_of_mem nodup
+                simp
+              simp
+              rw [this]
+              have : CONJ c ∈  (cpoly g).roots := by
+                apply conj_roots_2 g c
+                exact cspec.left
+              have := Multiset.count_pos.mpr this
+              rw [Polynomial.count_roots] at this
+              linarith
+            · simp
+              have :List.count a [-1, c, CONJ c]=0 := by
+                apply List.count_eq_zero.mpr
+                simp
+                constructor
+                · exact nimo
+                constructor
+                · exact nimc
+                · exact nimcc
+              rw [this]
+              simp
 
       rw [form]
       simp
@@ -869,10 +903,6 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
         rw [num_roots_eq_3] at other
         simp only [count] at neq3
         apply neq3 other
-
-
-
-
 
   set c := Classical.choose ne
   have cspec := Classical.choose_spec ne
@@ -915,9 +945,9 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
       simp only [cset] at cspec
       have :_:=horns c cspec.left
       rcases  this with e1 | e2
-      exfalso
-      rw [e1] at cspec
-      simp at cspec
+      · exfalso
+        rw [e1] at cspec
+        simp at cspec
       rw [e2] at cspec
       exact cspec.left
     simp only [mcount] at no_min_one
@@ -938,33 +968,33 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
         intro a
         rcases (em (a = 1)) with a1 | a2
         --
-        rw [a1]
-        simp only [count] at countiszero
-        rw [countiszero]
-        simp
+        · rw [a1]
+          simp only [count] at countiszero
+          rw [countiszero]
+          simp
         --
         rcases (em (a = -1)) with ma1 | ma2
-        rw [ma1]
-        simp only [mcount] at no_min_one
-        rw [no_min_one]
-        simp
+        · rw [ma1]
+          simp only [mcount] at no_min_one
+          rw [no_min_one]
+          simp
         --
         have cmult:((cpoly g).roots.count c = 1) := by
           apply conj_roots_4
-          exact cspec.left
+          · exact cspec.left
           exact cspec.right
         rcases (em (a = c)) with ca1 | ca2
-        rw [ca1]
-        rw [cmult]
-        simp
+        · rw [ca1]
+          rw [cmult]
+          simp
         --
         rcases (em (a = CONJ c)) with cca1 | cca2
-        rw [cca1]
-        have cmultc:((cpoly g).roots.count (CONJ c) = 1) := by
-          rw [←conj_roots_3]
-          exact cmult
-        rw [cmultc]
-        simp
+        · rw [cca1]
+          have cmultc:((cpoly g).roots.count (CONJ c) = 1) := by
+            rw [←conj_roots_3]
+            exact cmult
+          rw [cmultc]
+          simp
         --
         have : Multiset.count a (cpoly g).roots = 0 := by
           apply Multiset.count_eq_zero.mpr
@@ -989,45 +1019,42 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
       simp
       constructor
       constructor
-      by_contra eq
-      symm at eq
-      exact conjdiff_c eq
+      · by_contra eq
+        symm at eq
+        exact conjdiff_c eq
       --
       constructor
-      by_contra eqcs
-      symm at eqcs
-      exact cspec2.right.right.right.left eqcs
+      · by_contra eqcs
+        symm at eqcs
+        exact cspec2.right.right.right.left eqcs
       --
-      by_contra eqcs
-      apply congrArg CONJ at eqcs
-      simp [CONJ] at eqcs
-      change CONJ c = c2 at eqcs
-      symm at eqcs
-      exact cspec2.right.right.right.right eqcs
+      · by_contra eqcs
+        apply congrArg CONJ at eqcs
+        simp [CONJ] at eqcs
+        change CONJ c = c2 at eqcs
+        symm at eqcs
+        exact cspec2.right.right.right.right eqcs
       --
       constructor
       constructor
       --
-      by_contra bbb
-      symm at bbb
-      exact cspec2.right.right.right.right bbb
+      · by_contra bbb
+        symm at bbb
+        exact cspec2.right.right.right.right bbb
       ---
-      by_contra bbb
-      simp [CONJ] at bbb
-      have so: c = c2 := by
-        apply star_inj.mp
-        exact bbb
+      · by_contra bbb
+        simp [CONJ] at bbb
+        have so: c = c2 := by
+          apply star_inj.mp
+          exact bbb
 
-      symm at so
-      exact cspec2.right.right.right.left so
-      ---
-      apply flem2 g
-      exact cspec2.left
-      --
-      constructor
-      exact cspec2.right.left
-      --
-      exact cspec2.right.right.left
+        symm at so
+        exact cspec2.right.right.right.left so
+      · apply flem2 g
+        · exact cspec2.left
+        constructor
+        · exact cspec2.right.left
+        exact cspec2.right.right.left
 
 
 
@@ -1037,54 +1064,45 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
       intro w
       rw [Multiset.coe_count]
       rcases (em (w = c ∨ w = c2 ∨ w = CONJ c ∨ w = CONJ c2) ) with r1 | r2
-      rcases r1 with r11 | r12 | r13 | r14
-      rw [r11]
-      have :List.count c ↑[c, CONJ c, c2, CONJ c2] = 1 := by
-        apply List.count_eq_one_of_mem
-        exact nodup
-        --
+      · rcases r1 with r11 | r12 | r13 | r14
+        · rw [r11]
+          have :List.count c ↑[c, CONJ c, c2, CONJ c2] = 1 := by
+            apply List.count_eq_one_of_mem
+            · exact nodup
+            simp
+          rw [this]
+          apply Multiset.one_le_count_iff_mem.mpr
+          exact cspec.left
+        · rw [r12]
+          have :List.count c2 ↑[c, CONJ c, c2, CONJ c2] = 1 := by
+            apply List.count_eq_one_of_mem
+            · exact nodup
+            simp
+          rw [this]
+          apply Multiset.one_le_count_iff_mem.mpr
+          exact cspec2.left
+        · rw [r13]
+          have :List.count (CONJ c) ↑[c, CONJ c, c2, CONJ c2] = 1 := by
+            apply List.count_eq_one_of_mem
+            · exact nodup
+            simp
+          rw [this]
+          apply Multiset.one_le_count_iff_mem.mpr
+          exact conjtoo
+        · rw [r14]
+          have :List.count (CONJ c2) ↑[c, CONJ c, c2, CONJ c2] = 1 := by
+            apply List.count_eq_one_of_mem
+            · exact nodup
+            simp
+          rw [this]
+          apply Multiset.one_le_count_iff_mem.mpr
+          exact conjtoo2
+      · have : List.count w [c, CONJ c, c2, CONJ c2] = 0 := by
+          apply List.count_eq_zero.mpr
+          simp
+          tauto
+        rw [this]
         simp
-      rw [this]
-      apply Multiset.one_le_count_iff_mem.mpr
-      exact cspec.left
-      --
-      rw [r12]
-      have :List.count c2 ↑[c, CONJ c, c2, CONJ c2] = 1 := by
-        apply List.count_eq_one_of_mem
-        exact nodup
-        --
-        simp
-      rw [this]
-      apply Multiset.one_le_count_iff_mem.mpr
-      exact cspec2.left
-      --
-      rw [r13]
-      have :List.count (CONJ c) ↑[c, CONJ c, c2, CONJ c2] = 1 := by
-        apply List.count_eq_one_of_mem
-        exact nodup
-        --
-        simp
-      rw [this]
-      apply Multiset.one_le_count_iff_mem.mpr
-      exact conjtoo
-      --
-      rw [r14]
-      have :List.count (CONJ c2) ↑[c, CONJ c, c2, CONJ c2] = 1 := by
-        apply List.count_eq_one_of_mem
-        exact nodup
-        --
-        simp
-      rw [this]
-      apply Multiset.one_le_count_iff_mem.mpr
-      exact conjtoo2
-      ---
-      have : List.count w [c, CONJ c, c2, CONJ c2] = 0 := by
-        apply List.count_eq_zero.mpr
-        simp
-        tauto
-
-      rw [this]
-      simp
 
     have card_bound: big.card ≤ (cpoly g).roots.card  := by
       apply Multiset.card_le_card
@@ -1101,37 +1119,30 @@ lemma spec_lem (g: SO3) : g ≠ 1 → ((cpoly g).roots.count 1) = 1 := by
 ---------
 
 
-
-
-
-
-
-lemma K_id (g: SO3): K g = ((g_end g).eigenspace 1) := by
+lemma K_id (g : SO3) : K g = ((g_end g).eigenspace 1) := by
   ext w
   simp [K, Module.End.eigenspace]
   simp [kermap, g_end]
   simp [to_R3_linear, ofLp_linear]
   constructor
-  ----
-  intro lhs
-  simp [kermap_raw] at lhs
-  simp [g_end_raw]
-  rw [sub_eq_iff_eq_add] at lhs
-  simp at lhs
-  rw [lhs]
-  ----
-  intro lhs
-  simp [kermap_raw]
-  rw [sub_eq_iff_eq_add]
-  simp
-  simp [g_end_raw] at lhs
-  apply congrArg WithLp.ofLp at lhs
-  simp at lhs
-  exact lhs
+  · intro lhs
+    simp [kermap_raw] at lhs
+    simp [g_end_raw]
+    rw [sub_eq_iff_eq_add] at lhs
+    simp at lhs
+    rw [lhs]
+  · intro lhs
+    simp [kermap_raw]
+    rw [sub_eq_iff_eq_add]
+    simp
+    simp [g_end_raw] at lhs
+    apply congrArg WithLp.ofLp at lhs
+    simp at lhs
+    exact lhs
 
 
 
-lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) ≤ 1 := by
+lemma dim_ker (g : SO3) : g ≠ 1 → Module.finrank ℝ (K g) ≤ 1 := by
   intro gnotone
   have bnd: Module.finrank ℝ (K g)  ≤ (g_end g).charpoly.rootMultiplicity 1 := by
     rw [K_id]
@@ -1144,41 +1155,43 @@ lemma dim_ker (g: SO3): g ≠1 → Module.finrank ℝ (K g) ≤ 1 := by
   exact bnd
 
 
-
-lemma fixed_lemma (g: SO3) : g≠1 → ({x ∈ S2 | g • x = x} = ∅ ∨ Nat.card ({x ∈ S2 | g • x = x}) = 2) := by
+set_option maxHeartbeats 1000000 in
+-- Lemma is slow
+lemma fixed_lemma (g : SO3) : g≠1 →
+  ({x ∈ S2 | g • x = x} = ∅ ∨ Nat.card ({x ∈ S2 | g • x = x}) = 2) := by
   intro notone
   have bnd: _:= dim_ker g notone
   rcases (Nat.le_one_iff_eq_zero_or_eq_one.mp bnd) with dim0 | dim1
-  left
-  have zerocons:_:= Module.finrank_eq_zero_iff.mp dim0
-  apply Set.eq_empty_iff_forall_notMem.mpr
-  intro x
-  by_contra xins
-  have xinsr := xins.right
-  have inK: x ∈ K g := by
-    simp [K]
-    simp [kermap]
-    simp [to_R3_linear, ofLp_linear]
-    simp [kermap_raw]
-    rw [sub_eq_iff_eq_add]
-    simp
-    rw [SO3_smul_def g x] at xinsr
-    have : (to_R3 ((g.val).mulVec x.ofLp)).ofLp = x.ofLp := by
-      apply congrArg WithLp.ofLp at xinsr
-      exact xinsr
-    simp [to_R3] at this
-    exact this
+  · left
+    have zerocons:_:= Module.finrank_eq_zero_iff.mp dim0
+    apply Set.eq_empty_iff_forall_notMem.mpr
+    intro x
+    by_contra xins
+    have xinsr := xins.right
+    have inK: x ∈ K g := by
+      simp [K]
+      simp [kermap]
+      simp [to_R3_linear, ofLp_linear]
+      simp [kermap_raw]
+      rw [sub_eq_iff_eq_add]
+      simp
+      rw [SO3_smul_def g x] at xinsr
+      have : (to_R3 ((g.val).mulVec x.ofLp)).ofLp = x.ofLp := by
+        apply congrArg WithLp.ofLp at xinsr
+        exact xinsr
+      simp [to_R3] at this
+      exact this
 
-  set X: K g:= ⟨x, inK⟩ with Xdef
-  have apped: _:=zerocons X
-  obtain ⟨a, pa⟩ := apped
-  have isz :_:= (smul_eq_zero_iff_right pa.left).mp pa.right
-  simp at isz
-  apply congrArg (fun x ↦ x.val) at isz
-  rw [Xdef] at isz
-  simp at isz
-  rw [isz] at xins
-  simp [S2] at xins
+    set X: K g:= ⟨x, inK⟩ with Xdef
+    have apped: _:=zerocons X
+    obtain ⟨a, pa⟩ := apped
+    have isz :_:= (smul_eq_zero_iff_right pa.left).mp pa.right
+    simp at isz
+    apply congrArg (fun x ↦ x.val) at isz
+    rw [Xdef] at isz
+    simp at isz
+    rw [isz] at xins
+    simp [S2] at xins
 
   --
 
@@ -1286,122 +1299,117 @@ lemma fixed_lemma (g: SO3) : g≠1 → ({x ∈ S2 | g • x = x} = ∅ ∨ Nat.c
   let Fneg: {x | x ∈ S2 ∧ g • x = x} := ⟨el_normed_neg, cconj_neg⟩
   use F, Fneg
   constructor
-  ---
-  simp [F, Fneg, el_normed, el_normed_neg, el_neg, normed]
-  by_contra bad
-  apply congrArg (fun x ↦ x + (‖el‖⁻¹ • el)) at bad
-  simp at bad
-  have  two: (2: ℝ) • ‖el‖⁻¹ • el  = 0 := by
-    rw [two_smul]
-    exact bad
+  · simp [F, Fneg, el_normed, el_normed_neg, el_neg, normed]
+    by_contra bad
+    apply congrArg (fun x ↦ x + (‖el‖⁻¹ • el)) at bad
+    simp at bad
+    have  two: (2: ℝ) • ‖el‖⁻¹ • el  = 0 := by
+      rw [two_smul]
+      exact bad
+    simp at two
+    exact el_nz two
+  · apply Set.eq_univ_iff_forall.mpr
 
-  simp at two
-  exact el_nz two
-  --
-  apply Set.eq_univ_iff_forall.mpr
-  intro v
-  have vprop: _:= v.prop
-  simp only [S2, Metric.sphere]  at vprop
-  let k:= v.val
-  have inker: k ∈ K g := by
-    simp [K]
-    simp [kermap]
-    simp [ofLp_linear]
-    simp [to_R3_linear]
-    simp [kermap_raw]
-    have vpr := vprop.right
-    rw [SO3_smul_def g  v ] at vpr
-    simp [to_R3] at vpr
-    apply congrArg WithLp.ofLp at vpr
-    simp at vpr
-    rw [vpr]
-    dsimp [k]
-    simp
+    intro v
+    have vprop: _:= v.prop
+    simp only [S2, Metric.sphere]  at vprop
+    let k:= v.val
+    have inker: k ∈ K g := by
+      simp [K]
+      simp [kermap]
+      simp [ofLp_linear]
+      simp [to_R3_linear]
+      simp [kermap_raw]
+      have vpr := vprop.right
+      rw [SO3_smul_def g  v ] at vpr
+      simp [to_R3] at vpr
+      apply congrArg WithLp.ofLp at vpr
+      simp at vpr
+      rw [vpr]
+      dsimp [k]
+      simp
 
 
-  have ininsp: ⟨k, inker⟩ ∈  Submodule.span ℝ {nz} := by
-    rw [isspan]
-    simp
 
-  have :_:= Submodule.mem_span_singleton.mp ininsp
-  obtain ⟨a, pa⟩ := this
-  have cast: a • el = k := by
-    apply congrArg (fun x ↦ x.val) at pa
-    simp at pa
-    exact pa
-  rw [rev_el] at cast
-  have cast_old := cast
-  apply congrArg (fun w ↦ ‖w‖) at cast
-  rw [norm_smul] at cast
-  rw [norm_smul] at cast
-  have normk: ‖k‖ = 1 := by
-    dsimp [k]
-    have :_:=vprop.left
-    rw [←this]
-    simp
+    have ininsp: ⟨k, inker⟩ ∈  Submodule.span ℝ {nz} := by
+      rw [isspan]
+      simp
+
+    have :_:= Submodule.mem_span_singleton.mp ininsp
+    obtain ⟨a, pa⟩ := this
+    have cast: a • el = k := by
+      apply congrArg (fun x ↦ x.val) at pa
+      simp at pa
+      exact pa
+    rw [rev_el] at cast
+    have cast_old := cast
+    apply congrArg (fun w ↦ ‖w‖) at cast
+    rw [norm_smul] at cast
+    rw [norm_smul] at cast
+    have normk: ‖k‖ = 1 := by
+      dsimp [k]
+      have :_:=vprop.left
+      rw [←this]
+      simp
 
 
-  rw [normk] at cast
-  have nn: ‖‖el‖‖  = ‖el‖:=by
-    norm_num
-  rw [nn] at cast
-  have obv:  ‖el_normed‖ = 1 := by
-    simp [el_normed]
-    simp [normed]
-    simp [norm_smul]
-    exact inv_mul_cancel₀ (norm_ne_zero_iff.mpr el_nz)
+    rw [normk] at cast
+    have nn: ‖‖el‖‖  = ‖el‖:=by
+      norm_num
+    rw [nn] at cast
+    have obv:  ‖el_normed‖ = 1 := by
+      simp [el_normed]
+      simp [normed]
+      simp [norm_smul]
+      exact inv_mul_cancel₀ (norm_ne_zero_iff.mpr el_nz)
 
-  rw [obv] at cast
-  simp at cast
-  have cs: a = ‖el‖⁻¹ ∨ a = -‖el‖⁻¹ := by
-    rcases abs_cases a with pos0 | neg0
-    rw [pos0.left] at cast
-    left
-    apply eq_inv_of_mul_eq_one_left
-    exact cast
-    --
-    right
-    rw [neg0.left] at cast
-    rw [←neg_mul_eq_neg_mul] at cast
-    rw [neg_eq_iff_eq_neg] at cast
-    apply congrArg (fun x ↦ x * ‖el‖⁻¹) at cast
+    rw [obv] at cast
     simp at cast
-    rw [mul_assoc] at cast
-    rw [mul_inv_cancel₀ (norm_ne_zero_iff.mpr el_nz)] at cast
-    simp at cast
-    exact cast
+    have cs: a = ‖el‖⁻¹ ∨ a = -‖el‖⁻¹ := by
+      rcases abs_cases a with pos0 | neg0
+      · rw [pos0.left] at cast
+        left
+        apply eq_inv_of_mul_eq_one_left
+        exact cast
+      · right
+        rw [neg0.left] at cast
+        rw [←neg_mul_eq_neg_mul] at cast
+        rw [neg_eq_iff_eq_neg] at cast
+        apply congrArg (fun x ↦ x * ‖el‖⁻¹) at cast
+        simp at cast
+        rw [mul_assoc] at cast
+        rw [mul_inv_cancel₀ (norm_ne_zero_iff.mpr el_nz)] at cast
+        simp at cast
+        exact cast
 
-  rcases cs with pos | neg
-  ------
-  rw [pos] at cast_old
-  rw [smul_smul] at cast_old
-  rw [inv_mul_cancel₀ (norm_ne_zero_iff.mpr el_nz)] at cast_old
-  simp at cast_old
-  have : v = F := by
-    simp [F]
-    simp [cast_old]
-    rfl
-  rw [this]
-  simp
-  ---------
-  rw [neg] at cast_old
-  rw [smul_smul] at cast_old
-  rw [neg_mul] at cast_old
-  rw [inv_mul_cancel₀ (norm_ne_zero_iff.mpr el_nz)] at cast_old
-  simp at cast_old
-  rw [neg_eq_iff_eq_neg] at cast_old
-  have:  el_normed_neg = k := by
-    simp [el_normed_neg]
-    simp [el_normed] at cast_old
-    simp [el_neg]
-    simp [normed]
-    simp [normed] at cast_old
-    rw [cast_old]
-    simp
-
-  have : v = Fneg := by
-    simp [Fneg]
-    simp [this]
-    rfl
-  rw [this]
-  simp
+    rcases cs with pos | neg
+    · rw [pos] at cast_old
+      rw [smul_smul] at cast_old
+      rw [inv_mul_cancel₀ (norm_ne_zero_iff.mpr el_nz)] at cast_old
+      simp at cast_old
+      have : v = F := by
+        simp [F]
+        simp [cast_old]
+        rfl
+      rw [this]
+      simp
+    · rw [neg] at cast_old
+      rw [smul_smul] at cast_old
+      rw [neg_mul] at cast_old
+      rw [inv_mul_cancel₀ (norm_ne_zero_iff.mpr el_nz)] at cast_old
+      simp at cast_old
+      rw [neg_eq_iff_eq_neg] at cast_old
+      have:  el_normed_neg = k := by
+        simp [el_normed_neg]
+        simp [el_normed] at cast_old
+        simp [el_neg]
+        simp [normed]
+        simp [normed] at cast_old
+        rw [cast_old]
+        simp
+      have : v = Fneg := by
+        simp [Fneg]
+        simp [this]
+        rfl
+      rw [this]
+      simp
