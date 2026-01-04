@@ -2,6 +2,8 @@ import Mathlib
 
 import BanachTarski.Common
 
+/-- A bunch of definitions and lemmas used in defining the Sato subgroup. -/
+
 abbrev ZMAT:= Matrix (Fin 3) (Fin 3) ℤ
 abbrev Z3_raw := (Fin 3) → ℤ
 
@@ -256,6 +258,16 @@ lemma sevsevlem : (7:ℝ)⁻¹ • (7:ℝ)⁻¹  • (fun (_: Fin 3) ↦ (49:ℝ
   simp
   norm_num
 
+---------
+/-- The entire remainder of the module is devoted to the proof of a
+-- fact used in the definition of the Sato subgroup:
+-- That wiithout loss of generality we can assume a member of the
+-- kernel ends in σ
+lemma wolog_zero {G : Type} [Group G] (h : FG2 →* G) (a : FG2) :
+  (a ≠ 1) ∧ (h a = 1) → ∃a2 : FG2, (a2 ≠ 1) ∧ (h a2 = 1) ∧
+  (FreeGroup.toWord a2).getLast? = some (0, true) -/
+
+-- First some general lemmas about reducibility
 lemma isreduced_of_take_of_reduced {α : Type u} (L : List (α × Bool)) (n : ℕ) :
   FreeGroup.IsReduced L → FreeGroup.IsReduced (L.take n):= by
     intro Lisreduced
@@ -316,13 +328,49 @@ lemma isreduced_of_append_of_reduced_mismatching_boundary {α : Type u}
   rw [←p1isx, ←p2isy]
   exact arediff
 
--------
+lemma isReduced_of_replicate {a : chartype} :
+  ∀{k : ℕ}, FreeGroup.IsReduced (List.replicate k a) := by
+  simp [FreeGroup.IsReduced]
+  intro k
+  induction k with
+  | zero => simp
+  | succ n ih =>
+    cases n with
+    | zero => simp
+    | succ m =>
+      apply List.IsChain.cons_cons
+      · simp
+      exact ih
 
+lemma isReduced_of_invRev_of_isReduced {w : List chartype} :
+(FreeGroup.IsReduced w) → (FreeGroup.IsReduced (FreeGroup.invRev w)) := by
+  intro w_isred
+  have :_:= FreeGroup.isReduced_iff_not_step.mp w_isred
+  apply FreeGroup.isReduced_iff_not_step.mpr
+  intro L2
+  have ininl2: L2 = FreeGroup.invRev (FreeGroup.invRev L2) := by rw [FreeGroup.invRev_invRev]
+  rw [ininl2]
+  by_contra is_step
+  have res :_:= FreeGroup.Red.step_invRev_iff.mp is_step
+  exact this (FreeGroup.invRev L2) res
+
+
+lemma reduce_invRev_right_cancel {L : List chartype} :
+FreeGroup.reduce ( L ++ FreeGroup.invRev L) = [] := by
+   have ininlem: ( L ++ FreeGroup.invRev L) =
+   ( FreeGroup.invRev (FreeGroup.invRev (L ++ FreeGroup.invRev L))) := by
+     exact FreeGroup.invRev_invRev.symm
+   rw [ininlem]
+   rw [FreeGroup.reduce_invRev]
+   rw [FreeGroup.invRev_append]
+   rw [FreeGroup.reduce_invRev_left_cancel]
+   simp
+
+-- Next we define the number of trailing σ⁻¹ in a word.
 def TailPred_f (w : List chartype) (n : ℕ) : Bool :=
   n ≤ w.length && w.drop (w.length - n) = List.replicate n ((0 : Fin 2), false)
 
 abbrev lSet_type_f (w : List chartype) : Type := Fin (w.length + 1)
-
 
 def S_f (w : List chartype) : Finset (lSet_type_f w) :=
   Finset.filter (fun n => TailPred_f w (n.val : ℕ)) Finset.univ
@@ -401,15 +449,11 @@ lemma if_not_all_sinv_w (w : List chartype) : (w ≠ []) ∧ (FreeGroup.IsReduce
       rw [badeq] at notall
       simp at notall
 
-
-
     have first_part: w = (w.take leading_others_as_nat ++
       List.replicate trailing_as_nat (0, false))  := by
 
       simp [leading_others_as_nat, leading_others_as_nat_f]
       simp [n_trail_sinv_f]
-
-
 
       have ss: max_fin = S.max' ne_S := rfl
       have cond:_ := (Finset.max'_eq_iff S ne_S max_fin).mp ss
@@ -423,8 +467,6 @@ lemma if_not_all_sinv_w (w : List chartype) : (w ≠ []) ∧ (FreeGroup.IsReduce
 
     constructor
     · exact first_part
-
-
   --
 
     set case := (List.take leading_others_as_nat w).getLast? with cset
@@ -503,7 +545,6 @@ lemma if_not_all_sinv_w (w : List chartype) : (w ≠ []) ∧ (FreeGroup.IsReduce
         exact (this L2) somestep
 
       exact badbad is_reduced
-
 
   --
     · exfalso
@@ -719,45 +760,6 @@ lemma all_sinv_equiv (w : List chartype) : all_sinv_f w →
 
 lemma leading_trailing : trailing_as_nat_f (FreeGroup.invRev w) = leading_s_as_nat_f w := by
   simp [leading_s_as_nat_f]
-
-
-lemma isReduced_of_replicate {a : chartype} :
-  ∀{k : ℕ}, FreeGroup.IsReduced (List.replicate k a) := by
-  simp [FreeGroup.IsReduced]
-  intro k
-  induction k with
-  | zero => simp
-  | succ n ih =>
-    cases n with
-    | zero => simp
-    | succ m =>
-      apply List.IsChain.cons_cons
-      · simp
-      exact ih
-
-lemma isReduced_of_invRev_of_isReduced {w : List chartype} :
-(FreeGroup.IsReduced w) → (FreeGroup.IsReduced (FreeGroup.invRev w)) := by
-  intro w_isred
-  have :_:= FreeGroup.isReduced_iff_not_step.mp w_isred
-  apply FreeGroup.isReduced_iff_not_step.mpr
-  intro L2
-  have ininl2: L2 = FreeGroup.invRev (FreeGroup.invRev L2) := by rw [FreeGroup.invRev_invRev]
-  rw [ininl2]
-  by_contra is_step
-  have res :_:= FreeGroup.Red.step_invRev_iff.mp is_step
-  exact this (FreeGroup.invRev L2) res
-
-
-lemma reduce_invRev_right_cancel {L : List chartype} :
-FreeGroup.reduce ( L ++ FreeGroup.invRev L) = [] := by
-   have ininlem: ( L ++ FreeGroup.invRev L) =
-   ( FreeGroup.invRev (FreeGroup.invRev (L ++ FreeGroup.invRev L))) := by
-     exact FreeGroup.invRev_invRev.symm
-   rw [ininlem]
-   rw [FreeGroup.reduce_invRev]
-   rw [FreeGroup.invRev_append]
-   rw [FreeGroup.reduce_invRev_left_cancel]
-   simp
 
 
 lemma collapse_replics_1 (nf nt : ℕ) :  FreeGroup.reduce (

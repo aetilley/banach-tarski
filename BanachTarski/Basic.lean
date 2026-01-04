@@ -5,6 +5,12 @@ import BanachTarski.Sato
 import BanachTarski.FixedPointLemma
 import BanachTarski.GeometricUtils
 
+/-- In this top-level module  we prove the main theorems specific
+    Equidecompsibility and Paridoxicality.
+    In particular we prove the main theorem that
+    theorem banach_tarski_paradox_B3 : Paradoxical G3 B3 -/
+
+
 def Equidecomposible {X : Type*} (G : Type*) [Group G] [MulAction G X] (E F : Set X) : Prop :=
   ∃ n : Nat,
   ∃ As : Fin n → Set X,
@@ -16,47 +22,7 @@ def Equidecomposible {X : Type*} (G : Type*) [Group G] [MulAction G X] (E F : Se
   ∃ g : Fin n → G,
   (∀ i : Fin n, ((fun (x : X) ↦ (g i) • x) '' (As i)) = Bs i)
 
-
-lemma ml {i j : ℕ} {m n : Fin (i * j)} : m ≠ n → m.divNat ≠ n.divNat ∨
-  (m.divNat = n.divNat ∧ m.modNat ≠ n.modNat) := by
-
-  contrapose!
-  intro lhs
-  let eqdiv := lhs.left
-  let eqmod := lhs.right eqdiv
-  have eq: (m.divNat, m.modNat) = (n.divNat, n.modNat) := by
-    apply Prod.ext
-    · exact eqdiv
-    · exact eqmod
-
-  have resm : _ := finProdFinEquiv.right_inv m
-  have resn : _ := finProdFinEquiv.right_inv n
-  calc m
-  _ = finProdFinEquiv.toFun (finProdFinEquiv.invFun m) := by rw [resm]
-  _ = finProdFinEquiv.toFun ((m.divNat, m.modNat)) := by simp
-  _ = finProdFinEquiv.toFun ((n.divNat, n.modNat)) := by rw [eq]
-  _ = finProdFinEquiv.toFun (finProdFinEquiv.invFun n) := by simp
-  _ = n := by rw [resn]
-
-
-lemma ml2 {i j : ℕ} {m n : Fin (i * j)} : m ≠ n → m.modNat ≠ n.modNat ∨
-  (m.modNat = n.modNat ∧ m.divNat ≠ n.divNat) := by
-  intro mneqn
-  have res :_ := ml mneqn
-  tauto
-
-
-lemma fcomp {X : Type*} {G : Type*} [Group G] [MulAction G X] (g h : G) :
-(fun x : X ↦ (g * h) • x) = (fun x : X ↦ g • x) ∘ (fun x : X ↦ h • x) := by
-  simp [mul_smul g h]
-  rfl
-
-lemma finj {X : Type*} {G : Type*} [Group G] [MulAction G X] (g : G) :
-Function.Injective (fun x ↦ g • x : X → X) := by
-  intro a b eq
-  simp at eq
-  exact eq
-
+/-- Equidecomposibility is a transitive relation. -/
 lemma equidecomposibility_trans
     {X : Type*} {G : Type*} [Group G] [MulAction G X] :
     ∀ {L M N : Set X}, Equidecomposible G L M →
@@ -106,7 +72,6 @@ lemma equidecomposibility_trans
       have notgood :_ := Set.disjoint_iff.mp djammod
       exact notgood ⟨p_pre_i.left, p_pre_j.left⟩
 
-
   have pdB: (∀ i j : Fin n, (i ≠ j) → Disjoint (Bs i) (Bs j))  := by
     intro i j inej
     apply Set.disjoint_iff.mpr
@@ -132,7 +97,6 @@ lemma equidecomposibility_trans
       have djbmdiv :_ := pdBM i.divNat j.divNat diff_div.right
       have notgood: _:= Set.disjoint_iff.mp djbmdiv
       exact notgood ⟨p_pre_i.left, p_pre_j.left⟩
-
 
   have coverA : (⋃ i : Fin n, (As i)) = L := by
     simp [As, A]
@@ -196,7 +160,6 @@ lemma equidecomposibility_trans
     use d
     simp only [dy, dw]
     exact ⟨mem, rhs⟩
-
 
   have coverB : (⋃ i : Fin n, (Bs i)) = N := by
     simp [Bs, B]
@@ -289,6 +252,7 @@ lemma equidecomposibility_trans
 
 
 
+/-- Equidecomposibility is a symmetric relation. -/
 lemma equidecomposibility_symm {X : Type*} {G : Type*} [Group G] [MulAction G X] :
 ∀ {M N : Set X}, Equidecomposible G M N → Equidecomposible G N M := by
   rintro M N ⟨n, As, Bs, pdAs, pdBs, coverAs, coverBs, g, pmap⟩
@@ -309,8 +273,7 @@ def Paradoxical {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : Set X) : 
   (C ⊆ E) ∧ (D ⊆ E) ∧ (Disjoint C D) ∧
   (Equidecomposible G C E) ∧ (Equidecomposible G D E)
 
-
-
+/-- Equidecomposibility preserves Paradoxicallity. -/
 lemma paradoxical_of_equidecomposible_of_paradoxical
   {X : Type*} (G : Type*) [Group G] [MulAction G X] (E F : Set X) :
 Paradoxical G E → Equidecomposible G E F → Paradoxical G F := by
@@ -566,8 +529,6 @@ Paradoxical G E → Equidecomposible G E F → Paradoxical G F := by
     _ = D ∩ E := by rw [←coverAs]
     _ = D := by apply Set.inter_eq_left.mpr; exact dsube
 
-
-
   have coverBGDs : (⋃ i : Fin n, (BGDs i)) = gD := by
     simp [BGDs]
 
@@ -688,8 +649,6 @@ theorem paradoxical_preserved_by_iso
     exact this
 
   let imdsubime: imD ⊆ imE :=  by
-    --oddly while there is Set.image_subset_image_iff, there
-    -- is no one-directional version (that does not require Injectiveness)
     apply Set.image_subset_iff.mpr
     intro d dinD
     have this:_ := dsube dinD
@@ -753,7 +712,6 @@ theorem paradoxical_preserved_by_iso
     rw [←coverDB]
     apply Set.image_iUnion.symm
 
-
   have ipmapfC: ∀ (i : Fin n), (fun x ↦ igC i • x) '' fCAs i = fCBs i := by
     intro i
     have old: (fun x ↦ gC i • x) '' CAs i = CBs i := pmapC i
@@ -787,7 +745,6 @@ theorem paradoxical_preserved_by_iso
         simp [igC]
         rw [gbi]
         simp [px.right]
-
 
   have ipmapfD: ∀ (i : Fin m), (fun x ↦ igD i • x) '' fDAs i = fDBs i := by
     intro i
@@ -854,12 +811,8 @@ theorem self_paradoxical_preserved_by_iso {G H : Type*} [Group G] [Group H] :
 
   rwa [image_res] at this
 
-lemma split2 (i : Fin 2) : i = 0 ∨ i = 1 := by
-  rcases (em (i=0)) with yes | no
-  · exact Or.inl yes
-  · exact Or.inr (Fin.eq_one_of_ne_zero i no)
-
-
+/-- Our first proof that something is Paradoxical.
+All other results will derive from this. -/
 lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
 
   let Dom := (Set.univ : Set FG2)
@@ -882,7 +835,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
   let C:= σDom ∪ σinvDom
   let D:= τDom ∪ τinvDom
   use C, D
-
 
   constructor
   -- C ⊆ Dom
@@ -929,8 +881,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
       rw [ps] at pt
       simp at pt
 
-
-
   have disσ: σDom ∩ σinvDom = ∅ := by
     simp [σDom, σinvDom]
     apply Set.eq_empty_iff_forall_notMem.mpr
@@ -942,9 +892,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
     have head_eq := (List.cons.inj px1).1
     have bool_eq := (Prod.mk.inj head_eq).2
     exact Bool.false_ne_true bool_eq
-
-
-
 
 
 -- Equidecomposible FG2 C Dom
@@ -1026,8 +973,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
 
     exact ((FreeGroup.isReduced_iff_not_step.mp whole_is_reduced) x1) step
 
-
-
   have pdBs :  (∀ i j : Fin n, (i ≠ j) → Disjoint (Bs i) (Bs j)) := by
       intro i j ineqj
       apply Set.disjoint_iff.mpr
@@ -1045,8 +990,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
           simp [Bs]
           rwa [Set.inter_comm] at disσσ
         · simp [i1, j1] at ineqj
-
-
 
   have coverACs : (⋃ i : Fin n, (As i)) = C := by
       simp [As]
@@ -1155,8 +1098,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
           simp
           simp [c4]
 
-
-
   have coverBGCs : (⋃ i : Fin n, (Bs i)) = Dom := by
       simp [Bs]
       ext x
@@ -1183,11 +1124,8 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
           simp
           exact right
 
-
-
   have siginv_lem : (fun x ↦ σ⁻¹ * x) ⁻¹' σinvDom = σσinvDom := by
     simp [σσinvDom, σinvDom]
-
 
   let g : Fin n → FG2 := ![1, σ]
 
@@ -1201,7 +1139,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
       simp [vone]
       simp [g]
       exact siginv_lem
-
 
   have equiCDom: Equidecomposible FG2 C Dom :=
     ⟨n, As, Bs, pdAs, pdBs, coverACs, coverBGCs, g, pmap_c⟩
@@ -1277,7 +1214,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
       have diff_len : _:= FreeGroup.Red.Step.length pl
       linarith [so, diff_len]
 
-
     have bad :_ := calc FreeGroup.toWord x
       _ = FreeGroup.toWord (τ * (τ⁻¹ * x)) := by simp
       _ = FreeGroup.reduce (FreeGroup.toWord (τ) ++ FreeGroup.toWord (τ⁻¹ * x)) := by
@@ -1298,9 +1234,7 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
       exact FreeGroup.Red.Step.cons_not
     let L1 := (0, false) :: (0, not false) ::x1
 
-
     exact ((FreeGroup.isReduced_iff_not_step.mp whole_is_reduced) x1) step
-
 
   have pdBs :  (∀ i j : Fin n, (i ≠ j) → Disjoint (Bs i) (Bs j)) := by
       intro i j ineqj
@@ -1349,7 +1283,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
           use 1
           simp
           exact right
-
 
   have τcoverlem: ∀ x∈Dom, x ∈ τDom ∨ x ∈ ττinvDom := by
     intro x xinDom
@@ -1439,7 +1372,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
       simp
       simp [c4]
 
-
   have coverBGDs : (⋃ i : Fin n, (Bs i)) = Dom := by
       simp [Bs]
       ext x
@@ -1466,7 +1398,6 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
           simp
           exact right
 
-
   have tauinv_lem : (fun x ↦ τ⁻¹ * x) ⁻¹' τinvDom = ττinvDom := by
     simp [ττinvDom, τinvDom]
 
@@ -1482,29 +1413,16 @@ lemma free_group_of_rank_two_is_self_paradoxical : SelfParadoxical FG2 := by
       simp [g]
       exact tauinv_lem
 
-
   have equiDDom: Equidecomposible FG2 D Dom :=
     ⟨n, As, Bs, pdAs, pdBs, coverADs, coverBGDs, g, pmap_d⟩
   exact equiDDom
 
-
-instance finite_chartype : Finite chartype := inferInstance
-
-instance countable_chartype : Countable chartype := by apply Finite.to_countable
-
-instance countable_of_fg2 : Countable FG2 := by
-  have lists_countable: Countable (List chartype) := _root_.List.countable
-  obtain ⟨lists_to_nat, lists_to_nat_is_inj⟩ :=
-    (countable_iff_exists_injective (List chartype)).mp lists_countable
-  apply (countable_iff_exists_injective FG2).mpr
-  let foo: FG2 → ℕ := lists_to_nat ∘ FreeGroup.toWord
-  use foo
-  exact Function.Injective.comp lists_to_nat_is_inj FreeGroup.toWord_injective
-
-
+/-- Set of points in X fixed by some non-identity element of G. -/
 def FixedPoints {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : Set X) : Set X :=
   ⋃ g ∈ (Set.univ : Set G) \ {(1 : G)}, {x ∈ E | g • x = x}
 
+/-- If G is SelfParadoxical and acts on X without any nontrivial fixed points, then
+ X is G-Paradoxical. -/
 theorem paradoxical_of_action_of_self_paradoxical
     {X : Type*} (G : Type*) [Group G] [MulAction G G] [MulAction G X] (Dom : Set X) :
     (∀ g : G, (f g) '' Dom ⊆ Dom) →
@@ -1714,10 +1632,6 @@ theorem paradoxical_of_action_of_self_paradoxical
 
       exact pdinter gai gbi neq
 
-    -- let star: Set G → Set X := fun (S: Set G) ↦ ⋃ g ∈ S, f g '' choice_set
-    -- let As' := fun k: Fin m ↦ star (As k)
-    -- let Bs' := fun k: Fin n ↦ star (Bs k)
-
     have equiCE : Equidecomposible G C Dom := by
       let Xs' (k : Fin m) := (f (gA k)) '' (As' k)
       have pdAs': (∀ i j : Fin m, (i ≠ j) → Disjoint (As' i) (As' j)) := by
@@ -1747,7 +1661,6 @@ theorem paradoxical_of_action_of_self_paradoxical
         have Asdisj:_:= pdAs i j inej
         rw [←sameg] at g2inG
         exact (Set.disjoint_iff.mp Asdisj) ⟨g1inG, g2inG⟩
-
 
       have pdXs': (∀ i j : Fin m, (i ≠ j) → Disjoint (Xs' i) (Xs' j)) := by
         intro i j inej
@@ -1803,10 +1716,8 @@ theorem paradoxical_of_action_of_self_paradoxical
         have disjcs := pdCs i j inej
         exact Set.disjoint_iff.mp disjcs ⟨yincsi, yincsj⟩
 
-
       have coverAs' : (⋃ i : Fin m, (As' i)) = C := by
         simp [As', C]
-
 
       have coverXs' : (⋃ i : Fin m, (Xs' i)) = Dom := by
         simp [Xs']
@@ -1875,13 +1786,11 @@ theorem paradoxical_of_action_of_self_paradoxical
         rw [←mul_smul]
         simp
 
-
       have pmap_A :   (∀ i : Fin m, (f (gA i) '' (As' i)) = (Xs' i)) := by
         intro i
         simp [As', Xs']
 
       exact ⟨m, As', Xs', pdAs', pdXs', coverAs', coverXs', gA, pmap_A⟩
-
 
     have equiDE : Equidecomposible G D Dom := by
       let Ys' (k : Fin n) := (f (gB k)) '' (Bs' k)
@@ -1912,7 +1821,6 @@ theorem paradoxical_of_action_of_self_paradoxical
         have Bsdisj:_:= pdBs i j inej
         rw [←sameg] at g2inG
         exact (Set.disjoint_iff.mp Bsdisj) ⟨g1inG, g2inG⟩
-
 
       have pdYs' :  (∀ i j : Fin n, (i ≠ j) → Disjoint (Ys' i) (Ys' j)) := by
         intro i j inej
@@ -1967,7 +1875,6 @@ theorem paradoxical_of_action_of_self_paradoxical
           exact g2inG
         have disjcs := pdDs i j inej
         exact Set.disjoint_iff.mp disjcs ⟨yincsi, yincsj⟩
-
 
       have coverBs' : (⋃ i : Fin n, (Bs' i)) = D := by
         simp [Bs', D]
@@ -2046,12 +1953,13 @@ theorem paradoxical_of_action_of_self_paradoxical
 
       exact ⟨n, Bs', Ys', pdBs', pdYs', coverBs', coverYs', gB, pmap_B⟩
 
-
     exact ⟨nonemptyDom, C, D, csube, dsube, disjcd, equiCE, equiDE⟩
 
 
 set_option maxHeartbeats 1000000 in
 -- Theorem is slow.
+/-- We can find a countable subset of the 2-sphere such that removing it results in
+a set that is paradoxical under SO(3). -/
 theorem hausdorff_paradox : ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Paradoxical SO3 (S2 \ D)) := by
 
   have self_para_embed : SelfParadoxical SATO :=
@@ -2088,13 +1996,11 @@ theorem hausdorff_paradox : ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Parado
           simp [SATO_sub_1] at xinlhs
           exact xinlhs.left
 
-
         apply Cardinal.mk_le_mk_of_subset sso_ss
       have ub_card_s: (Cardinal.mk SATO) ≤ Cardinal.aleph0  := by
         exact Cardinal.le_aleph0_iff_set_countable.mpr subgroup_countable
       exact Cardinal.le_aleph0_iff_set_countable.mp (le_trans ub_card_ss1 ub_card_s)
     exact each_fixed_countable
-
 
   have p_closure : ∀ (g : SATO), (f g) '' (S2 \ D) ⊆ (S2 \ D) := by
     intro g
@@ -2127,7 +2033,6 @@ theorem hausdorff_paradox : ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Parado
       use h, h_in_sub
       exact h_fixes.right
 
-
     --have imdeffull := im = g • x
     obtain ⟨h, ph⟩ := dfining
     let h_sato: SATO := ⟨h, ph.left.left⟩
@@ -2150,9 +2055,6 @@ theorem hausdorff_paradox : ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Parado
         simp [h_sato]
         exact ph.left.right
       exact butnot bad
-
-
-
 
     have also : h' • x = x := calc h' • x
       _ = ((g⁻¹ * h_sato) * g) • x := by simp [h']
@@ -2177,15 +2079,12 @@ theorem hausdorff_paradox : ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Parado
 
     exact xinS2mD.right bad2
 
-
   have ub_card_D: (Cardinal.mk D) ≤ Cardinal.aleph0  := by
     exact Cardinal.le_aleph0_iff_set_countable.mpr countable_d
-
 
   have nonempty_s2md: Set.Nonempty (S2 \ D) := by
     apply Cardinal.diff_nonempty_of_mk_lt_mk
     exact lt_of_le_of_lt ub_card_D lb_card_s2
-
 
   have nofixed: (¬∃ fp, fp ∈ (FixedPoints SATO (S2 \ D))) := by
     rintro ⟨fp, pfp ⟩
@@ -2211,8 +2110,7 @@ theorem hausdorff_paradox : ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Parado
 
     exact gp.left.right fp_in_D
 
-
-  -- Get Paradoxical on the subtype
+  -- Paradoxical on the subtype
   have para_subtype : Paradoxical SATO (S2 \ D) :=
     paradoxical_of_action_of_self_paradoxical
     SATO
@@ -2222,14 +2120,15 @@ theorem hausdorff_paradox : ∃ D : Set R3, (D ⊆ S2 ∧ Countable D ∧ Parado
     nofixed
     nonempty_s2md
 
-
   have para: Paradoxical SO3 (S2 \ D) :=
     paradoxical_of_supergroup_of_paradoxical SO3 SATO (S2 \ D) para_subtype
 
   exact ⟨D, dsubS2, countable_d, para⟩
 
-
-lemma absorption_lemma {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : Set X) (S : Set X) :
+/-- A series of lemmas showing that when considering the paradoxicality of a set E
+ certain subsets S ⊆ E can be "absorbed" into E, specifically
+ that E is equidcomposible with E \ S. -/
+lemma absorption_lemma_1 {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : Set X) (S : Set X) :
     (∃ D : Set X, (D ⊆ E) ∧ (S ⊆ D) ∧ ∃ ρ : G, (f ρ) '' D = D \ S) →
     Equidecomposible G E (E \ S) := by
 
@@ -2252,8 +2151,6 @@ lemma absorption_lemma {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : Se
         · simp [i1, j0]
           simp [As]
         · simp [i1, j1] at ineqj
-
-
 
     have pdB : ∀i j : Fin 2, (i ≠ j) → Disjoint (Bs i) (Bs j) := by
       intro i j ineqj
@@ -2285,7 +2182,6 @@ lemma absorption_lemma {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : Se
           · simp
         · simp [i1, j1] at ineqj
 
-
     have coverA: ⋃ i, As i = E := by
       simp [As]
       ext x
@@ -2303,7 +2199,6 @@ lemma absorption_lemma {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : Se
           exact Or.inr left
         · simp
           exact Or.inl ⟨inE, right⟩
-
 
     have coverB: ⋃ i, Bs i = (E \ S) := by
       simp [Bs]
@@ -2427,11 +2322,7 @@ lemma absorption_lemma_2 {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : 
             · rw [Function.iterate_succ_apply' (f ρ) j] at pi
               exact pi.right
 
-
-
-    exact absorption_lemma G E S pD
-
-
+    exact absorption_lemma_1 G E S pD
 
 lemma absorption_lemma_3 {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : Set X) (S : Set X) :
     (∃ F : ℝ → G, Countable (Bad F S) ∧ (∀ r : ℝ, orbit (F r) S ⊆ E)) →
@@ -2463,8 +2354,6 @@ lemma absorption_lemma_3 {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : 
 
     apply Cardinal.diff_nonempty_of_mk_lt_mk
     exact lt_of_le_of_lt bad_ub card_reals
-
-
 
   let ρ_angle := Classical.choose lem_angle
   let ρ_spec := Classical.choose_spec lem_angle
@@ -2507,6 +2396,8 @@ lemma absorption_lemma_3 {X : Type*} (G : Type*) [Group G] [MulAction G X] (E : 
 
   exact absorption_lemma_2 G E S ⟨ρ, cond1, cond2⟩
 
+/-- Our first application of absorption:
+  We can absorb any countable subset of the 2-sphere. -/
 lemma S2_equidecomposible_of_S2_minus_countable :
 ∀ S : Set R3, (S ⊆ S2 ∧ Countable S → Equidecomposible SO3 (S2 \ S) S2) := by
 
@@ -2527,7 +2418,6 @@ lemma S2_equidecomposible_of_S2_minus_countable :
     · exact countable_S
     · exact countable_mS
 
-
   have lem: Set.Nonempty (S2 \ S2plus) := by
     apply Cardinal.diff_nonempty_of_mk_lt_mk
     exact lt_of_le_of_lt ub_card_plus lb_card_s2
@@ -2540,8 +2430,6 @@ lemma S2_equidecomposible_of_S2_minus_countable :
     have so: axis.val ∈ S2plus := Or.inl bad
     simp [axis] at so
     exact spec.right so
-
-
 
   have polelem2: -axis.val ∉ S := by
     by_contra bad
@@ -2556,8 +2444,6 @@ lemma S2_equidecomposible_of_S2_minus_countable :
     simp [axis] at so
     exact spec.right so
 
-
-
   let axis_spec := (Classical.choose_spec lem).left
   let F:= (fun θ ↦ rot axis θ)
   have countbad: Countable (Bad F S) :=
@@ -2567,13 +2453,14 @@ lemma S2_equidecomposible_of_S2_minus_countable :
     (absorption_lemma_3 SO3 S2 S
       ⟨(fun θ ↦ rot axis θ), countbad, (rot_containment_general axis subset_of_s2)⟩)
 
-
+/-- First we prove a simpler version of the main theorem on just the 2-sphere. -/
 theorem banach_tarski_paradox_s2 : Paradoxical SO3 S2 := by
   obtain ⟨D, hausD_sub, hausD_countable, hausD_para⟩ := hausdorff_paradox
   have equi: Equidecomposible SO3 (S2 \ D) S2 :=
     S2_equidecomposible_of_S2_minus_countable D ⟨hausD_sub, hausD_countable⟩
   exact paradoxical_of_equidecomposible_of_paradoxical SO3 (S2 \ D) S2 hausD_para equi
 
+/-- Next we extend the claim to the solid ball minus the origin. -/
 theorem banach_tarski_paradox_B3_minus_origin : Paradoxical SO3 B3min := by
 
   obtain ⟨_, E, F, esubs2, fsubs2, disjef, equiES2, equiFS2⟩ := banach_tarski_paradox_s2
@@ -2686,6 +2573,7 @@ theorem banach_tarski_paradox_B3_minus_origin : Paradoxical SO3 B3min := by
 
   exact ⟨b3min_nonempty, E', F', e'sub_b3min, f'sub_b3min, disE'F', equiE'S2', equiF'S2'⟩
 
+/-- Finally we show that we can absorb the origin. -/
 theorem banach_tarski_paradox_B3 : Paradoxical G3 B3 := by
 
   have pso3b3m : Paradoxical SO3_in_G3 B3min := by
@@ -2695,13 +2583,10 @@ theorem banach_tarski_paradox_B3 : Paradoxical G3 B3 := by
     simp at that
     exact that
 
-
   have pg3b3m : Paradoxical G3 B3min :=
     paradoxical_of_supergroup_of_paradoxical G3 SO3_in_G3 B3min pso3b3m
 
-
   have countbad: Countable (Bad skew_rot {origin})  := countable_bad_skew_rot
-
 
   have orbit_containment: (∀r:ℝ, (orbit (skew_rot r) {origin} ⊆ B3 )) := srot_containment
 

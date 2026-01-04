@@ -2,6 +2,16 @@ import Mathlib
 
 import BanachTarski.Common
 
+/-- Here we define and develop basic properties of the parametrized family `rot`
+of rotations.  We work with both this family and the corresponding family
+`rot_iso` of isometries.
+
+It is much easier to work with the isometry representation as much as possible
+and convert back to matrices at the end (in particular, see lemma `same_action`). -/
+
+--  Section Goal:
+-- Define two submodules of R3 corresponding the the axis of rotation
+-- and the space orthogonal to the axis.
 
 instance R3_dim_3 : Fact (Module.finrank ℝ R3 = 2 + 1) := by
   simp
@@ -41,7 +51,6 @@ lemma orth_nonempty (ax : S2) : ∃ y, y∈ (choice_set ax) := by
   simp [gen] at this
 
 
-
 noncomputable def x_B_c (ax : S2) : choice_set ax :=
   ⟨Classical.choose (orth_nonempty ax), Classical.choose_spec (orth_nonempty ax)⟩
 
@@ -64,7 +73,6 @@ lemma x_B_nz (ax : S2) : (x_B ax) ≠ 0 := by
     simp at prop
 
 
-
 -- Not sure if this is optimal, to get our rightAnglerotation basis below, we need
 -- an orientation, and to get an orientation we seem to need a basis.
 noncomputable def tmp_basis (ax : S2) : OrthonormalBasis (Fin 2) ℝ (orth ax) :=
@@ -72,7 +80,6 @@ noncomputable def tmp_basis (ax : S2) : OrthonormalBasis (Fin 2) ℝ (orth ax) :
 
 noncomputable def plane_o (ax : S2) : Orientation ℝ (orth ax) (Fin 2) :=
   (tmp_basis ax).toBasis.orientation
-
 
 noncomputable def orth_B (ax : S2) : Module.Basis (Fin 2) ℝ (orth ax) :=
   (plane_o ax).basisRightAngleRotation (x_B ax) (x_B_nz ax)
@@ -113,6 +120,12 @@ noncomputable def ax_B (ax : S2) : Module.Basis (Fin 1) ℝ (ax_space ax) :=
 
 
   Module.Basis.mk hon hsp
+
+
+
+-- Section goal:
+-- Define rot_iso: the isometries that we will show to
+-- correspond to our members of SO(3)
 
 noncomputable def rot_iso_plane_equiv (ax : S2) (θ : ℝ) : (orth ax) ≃ₗᵢ[ℝ] (orth ax) :=
   (plane_o ax).rotation θ
@@ -168,8 +181,6 @@ lemma spar_of_orth (ax : S2) (x : R3) : x ∈ orth ax → spar ax x = 0 := by
   apply (Submodule.starProjection_apply_eq_zero_iff (Submodule.span ℝ {ax.val})).mpr
   exact lhs
 
-
-
 lemma spar_of_ax_space (ax : S2) (x : R3) : x ∈ ax_space ax → spar ax x = x := by
   simp [ax_space, spar]
   intro lhs
@@ -180,7 +191,6 @@ lemma spar_of_ax_space (ax : S2) (x : R3) : x ∈ ax_space ax → spar ax x = x 
   apply congrArg
   apply Submodule.starProjection_eq_self_iff.mpr
   simp
-
 
 lemma operp_of_ax_space (ax : S2) (x : R3) : x ∈ ax_space ax → operp ax x = 0 := by
   simp [ax_space, operp]
@@ -202,14 +212,12 @@ lemma up_mem (ax : S2) (v : orth ax) : (up ax v) ∈ orth ax := by
 lemma operp_up (ax : S2) (v : orth ax) : operp ax ((up ax) v)  = v := by
   simp [up, operp]
 
-
 lemma operp_up_2 (ax : S2) (v : orth ax) : operp ax (↑v)  = v := by
   simp [operp]
 
 lemma spar_up_2 (ax : S2) (v : orth ax) : spar ax (↑v) = 0 := by
   have : ↑v ∈ orth ax := by simp
   exact spar_of_orth ax v this
-
 
 lemma spar_up_rot (ax : S2) (v : orth ax) : spar ax ((up ax) v) = 0 := by
   simp only [up]
@@ -218,13 +226,11 @@ lemma spar_up_rot (ax : S2) (v : orth ax) : spar ax ((up ax) v) = 0 := by
   have := spar_of_orth ax ((orth ax).subtypeₗᵢ v) vinorth
   exact this
 
-
 lemma el_by_parts (ax : S2) (x : R3) : x = ↑((operp ax x)) + spar ax x := by
   simp [operp, spar, orth]
 
 noncomputable def ang_diff (axis : S2) (s t : R3) : Real.Angle :=
   (plane_o axis).oangle (operp axis s) (operp axis t)
-
 
 noncomputable def rot_by_parts (ax : S2) (θ : ℝ) := fun v ↦ (
     (((up ax).comp (rot_iso_plane_to_st ax θ)) (operp ax v)) + (spar ax v)
@@ -318,6 +324,18 @@ lemma rot_iso_comp (ax : S2) (θ τ : ℝ) :
   simp [rot_by_parts_comp]
 
 
+lemma rot_iso_fixed_back (axis : S2) (v : R3) (k : ℤ) : (rot_iso axis (2 * Real.pi * k)) v = v := by
+  simp [rot_iso]
+  simp [rot_by_parts]
+  simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
+
+  have angcoe: Real.Angle.coe (2 * Real.pi * ↑k) = (0:ℝ) := by
+    apply Real.Angle.angle_eq_iff_two_pi_dvd_sub.mpr
+    simp
+  rw [angcoe]
+  simp
+  exact (el_by_parts axis v).symm
+
 
 lemma triv_rot_iso (ax : S2) : rot_iso ax 0 = 1 := by
   have isidsym: (rot_iso ax 0) = (fun x: R3 ↦ x) := by
@@ -340,6 +358,13 @@ instance orth_dim_3 : Fact (Module.finrank ℝ R3 = 3) := by
 noncomputable def Basis3 : OrthonormalBasis (Fin 3) ℝ R3 := EuclideanSpace.basisFun (Fin 3) ℝ
 
 ----------------
+
+-- Section Goal:
+
+-- Define the family `rot` of matrices in SO(3), and
+-- show the correspondence between `rot` and `rot_iso`.
+-- Crucually we prove
+-- lemma same_action (ax : S2) (s : R3) : rot ax T • s = (rot_iso ax T) s
 
 def mod_dim : (Fin 2) → Type
   | ⟨0,_⟩ => Fin 2
@@ -532,10 +557,6 @@ lemma block_2_lem (ax : S2) :
   fin_cases i, j
   simp
 
-------------
-
-
-
 lemma block_repr (ax : S2) (θ : ℝ) :
    (LinearMap.toMatrix
   ((internal_pr ax).collectedBasis (sm_bases ax))
@@ -569,10 +590,6 @@ lemma block_repr (ax : S2) (θ : ℝ) :
   rw [block_2_lem] at this
 
   exact this
-
-
-
----------
 
 noncomputable def rot_mat_inner (θ : ℝ) : MAT :=
     !![
@@ -775,7 +792,6 @@ lemma COB_MB_is_ortho (ax : S2) : Orthonormal ℝ (COB_MB ax) := by
     exact Equiv.injective finToSigma h
 
 
-
 noncomputable def COB (ax : S2) : OrthonormalBasis (Fin 3) ℝ R3 :=
   Module.Basis.toOrthonormalBasis (COB_MB ax) (COB_MB_is_ortho ax)
 
@@ -838,10 +854,7 @@ lemma rot_mat_is_special (ax : S2) (θ : ℝ) : rot_mat ax θ ∈ SO3 := by
   exact innerspecial.right
 
 
-
 noncomputable def rot (ax : S2) (θ : ℝ) : SO3 := ⟨rot_mat ax θ, rot_mat_is_special ax θ⟩
-
-
 
 lemma triv_rot (ax : S2) : rot ax 0 = 1 := by
   simp [rot]
@@ -986,16 +999,13 @@ lemma inner_as_to_matrix_MB (ax : S2) : rot_mat_inner T =
     norm_num
   · simp [fTS_fun, Matrix.blockDiagonal'_apply_eq]
 
-
-
-
 lemma inner_as_to_matrix (ax : S2) : rot_mat_inner T =
   LinearMap.toMatrix (COB ax).toBasis (COB ax).toBasis (rot_iso ax T).toLinearMap := by
   rw [COB_to_basis ax]
   exact inner_as_to_matrix_MB ax
 
 
-lemma same_thing (ax : S2) (s : R3) : rot ax T • s = (rot_iso ax T) s := by
+lemma same_action (ax : S2) (s : R3) : rot ax T • s = (rot_iso ax T) s := by
   simp only [HSMul.hSMul, SMul.smul]
   simp [rot]
 

@@ -3,8 +3,11 @@ import Mathlib
 import BanachTarski.Common
 import BanachTarski.SatoUtils
 
+/-- We define the Sato Subgroup of SO3
+and show it is isomorphic to the free group on two generators. -/
 
--- The Sato Subgroup of SO3
+-- It will be easier to work with some integer valued matrices (not in SO(3))
+-- and occassionally reduce mod 7.
 
 def M_s_Z : ZMAT := !![
   6, 2, 3;
@@ -60,15 +63,15 @@ lemma fnlem_t : M_t_Z * M_t_Z_trans = Matrix.diagonal 49 := by
   <;> simp
 
 
-
 def M_s : MAT := to_MAT M_s_Z
 def M_t : MAT := to_MAT M_t_Z
 lemma ms_def : M_s = to_MAT M_s_Z := rfl
 lemma mt_def : M_t = to_MAT M_t_Z := rfl
 
-
+-- Here are the actual generators of the subgroup
 noncomputable def M_s_normed : MAT := ((1/7):ℝ) • M_s
 noncomputable def M_t_normed : MAT := ((1/7):ℝ) • M_t
+
 lemma M_s_normed_transpose_def : Matrix.transpose M_s_normed = ((1/7):ℝ) • to_MAT M_s_Z_trans := by
   simp only [M_s_normed]
   rw [Matrix.transpose_smul]
@@ -132,6 +135,7 @@ lemma M_t_normed_is_special : M_t_normed ∈ SO3 := by
     simp
     norm_num
 
+-- The generators as members of SO3
 noncomputable def s_op_n : SO3 := ⟨M_s_normed, M_s_normed_is_special⟩
 noncomputable def t_op_n : SO3 := ⟨M_t_normed, M_t_normed_is_special⟩
 
@@ -140,7 +144,7 @@ lemma s_i_op_n_def : s_i_op_n = s_op_n⁻¹ := rfl
 noncomputable def t_i_op_n : SO3 := t_op_n⁻¹
 lemma t_i_op_n_def : t_i_op_n = t_op_n⁻¹ := rfl
 
-
+-- Here we define the "inverses" of the non-normalized and normalized matrices.
 def M_s_i_Z : ZMAT := !![
   6, 2, -3;
   2, 3, 6;
@@ -169,7 +173,6 @@ lemma msinv_lem2 : M_s * M_s_i = Matrix.diagonal (fun _ : (Fin 3) ↦ (49:ℝ)) 
   fin_cases i, j
   <;> simp
   <;> simp [to_MAT]
-
 
 
 lemma s_i_op_n_equiv : s_i_op_n.val =  (7 :ℝ)⁻¹ • M_s_i := by
@@ -204,8 +207,6 @@ lemma mtinv_lem : M_t_i * M_t = Matrix.diagonal (fun _ : (Fin 3) ↦ (49:ℝ)) :
   fin_cases i, j
   <;> simp
   <;> simp [to_MAT]
-
-
 
 lemma mtinv_lem2 : M_t * M_t_i = Matrix.diagonal (fun _ : (Fin 3) ↦ (49:ℝ)) := by
   simp [M_t_i, M_t, M_t_Z, M_t_i_Z, Matrix.diagonal]
@@ -252,7 +253,6 @@ noncomputable def sato_fg3_iso_seed : Fin 2 → SATO := ![sato_s, sato_t]
 
 noncomputable def to_sato : FG2 →* SATO := FreeGroup.lift sato_fg3_iso_seed
 
-
 lemma to_sato_range : (to_sato).range = Subgroup.closure sato_generators_ss := by
   have lem : sato_generators_ss = Set.range sato_fg3_iso_seed := by
     simp [sato_generators_ss, sato_fg3_iso_seed]
@@ -262,8 +262,6 @@ lemma to_sato_range : (to_sato).range = Subgroup.closure sato_generators_ss := b
 
 
 theorem to_sato_is_surjective : Function.Surjective to_sato := by
-  -- There's gotta be a better way.
-
   rw [← MonoidHom.range_eq_top]
 
   rw [to_sato_range]
@@ -287,6 +285,8 @@ theorem to_sato_is_surjective : Function.Surjective to_sato := by
   rw [h]
   exact Subgroup.closure_closure_coe_preimage
 
+
+-- Some special sets of vectors involved in defining our special `Invariant` below.
 
 def Vs : Set Z3_raw := {
   ![3,1,2],
@@ -1153,7 +1153,7 @@ noncomputable def iso_forward_equiv := Equiv.ofBijective to_sato to_sato_is_bije
 
 noncomputable def sato_fg3_iso : FG2 ≃* SATO := MulEquiv.mk' iso_forward_equiv to_sato.map_mul'
 
--- First, define the SMul instance for SATO
+-- Finally some important instances
 instance SATO_smul_R3 : SMul SATO R3 where
   smul g x := (g : SO3) • x
 

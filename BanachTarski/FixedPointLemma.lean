@@ -2,6 +2,14 @@ import Mathlib
 
 import BanachTarski.Common
 
+/-- The goal of this module is just to prove
+lemma fixed_lemma (g : SO3) : g≠1 →
+  ({x ∈ S2 | g • x = x} = ∅ ∨ Nat.card ({x ∈ S2 | g • x = x}) = 2)
+-/
+
+-- Section Goal:
+-- Define a module endomorphism corresponding to multiplication by
+-- a matrix in SO(3).  Prove some lemmas about the characteristic polynomial.
 noncomputable def ofLp_linear : R3 →ₗ[ℝ] R3_raw := (WithLp.linearEquiv 2 ℝ R3_raw).toLinearMap
 
 noncomputable def to_R3_linear : R3_raw →ₗ[ℝ] R3 := (WithLp.linearEquiv 2 ℝ R3_raw).symm.toLinearMap
@@ -72,7 +80,6 @@ lemma charpoly_deg_3 (g : SO3) : (cpoly g).degree = 3 := by
 
 lemma charpoly_natdeg_3 (g : SO3) : (cpoly g).natDegree = 3 := by
   simp [cpoly]
-
 
 lemma num_roots_eq_deg (g : SO3) : (cpoly g).roots.card = (cpoly g).natDegree := by
   apply IsAlgClosed.card_roots_eq_natDegree
@@ -163,8 +170,6 @@ lemma flem (g : SO3) : z ∈ (cpoly g).roots → z = CONJ z → (z = 1 ∨ z = -
     apply Complex.ext
     · simp [normone]
     · simp
-
-
 
 lemma flem2 (g : SO3) : z ∈ (cpoly g).roots → (z ≠ 1 ∧ z ≠ -1) → (z ≠ CONJ z) := by
   intro lhs lhs2
@@ -1154,7 +1159,7 @@ lemma dim_ker (g : SO3) : g ≠ 1 → Module.finrank ℝ (K g) ≤ 1 := by
   rw [this] at bnd
   exact bnd
 
-
+-- The main result.
 set_option maxHeartbeats 1000000 in
 -- Lemma is slow
 lemma fixed_lemma (g : SO3) : g≠1 →

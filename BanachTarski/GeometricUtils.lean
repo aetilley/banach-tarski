@@ -1,10 +1,25 @@
 import Mathlib
 
 
-import BanachTarski.Rot
 import BanachTarski.Common
+import BanachTarski.Rot
 
+/-- Here we define `orbit`, the `Bad` set, and the parametrized families `rot` and `rot_iso`
+(defined and developed in the module Rot.lean) and `skew_rot`
+Crucially we prove that there are only countably many "Bad" "rot"s and "skew_rot"s.
+We work with `rot_iso` whenever possible, and only convert to a statement about `rot`
+at the end (using the `same_action` lemma).
 
+We also define as well as some geometric objects used by the main theorems
+like ball and cone, and the group G3 of isometries.
+
+We also prove some "obvious" things like that SO(3) is contained in G3 (the group of isometries)
+and some lemmas about cardinality of sets. -/
+
+----
+
+-- Section Goal:
+--lemma s2_uncountable : Uncountable (S2)
 
 -- The interval [0, π/2]
 def IccT := {x: ℝ // x ∈ (Set.Icc (0 : ℝ) (Real.pi/2 : ℝ))}
@@ -55,6 +70,12 @@ lemma s2_uncountable : Uncountable (S2) := by
 
 lemma lb_card_s2 : Cardinal.aleph0 < Cardinal.mk S2 := Cardinal.aleph0_lt_mk_iff.mpr s2_uncountable
 
+---
+--  Section Goal.
+-- lemma rot_containment_general (axis : S2) (subset_of_s2 : S ⊆ S2) :-
+--(∀r : ℝ, (orbit (rot axis r) S ⊆ S2))
+
+
 abbrev MAT1 := Matrix (Fin 3) (Fin 1) ℝ
 
 def v2m (v : R3_raw) : MAT1 := !![(v 0); (v 1); (v 2);]
@@ -66,8 +87,6 @@ lemma dot_as_matmul (u v : R3_raw) : u  ⬝ᵥ v = (((v2m u).transpose) * (v2m v
   rw [Fin.sum_univ_three]
   rw [Fin.sum_univ_three]
   simp
-
-
 
 
 lemma v2m_equiv (M : MAT) (v : R3_raw) : v2m (Matrix.mulVec M v) = M * (v2m v) := by
@@ -83,8 +102,6 @@ lemma v2m_equiv (M : MAT) (v : R3_raw) : v2m (Matrix.mulVec M v) = M * (v2m v) :
   <;> rw [Fin.sum_univ_three]
   <;> simp
 
-
-
 lemma dp_nonneg (v : R3_raw) : v ⬝ᵥ v ≥ 0 := by
   simp [dotProduct]
   rw [Fin.sum_univ_three]
@@ -94,8 +111,6 @@ lemma dp_nonneg (v : R3_raw) : v ⬝ᵥ v ≥ 0 := by
     · exact sq_nonneg (v 0)
     · exact sq_nonneg (v 1)
   · exact sq_nonneg (v 2)
-
-
 
 lemma so3_cancel_lem {g : SO3} : (g.val.transpose) * g = 1 := by
   have g_special:_:= g.property
@@ -159,8 +174,6 @@ lemma so3_fixes_s2 : ∀g : SO3, (f g) '' S2 ⊆ S2 := by
   exact lhs1
 
 
-------------------
-
 lemma triv_so3 : (f (1 : SO3)) = (fun x : R3 ↦ x) := by
   ext x
   simp [f]
@@ -198,6 +211,12 @@ lemma rot_containment_general (axis : S2) (subset_of_s2 : S ⊆ S2) :
 --------
 
 
+-- Section Goal:
+-- Define `Bad` and prove
+-- lemma countable_bad_rots : ∀S : Set R3, ∀ axis : S2,
+--  S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
+--  Countable (Bad (rot axis) S)
+
 def BadEl {X : Type*} {G : Type*} [Group G] [MulAction G X] (g : G) (S : Set X) : Prop :=
   ∃n : ℕ, n > 0 ∧ ∃s ∈ S, (f g)^[n] s ∈ S
 
@@ -224,7 +243,6 @@ lemma collapse_iter {X : Type*} {G : Type*} [Group G] [MulAction G X] (g h : G) 
     rw [←mul_assoc]
     simp
     rw [←smul_smul]
-
 
 
 lemma conj_bad_el {X : Type*} {G : Type*} [Group G] [MulAction G X] (g h : G) (S : Set X) :
@@ -265,8 +283,6 @@ def BadAtN_rot (ax : S2) (S : Set R3) (s t : S) (n : ℕ) : Set ℝ :=
 
 def BadAtN_rot_iso (ax : S2) (S : Set R3) (s t : S) (n : ℕ) : Set ℝ :=
   {θ : ℝ | (rot_iso ax θ)^[n+1] s.val = t.val}
-
-
 
 
 lemma rot_iso_comp_add (ax : S2) (t1 t2 : ℝ) :
@@ -353,10 +369,6 @@ lemma rot_iso_fixed (axis : S2) (v : R3) :
   exact this
 
 
-
-
-
-
 lemma BadAtN_rot_iso_equiv (axis : S2) : ∀S : Set R3, ∀(s t : S), ∀n : ℕ, S ⊆ S2 →
   (operp axis s) ≠ 0 → (BadAtN_rot_iso axis S s t n) ⊆
   {θ : ℝ | ∃k : ℤ, ((n + 1 : ℝ) * θ) = k * (2 * Real.pi) + (ang_diff axis s t).toReal} := by
@@ -387,7 +399,7 @@ BadAtN_rot ax S s t n = BadAtN_rot_iso ax S s t n := by
   simp
   simp [f]
   set T := (↑n + 1) * θ  with Tdef
-  rw [same_thing ax]
+  rw [same_action ax]
 
 
 def BadAt {X : Type*} {G : Type*} [Group G] [MulAction G X] (F : ℝ → G) (S : Set X) (s t : S) :
@@ -441,7 +453,6 @@ lemma bad_as_union_rot (axis : S2) : ∀S : Set R3, S ⊆ S2 →
   intro S s_sub_s2
   rw [bad_as_union]
   simp [BadAt]
-
 
 
 lemma BadAtN_rot_iso_countable (axis : S2) (S : Set R3) : ∀ (s t : S),
@@ -509,10 +520,6 @@ lemma BadAtN_rot_iso_countable (axis : S2) (S : Set R3) : ∀ (s t : S),
 
     exact better.mono sub
 
-
-
-
-
 lemma countable_bad_rots : ∀S : Set R3, ∀ axis : S2,
   S ⊆ S2 ∧ Countable S ∧ (axis.val ∉ S ∧ -axis.val ∉ S)  →
   Countable (Bad (rot axis) S) := by
@@ -533,6 +540,8 @@ lemma countable_bad_rots : ∀S : Set R3, ∀ axis : S2,
 
 --------
 
+-- Section Goals:
+-- Define the isometry group G3 and define an embedding of SO(3) into it.
 
 def ToEquivSO3 (g : SO3) : R3 ≃ R3 :=
   let lin_eq := Matrix.toLinearEquiv' g.val (so3_has_inv g)
@@ -549,10 +558,8 @@ def ToEquivSO3 (g : SO3) : R3 ≃ R3 :=
       rw [lin_eq.right_inv]
   }
 
-
-
 -- Group of Isometries of R3.
-abbrev G3 : Type := R3 ≃ᵢ R3
+abbrev G3 := R3 ≃ᵢ R3
 
 
 lemma so3_diff_lin (g : SO3) (x y : R3) : ((g • x) -  g • y) =  g • (x - y) := by
@@ -705,7 +712,8 @@ lemma SO3_G3_action_equiv : (∀x : R3, ∀g : SO3, (SO3_into_G3 g) • x  = g �
   intro x g; rfl
 
 -------------------------
-
+-- Section Goal:
+-- Misc. lemmas about balls and cones.
 
 def B3 : Set R3 := Metric.closedBall (0 : R3) 1
 def B3min : Set R3 := B3 \ {0}
@@ -971,13 +979,16 @@ lemma map_lemma (n : ℕ) (map : Fin n -> SO3) (famA : Fin n → S2_sub) (famB :
       exact psw.left.symm
 
 
+---
+-- Section Goal:
+-- define the family of rotation `skew_rot` and some basic propertis
+
 def x_axis_vec : R3 := to_R3 ![1, 0, 0]
 lemma x_axis_on_sphere : x_axis_vec ∈ S2 := by
   simp [S2, x_axis_vec, to_R3]
   simp [norm]
   simp [Fin.sum_univ_three]
 def x_axis : S2 := ⟨x_axis_vec, x_axis_on_sphere⟩
-
 
 
 -- This should be rotation around a line through (0,0,.5) in the x z plane parallel to the x-axis.
@@ -1036,8 +1047,6 @@ lemma skew_rot_comp_add (t1 t2 : ℝ) : (skew_rot t1) ∘ (skew_rot t2) = skew_r
   rw [←rot_iso_comp_add x_axis t1 t2]
   simp
 
-
-
 lemma skew_rot_power_lemma (r : ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := by
   induction n with
   | zero =>
@@ -1056,8 +1065,6 @@ lemma skew_rot_power_lemma (r : ℝ) : ((skew_rot r))^[n] = (skew_rot (n*r)) := 
     apply congrArg
     simp [Nat.cast_add]
     linarith
-
-
 
 lemma origin_cont (T : ℝ) : ‖(skew_rot T) origin‖ ≤ 1 := by
 
@@ -1096,20 +1103,6 @@ lemma srot_containment : ∀r : ℝ, orbit (skew_rot r) {origin} ⊆ B3 := by
   rw [←pn]
   simp
   exact origin_cont T
-
-
-
-lemma rot_iso_fixed_back (axis : S2) (v : R3) (k : ℤ) : (rot_iso axis (2 * Real.pi * k)) v = v := by
-  simp [rot_iso]
-  simp [rot_by_parts]
-  simp [rot_iso_plane_to_st, rot_iso_plane_equiv]
-
-  have angcoe: Real.Angle.coe (2 * Real.pi * ↑k) = (0:ℝ) := by
-    apply Real.Angle.angle_eq_iff_two_pi_dvd_sub.mpr
-    simp
-  rw [angcoe]
-  simp
-  exact (el_by_parts axis v).symm
 
 
 def origin_in_s : ({origin} : Set R3) := ⟨origin, (by simp)⟩
